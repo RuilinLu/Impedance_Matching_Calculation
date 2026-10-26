@@ -129,4 +129,4 @@ Impedance Matching AI is a standalone microwave-engineering desktop application 
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE). Third-party components and their licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the bundled MathJax license is at `app/impedance_mcp/web/vendor/mathjax/LICENSE`.
