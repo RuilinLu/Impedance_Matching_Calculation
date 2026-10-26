@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "impedance-mcp"
 version = "4.0.0"
 description = "智配芯生 · ImpedanceMCP — microwave impedance-matching calculation, simulation and MCP tools"
-readme = "../README.md"
+readme = { text = "智配芯生 · ImpedanceMCP — microwave impedance-matching AI agent and MCP toolkit", content-type = "text/markdown" }
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
