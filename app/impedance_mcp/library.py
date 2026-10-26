@@ -31,7 +31,8 @@ except Exception:  # pragma: no cover - older installations
     except Exception:  # pragma: no cover
         fitz = None  # type: ignore
 
-SUPPORTED_SUFFIXES = {".pdf", ".txt", ".md", ".markdown", ".tex", ".rst", ".csv"}
+OFFICE_SUFFIXES = {".docx", ".pptx", ".xlsx", ".xlsm", ".ipynb", ".doc", ".ppt", ".xls"}
+SUPPORTED_SUFFIXES = {".pdf", ".txt", ".md", ".markdown", ".tex", ".rst", ".csv"} | OFFICE_SUFFIXES
 MAX_OCR_PIXELS = 9_000_000
 DEFAULT_DPI = 150
 MAX_DPI = 300
@@ -294,10 +295,18 @@ def _index_document(conn: sqlite3.Connection, path: Path, ocr_first_pages: int =
         finally:
             doc.close()
     else:
-        texts = _read_text_document(path)
+        suffix = path.suffix.lower()
+        if suffix in OFFICE_SUFFIXES:
+            from . import attachments
+            info = attachments.extract(path, path.name)
+            full_text = _normalize_text(info.get("text") or "")
+        else:
+            full_text = "\n\n".join(_read_text_document(path))
+        size = 3500
+        texts = [full_text[i:i + size] for i in range(0, max(1, len(full_text)), size)] or [""]
         page_count = len(texts)
         pages = [(i + 1, _normalize_text(t), "text", "") for i, t in enumerate(texts)]
-        lang = _detect_lang("\n".join(texts[:3]))
+        lang = _detect_lang(full_text[:6000])
         title = _clean_title(path)
 
     now = datetime.now().isoformat(timespec="seconds")
@@ -1133,7 +1142,7 @@ def add_book(filename: str, content_b64: str) -> Dict[str, Any]:
     original = Path(str(filename or "book.pdf")).name
     suffix = Path(original).suffix.lower()
     if suffix not in SUPPORTED_SUFFIXES:
-        raise ValueError(f"教材库只索引 PDF / TXT / Markdown / TeX，收到：{suffix or '无扩展名'}")
+        raise ValueError(f"教材库支持 PDF / TXT / Markdown / TeX / DOCX / PPTX / XLSX / IPYNB，收到：{suffix or '无扩展名'}")
     try:
         raw = base64.b64decode(content_b64, validate=True)
     except (binascii.Error, ValueError) as exc:

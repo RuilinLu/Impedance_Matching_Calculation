@@ -53,6 +53,30 @@ def _decode_text(raw: bytes) -> str:
     return raw.decode("utf-8", errors="replace")
 
 
+def _ole_strings(raw: bytes, limit: int = 30000) -> str:
+    """Best-effort text recovery from legacy OLE .doc/.ppt/.xls files."""
+    chunks: List[str] = []
+    # UTF-16LE runs (Word/PowerPoint store most text this way).
+    try:
+        decoded = raw.decode("utf-16-le", errors="ignore")
+        for run in re.findall(r"[\u4e00-\u9fffA-Za-z0-9 \t,.;:+\-*/=()\[\]{}<>_%°µΩ]{4,}", decoded):
+            run = run.strip()
+            if len(run) >= 4 and run not in chunks:
+                chunks.append(run)
+    except Exception:
+        pass
+    # ASCII runs in the binary stream.
+    for run in re.findall(rb"[\x20-\x7e\r\n\t]{6,}", raw):
+        try:
+            text = run.decode("latin-1").strip()
+        except Exception:
+            continue
+        if len(text) >= 6 and text not in chunks:
+            chunks.append(text)
+    joined = "\n".join(chunks)
+    return joined[:limit]
+
+
 def _looks_text(raw: bytes) -> bool:
     if not raw:
         return True
@@ -344,8 +368,12 @@ def extract(path: Path, original_name: str = "") -> Dict[str, Any]:
         text, note = _archive_extract(path)
     elif suffix in LEGACY_OFFICE:
         kind = "legacy_office"
-        note = ("旧版二进制 Office 文件（.doc/.ppt/.xls）已保存；"
-                "建议另存为 DOCX/PPTX/XLSX 或 PDF 后重新上传。")
+        text = _ole_strings(raw)
+        note = ("旧版二进制 Office 文件（.doc/.ppt/.xls）：已尽量提取可读文本；"
+                "如排版/公式丢失，可另存为 DOCX/PPTX/XLSX 或 PDF 后重新上传。")
+        if not text:
+            note = ("旧版二进制 Office 文件（.doc/.ppt/.xls）已保存，但未提取到可读文本；"
+                    "建议另存为 DOCX/PPTX/XLSX 或 PDF 后重新上传。")
     elif _looks_text(raw):
         kind = "text"
         text = _decode_text(raw)

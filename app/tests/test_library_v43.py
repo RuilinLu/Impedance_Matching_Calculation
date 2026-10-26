@@ -105,6 +105,23 @@ class LibraryTests(unittest.TestCase):
         search = library.search("impedance matching", limit=4)
         self.assertGreaterEqual(search["count"], 1)
 
+    def test_docx_upload(self):
+        try:
+            import docx
+            import io
+        except Exception:
+            self.skipTest("python-docx is not installed")
+        document = docx.Document()
+        document.add_paragraph("Smith chart notes for a DOCX textbook")
+        document.add_paragraph("Reflection coefficient and matching network")
+        buffer = io.BytesIO()
+        document.save(buffer)
+        result = library.add_book("notes.docx", base64.b64encode(buffer.getvalue()).decode())
+        self.assertTrue(result["ok"], result)
+        library.sync_index(ocr_first_pages=0)
+        search = library.search("reflection coefficient", limit=4)
+        self.assertGreaterEqual(search["count"], 1)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

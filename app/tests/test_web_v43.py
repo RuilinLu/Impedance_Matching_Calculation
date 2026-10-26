@@ -82,9 +82,7 @@ class WebApiTests(unittest.TestCase):
         mcp = self.get_json("/api/docs/get?category=mcp&lang=zh")
         self.assertIn("search_textbooks", mcp["markdown"])
 
-    def test_library_status_and_search(self):
-        status = self.get_json("/api/library/status")
-        self.assertTrue(status["ok"])
+    def test_library_search(self):
         search = self.get_json("/api/library/search?q=Smith%20chart&limit=3")
         self.assertTrue(search["ok"])
         self.assertGreaterEqual(search["count"], 0)

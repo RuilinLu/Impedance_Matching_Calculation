@@ -385,6 +385,12 @@ def _validate_public_url(url: str) -> str:
     return url
 
 
+class _PublicRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _validate_public_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def _fetch(url: str, timeout: int = 12, max_bytes: int = 3_000_000,
            headers: Optional[Dict[str, str]] = None) -> str:
     _validate_public_url(url)
@@ -392,7 +398,8 @@ def _fetch(url: str, timeout: int = 12, max_bytes: int = 3_000_000,
         url, headers={"User-Agent": "ImpedanceMatchingAI/4.3 (+catalog-update)",
                       "Accept": "application/json,text/html;q=0.9,*/*;q=0.8",
                       **(headers or {})})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
+    opener = urllib.request.build_opener(_PublicRedirectHandler())
+    with opener.open(request, timeout=timeout) as response:
         raw = response.read(max_bytes + 1)
     if len(raw) > max_bytes:
         raw = raw[:max_bytes]

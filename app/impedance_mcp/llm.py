@@ -59,6 +59,12 @@ def _validate_url(url: str) -> urllib.parse.ParseResult:
     return parsed
 
 
+class _PublicRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _validate_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def normalize_base(base_url: str, api_style: str = "openai", chat_path: str = "") -> str:
     """Return a complete chat-completions URL.
 
@@ -134,8 +140,10 @@ def _open_json(url: str, body: Optional[Dict[str, Any]], headers: Dict[str, str]
     req = urllib.request.Request(url, data=data, headers=headers,
                                  method="POST" if body is not None else "GET")
     ctx = ssl.create_default_context()
+    opener = urllib.request.build_opener(
+        _PublicRedirectHandler(), urllib.request.HTTPSHandler(context=ctx))
     try:
-        with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+        with opener.open(req, timeout=timeout) as resp:
             raw = resp.read().decode("utf-8", errors="replace")
             return json.loads(raw)
     except urllib.error.HTTPError as exc:

@@ -7,7 +7,7 @@ A standalone microwave matching application and MCP server. It combines L/T/π d
 
 ## Highlights
 
-- **Textbook library**: local PDF indexing, full-text/fuzzy search, page rendering and zoom, OCR for scanned books (single page or page range), academic translation, full-page thumbnails and cropped citation screenshots.
+- **Textbook library**: local PDF/DOCX/PPTX/XLSX indexing, full-text/fuzzy search, page rendering and zoom, OCR for scanned books (single page or page range), academic translation, full-page thumbnails and cropped citation screenshots.
 - **Documentation centre**: four searchable domains (application, code, AI interface, MCP) with every-word highlighting and previous/next match navigation. Code reference is generated from the live AST.
 - **Any-file agent input**: PDF, DOCX, PPTX, XLSX, source code, images, archives and arbitrary binaries; clipboard and drag-and-drop; vision models receive page/image content.
 - **Complete offline LaTeX**: AI answers and documentation render `$...$`, `\(...\)`, `$$...$$`, `\[...\]`, `align`, `cases`, matrices, physics/chemistry extensions; no CDN required.
