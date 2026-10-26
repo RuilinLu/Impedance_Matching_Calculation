@@ -342,6 +342,7 @@
     const llm = cfg.llm || {};
     $("#setBaseUrl").value = llm.base_url || "";
     $("#setApiKey").value = "";
+    $("#setModelCustom").value = "";
     $("#setApiKey").placeholder = llm.has_key ? `已配置 ${llm.key_hint || ""}（留空不修改）` : "sk-…";
     $("#setTemp").value = llm.temperature != null ? llm.temperature : 0.25;
     $("#setMaxTokens").value = llm.max_tokens || 2600;
@@ -400,7 +401,7 @@
     const llm = {
       provider,
       base_url: $("#setBaseUrl").value.trim(),
-      model: $("#setModel").value,
+      model: ($("#setModelCustom").value.trim() || $("#setModel").value),
       temperature: Number($("#setTemp").value),
       max_tokens: Number($("#setMaxTokens").value),
     };
@@ -427,7 +428,7 @@
     const llm = {
       provider: $("#setProvider").value,
       base_url: $("#setBaseUrl").value.trim(),
-      model: $("#setModel").value,
+      model: ($("#setModelCustom").value.trim() || $("#setModel").value),
       temperature: Number($("#setTemp").value),
       max_tokens: Number($("#setMaxTokens").value),
     };
