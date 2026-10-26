@@ -31,7 +31,7 @@ Release 提供完整安装程序、Windows 便携版、MCP 独立程序和源码
 
 | 资产 | 用途 |
 |---|---|
-| `Impedance_Matching_AI_v4.3.0_Setup.exe` | 完整安装程序：主程序 + MCP + 离线说明书 + 教材数据库 + VC++/WebView2 检测 |
+| `Impedance_Matching_AI_v4.3.0_Setup.exe` | 约 365 MB · 完整安装程序：主程序 + MCP + 离线说明书 + 教材数据库 + VC++/WebView2 检测 |
 | `Impedance_Matching_AI_v4.3.0_Portable.exe` | 免安装便携版，双击即用 |
 | `Impedance_Matching_AI_v4.3.0_MCP.exe` | 独立 MCP 服务（stdio / HTTP / SSE） |
 | `Impedance_Matching_AI_v4.3.0_Source.zip` | 干净源码，不含教材、用户数据、API Key |

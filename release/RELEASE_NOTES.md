@@ -12,7 +12,7 @@
 
 | 资产 | 大小 | 说明 |
 |---|---:|---|
-| `Impedance_Matching_AI_v4.3.0_Setup.exe` | 约 175 MB | 完整安装程序：主程序 + MCP + 离线说明书 + 教材数据库 + VC++/WebView2 检测 |
+| `Impedance_Matching_AI_v4.3.0_Setup.exe` | 约 365 MB | 完整安装程序：主程序 + MCP + 离线说明书 + 教材数据库 + VC++/WebView2 检测 |
 | `Impedance_Matching_AI_v4.3.0_Portable.exe` | 约 172 MB | 免安装便携版 |
 | `Impedance_Matching_AI_v4.3.0_MCP.exe` | 约 172 MB | 独立 MCP stdio / HTTP / SSE 服务 |
 | `Impedance_Matching_AI_v4.3.0_Source.zip` | 约 6 MB | 干净源码（含说明书、安装器脚本、测试，不含教材/用户数据/API Key） |
