@@ -11,6 +11,21 @@
 > “智绘芯生，AI 赋能” AI 教与学活动周 · 赛道一（AI 智能体）
 > 开发者：**卢瑞林、卢柯吉、林芷伊、张昀蕾** ｜ 更新日期：**2026-10-26**
 
+---
+
+## 0. 下载：一个压缩包
+
+Release 只保留两个资产，不再分散：
+
+- [`ImpedanceMCP_v4.3.0_Full_Bundle.zip`](https://github.com/RuilinLu/Impedance_Matching_Calculation/releases/tag/v4.3.0)（约 199 MB）：安装程序、原生窗口便携版、便携 MCP、源码、全部 PDF、原版 MATLAB 经典程序、VC++、WebView2 安装器、内部校验清单；
+- `SHA256SUMS.txt`：压缩包本身的校验值。
+
+**MATLAB Runtime 单独下载**：官方 Windows ZIP 约 4.64 GB，超过 GitHub 单文件 2 GiB 上限，无法放入 Release；`MyAppInstaller_mcr.exe`（约 974 MB）也未放入。新版软件/MCP 不需要 Runtime，只有原版 Classic 需要：
+
+<https://ww2.mathworks.cn/products/compiler/matlab-runtime.html>
+
+选择 **R2023b / Update 10 / Windows 64-bit**。
+
 ![设计界面](docs/assets/screenshot_design.png)
 
 ---

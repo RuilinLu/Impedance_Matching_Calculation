@@ -124,21 +124,33 @@ ImpedanceMCP_MCP.exe   MCP stdio / HTTP+SSE（console 子系统，stdout 纯净�
 
 ---
 
-## 七、附件
+## 七、下载方式：一个压缩包，不再分散
 
-- `ImpedanceMCP_Setup_v4.3.0.exe`：Windows 安装程序（推荐）
-- `ImpedanceMCP_v4.3.0_Portable.exe`：原生窗口便携版
-- `ImpedanceMCP_v4.3.0_Portable_MCP.exe`：便携版 MCP 控制台
-- `ImpedanceMCP_v4.3.0_Source.zip`：完整源码与文档
-- `User_Manual_v4.3.0.pdf`
-- `White_Paper_v4.3.0.pdf`
-- `Competition_Dossier_v4.3.0.pdf`
-- `MCP_Compatibility_v4.3.0.pdf`
-- `Calculation_Audit_v4.3.0.pdf`
-- `Installation_And_Antivirus_v4.3.0.pdf`
-- `SHA256SUMS.txt`
+Release 只保留两个资产：
 
-> 974 MB 的 `MyAppInstaller_mcr.exe` 与 4.6 GB 的 Runtime ZIP 不放入 GitHub Release（体积限制）；它们位于项目 `APP_Release_Release_Version` 目录，安装指南中有说明。
+- **`ImpedanceMCP_v4.3.0_Full_Bundle.zip`**：一键下载包（约 199 MB），包含：
+  - `Installer/ImpedanceMCP_Setup_v4.3.0.exe`
+  - `Portable/ImpedanceMCP_v4.3.0_Portable.exe`
+  - `Portable/ImpedanceMCP_v4.3.0_Portable_MCP.exe`
+  - `Source/ImpedanceMCP_v4.3.0_Source.zip`
+  - `Classic/Impedance_Matching.exe`（原版 V3.0 MATLAB 程序）
+  - `Prerequisites/VC_redist.x64.exe`
+  - `Prerequisites/MicrosoftEdgeWebview2Setup.exe`
+  - 全部 PDF 帮助文档、`START_HERE.txt`、内部 `SHA256SUMS.txt`
+- **`SHA256SUMS.txt`**：压缩包本身的校验值。
+
+**MATLAB Runtime 不放入 Release**：
+
+- 官方完整 Windows ZIP 为 **4,643,967,798 bytes（约 4.32 GiB）**；
+- GitHub Release 单个文件上限是 **2 GiB**，因此无法上传；
+- 项目内的 `MyAppInstaller_mcr.exe` 约 **974 MB**，也未放入，以控制包体积；
+- 新版 ImpedanceMCP 与 MCP **不需要 Runtime**，只有 `Classic/Impedance_Matching.exe` 需要。
+
+请从 MathWorks 官方页面下载 R2023b Update 10 Windows 64-bit：
+
+<https://ww2.mathworks.cn/products/compiler/matlab-runtime.html>
+
+包内 `Prerequisites/MATLAB_Runtime_Download.txt` 也写了同样的链接和选择步骤。
 
 ---
 
