@@ -1,10 +1,10 @@
 """
 Core RF impedance-matching engine.
 
-The formulas in this module are a 1:1 port of the MATLAB App Designer
-implementation (MW_V1.m, V3.0).  Every design is additionally verified with an
-independent nodal analysis of the complete network, so a result is never
-reported unless the input impedance really is Z0.
+The analytical formulas follow the classical L/T/π matching-network design
+procedure.  Every design is additionally verified with an independent nodal
+analysis of the complete network, so a result is never reported unless the
+input impedance really is Z0.
 
 Units used on the public API:
     frequency   MHz

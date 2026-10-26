@@ -1,17 +1,19 @@
 /* ==========================================================================
-   智配芯生 · ImpedanceMCP — application logic
+   Impedance Matching AI — application logic
    ========================================================================== */
 
 (function () {
   "use strict";
 
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+  const T = (key, fallback) => (window.I18N ? window.I18N.t(key, fallback) : (fallback || key));
 
   const STATE = {
     view: "agent",
     topology: "auto",
     design: null,
+    lastStress: null,
     config: null,
     status: null,
     chat: [],
@@ -22,6 +24,10 @@
     providers: [],
     providerChanged: false,
     lastAssistant: null,
+    lastStats: null,
+    lastUsage: null,
+    profileMeta: null,
+    catalogLog: [],
   };
 
   const MCP_TOOLS = [
@@ -37,29 +43,46 @@
     ["search_knowledge", "检索知识库", "本地微波知识"],
     ["validate_design", "工程校验", "风险清单"],
     ["export_design_report", "导出设计报告", "HTML / MD"],
-    ["launch_classic_app", "启动原版软件", "Impedance_Matching.exe"],
-    ["get_system_status", "检查系统状态", "MATLAB / LLM"],
+    ["search_textbooks", "检索教材", "全文 / 模糊 / 引用"],
+    ["read_textbook_page", "读取教材页", "文字 / OCR / 截图"],
+    ["translate_textbook_page", "翻译教材页", "学术中文 / 英文"],
+    ["search_docs", "检索软件文档", "功能 / 代码 / AI / MCP"],
+    ["get_code_reference", "查询代码参考", "签名与参数"],
+    ["get_library_status", "检查教材库", "索引 / OCR 状态"],
+    ["get_system_status", "检查系统状态", "模型 / MCP / 目录"],
     ["list_presets", "读取演示预设", "常用频段"],
   ];
 
   const VIEW_META = {
-    agent: ["AI 智能体", "用自然语言驱动微波阻抗匹配计算、仿真与工程决策"],
-    design: ["匹配设计", "五种拓扑 · 解析求解 · 完整网络节点法复核"],
-    analysis: ["圆图分析", "正向扫描可匹配范围，比较拓扑与带宽"],
-    stress: ["耐压分析", "峰值电压、RMS 电流与安全系数"],
-    help: ["帮助文档", "用户手册 · 计算审计 · MCP 兼容性 · 安装与排查"],
-    about: ["关于与团队", "智配芯生 · ImpedanceMCP v4.3.0"],
+    agent: {
+      zh: ["AI 智能体", "用自然语言驱动微波阻抗匹配计算、仿真与教材检索"],
+      en: ["AI Agent", "Drive matching design, simulation and textbook search with natural language"],
+    },
+    design: {
+      zh: ["匹配设计", "五种拓扑 · 解析求解 · 完整网络节点法复核"],
+      en: ["Design", "Five topologies · analytical solution · full nodal verification"],
+    },
+    analysis: {
+      zh: ["圆图分析", "正向扫描可匹配范围，密度云与边界可视化"],
+      en: ["Smith Analysis", "Forward scan of the matchable region with density and boundary"],
+    },
+    stress: {
+      zh: ["耐压分析", "峰值电压、RMS 电流与安全系数"],
+      en: ["Voltage Stress", "Peak voltage, RMS current and safety factor"],
+    },
+    library: {
+      zh: ["教材库", "全文搜索 · OCR · 页面定位 · 学术翻译"],
+      en: ["Textbook Library", "Full-text search · OCR · page location · academic translation"],
+    },
+    docs: {
+      zh: ["文档中心", "软件功能 · 代码参考 · AI 接口 · MCP 协议"],
+      en: ["Documentation", "Application · code reference · AI interface · MCP protocol"],
+    },
+    about: {
+      zh: ["关于", "Impedance Matching AI v4.3.0"],
+      en: ["About", "Impedance Matching AI v4.3.0"],
+    },
   };
-
-  const HELP_DOCS = [
-    { file: "用户手册.html", title: "用户手册", desc: "安装、界面、设计、MCP 与常见问题", keys: "安装 启动 界面 设计 圆图 耐压 MCP 常见问题" },
-    { file: "MCP兼容性说明.html", title: "MCP 兼容性说明", desc: "stdio / Streamable HTTP / SSE · 客户端矩阵", keys: "MCP Claude Code Codex ZCode Cursor Cherry Studio Chatbox" },
-    { file: "计算正确性审计.html", title: "计算正确性审计", desc: "公式推导 · ABCD 级联 · 节点法 · 测试结论", keys: "公式 ABCD 节点法 审计 正确性 微波 电磁场" },
-    { file: "技术白皮书.html", title: "技术白皮书", desc: "总体架构、计算模型、协议与验证", keys: "技术 白皮书 架构 公式 验证" },
-    { file: "软件架构说明.html", title: "软件架构说明", desc: "目录、模块、数据流与测试", keys: "架构 模块 目录 数据流 测试" },
-    { file: "比赛说明文档.html", title: "比赛说明文档", desc: "赛道一 · 作品说明与演示脚本", keys: "比赛 赛道 演示 团队 作品" },
-    { file: "安装与杀毒软件说明.html", title: "安装与杀毒软件说明", desc: "安装、依赖、代码签名与误报处理", keys: "安装 杀毒 签名 误报 Runtime 卡巴斯基 防火墙" },
-  ];
 
   const TOPO_DESC = {
     auto: "自动比较五种拓扑，优先选择元件更少、可实现性更好的方案。",
@@ -69,43 +92,84 @@
     pi1: "π型Ⅰ：源端并 C3—串 L+C2—负载端并 C1，C-L-C 结构。",
     pi2: "π型Ⅱ：源端并 C1—串 L+C2—负载端并 C3，适合低阻负载。",
   };
-  const TOPO_SHORT = { auto: "自动", l_right: "L·右", l_left: "L·左", t: "T", pi1: "πⅠ", pi2: "πⅡ" };
+  const TOPO_DESC_EN = {
+    auto: "Compares five topologies and prefers fewer components with practical values.",
+    l_right: "L-right: shunt C1 at the source, then series L/C2; for R_L < 50 Ω.",
+    l_left: "L-left: series L/C2, then shunt C1 at the load; for R_L > 50 Ω.",
+    t: "T: series C3 — node (shunt L+C2) — series C1 — load; three elements for bandwidth control.",
+    pi1: "π-I: shunt C3 — series L+C2 — shunt C1; C-L-C structure.",
+    pi2: "π-II: shunt C1 — series L+C2 — shunt C3; for low-impedance loads.",
+  };
+  const TOPO_SHORT = { auto: "Auto", l_right: "L·R", l_left: "L·L", t: "T", pi1: "πⅠ", pi2: "πⅡ" };
+  const TOPO_NAME_EN = {
+    auto: "Auto", l_right: "L-type (right)", l_left: "L-type (left)",
+    t: "T-type", pi1: "π-type I", pi2: "π-type II",
+  };
   const TOPO_HAS_C3 = { t: true, pi1: true, pi2: true };
+  let scanChart = null;
+
+  function topologyName(design) {
+    if (!design) return "—";
+    if (window.I18N && window.I18N.lang === "en") {
+      return TOPO_NAME_EN[design.topology] || design.topology_name || design.topology || "—";
+    }
+    return design.topology_name || design.topology || "—";
+  }
+
+  function stepLabel(step) {
+    if (!step) return "—";
+    if (!(window.I18N && window.I18N.lang === "en")) return step.label || "—";
+    return `${step.kind === "series" ? "Series" : "Shunt"} ${step.element || ""}`.trim();
+  }
+
+  function stepNote(step) {
+    if (!step) return "";
+    if (!(window.I18N && window.I18N.lang === "en")) return step.note || "";
+    const element = String(step.element || "").toUpperCase();
+    if (step.kind === "series") {
+      return element.includes("L")
+        ? "Move along the constant-resistance circle; series inductance adds +jX."
+        : "Move along the constant-resistance circle; series capacitance adds −jX.";
+    }
+    return element.includes("C")
+      ? "Move along the constant-conductance circle; shunt capacitance adds +jB."
+      : "Move along the constant-conductance circle; shunt inductance adds −jB.";
+  }
 
   /* ------------------------------------------------------------------ */
   /* Utilities                                                          */
   /* ------------------------------------------------------------------ */
-  function escapeHtml(s) {
-    return String(s == null ? "" : s)
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
-  function fmt(x, digits = 3) {
-    if (x === null || x === undefined || Number.isNaN(Number(x))) return "—";
-    if (!isFinite(Number(x))) return "∞";
-    const n = Number(x);
-    if (Math.abs(n) >= 1000) return n.toFixed(0);
-    if (Math.abs(n) > 0 && Math.abs(n) < 0.001) return n.toExponential(2);
-    return n.toFixed(digits).replace(/\.?0+$/, "");
+  function fmt(value, digits = 3) {
+    if (value === null || value === undefined || Number.isNaN(Number(value))) return "—";
+    if (!isFinite(Number(value))) return "∞";
+    const number = Number(value);
+    if (Math.abs(number) >= 1000) return number.toFixed(0);
+    if (Math.abs(number) > 0 && Math.abs(number) < 0.001) return number.toExponential(2);
+    return number.toFixed(digits).replace(/\.?0+$/, "");
   }
 
-  function fmtFixed(x, digits = 3) {
-    if (x === null || x === undefined || Number.isNaN(Number(x))) return "—";
-    if (!isFinite(Number(x))) return "∞";
-    return Number(x).toFixed(digits);
+  function fmtFixed(value, digits = 3) {
+    if (value === null || value === undefined || Number.isNaN(Number(value))) return "—";
+    if (!isFinite(Number(value))) return "∞";
+    return Number(value).toFixed(digits);
   }
 
-  function fmtS11(v) {
-    const n = Number(v);
-    if (!isFinite(n)) return "—";
-    return n <= -60 ? "&lt; −60 dB" : `${n.toFixed(2)} dB`;
+  function fmtS11(value) {
+    const number = Number(value);
+    if (!isFinite(number)) return "—";
+    return number <= -60 ? "&lt; −60 dB" : `${number.toFixed(2)} dB`;
   }
 
-  function fmtRL(v) {
-    const n = Number(v);
-    if (!isFinite(n)) return "—";
-    return n >= 60 ? "&gt; 60 dB（理想）" : `${n.toFixed(2)} dB`;
+  function fmtRL(value) {
+    const number = Number(value);
+    if (!isFinite(number)) return "—";
+    return number >= 60 ? "&gt; 60 dB" : `${number.toFixed(2)} dB`;
   }
 
   function fmtComp(comps, key) {
@@ -122,37 +186,54 @@
     return "—";
   }
 
-  function vswrClass(v) {
-    if (!isFinite(v)) return "bad";
-    if (v <= 1.5) return "good";
-    if (v <= 2) return "warn";
+  function vswrClass(value) {
+    if (!isFinite(value)) return "bad";
+    if (value <= 1.5) return "good";
+    if (value <= 2) return "warn";
     return "bad";
+  }
+
+  function fmtTokens(value) {
+    const number = Number(value) || 0;
+    if (number >= 1e6) return (number / 1e6).toFixed(2) + "M";
+    if (number >= 1000) return (number / 1000).toFixed(1) + "k";
+    return String(Math.round(number));
+  }
+
+  function fmtMoney(value, currency, configured) {
+    if (configured === false) return "—";
+    const symbol = String(currency || "CNY").toUpperCase() === "USD" ? "$" : "¥";
+    const number = Number(value) || 0;
+    if (number > 0 && number < 0.01) return symbol + number.toFixed(5);
+    if (number < 1) return symbol + number.toFixed(4);
+    return symbol + number.toFixed(3);
   }
 
   function toast(title, message = "", type = "ok", ms = 3600) {
     const wrap = $("#toastWrap");
-    const el = document.createElement("div");
-    el.className = `toast ${type}`;
-    el.innerHTML = `<b>${escapeHtml(title)}</b>${message ? escapeHtml(message) : ""}`;
-    wrap.appendChild(el);
+    if (!wrap) return;
+    const element = document.createElement("div");
+    element.className = `toast ${type}`;
+    element.innerHTML = `<b>${escapeHtml(title)}</b>${message ? escapeHtml(message) : ""}`;
+    wrap.appendChild(element);
     setTimeout(() => {
-      el.style.opacity = "0";
-      el.style.transform = "translateY(6px)";
-      el.style.transition = ".25s";
-      setTimeout(() => el.remove(), 300);
+      element.style.opacity = "0";
+      element.style.transform = "translateY(6px)";
+      element.style.transition = ".25s";
+      setTimeout(() => element.remove(), 300);
     }, ms);
   }
 
   async function api(path, options = {}) {
     const opts = Object.assign({ headers: { "Content-Type": "application/json" } }, options);
     if (opts.body && typeof opts.body !== "string") opts.body = JSON.stringify(opts.body);
-    const res = await fetch(path, opts);
+    const response = await fetch(path, opts);
     let data = {};
-    try { data = await res.json(); } catch (e) { data = {}; }
-    if (!res.ok || data.ok === false) {
-      const err = new Error(data.message || data.error_message || `请求失败（HTTP ${res.status}）`);
-      err.data = data;
-      throw err;
+    try { data = await response.json(); } catch (e) { data = {}; }
+    if (!response.ok || data.ok === false) {
+      const error = new Error(data.message || data.error_message || `Request failed (HTTP ${response.status})`);
+      error.data = data;
+      throw error;
     }
     return data;
   }
@@ -160,34 +241,29 @@
   function openDocument(url) {
     let target;
     try { target = new URL(url, window.location.href).href; } catch (e) { target = url; }
-    // Native build: ask the WebView2 shell for a real child window.
     if (window.pywebview && window.pywebview.api && window.pywebview.api.open_window) {
       try {
         Promise.resolve(window.pywebview.api.open_window(target)).then((opened) => {
           if (!opened) window.open(target, "_blank", "noopener");
         }).catch(() => window.open(target, "_blank", "noopener"));
         return;
-      } catch (e) { /* fall through to browser */ }
+      } catch (e) { /* fall through */ }
     }
     window.open(target, "_blank", "noopener");
   }
 
-  function downloadUrl(url) {
-    openDocument(url);
-  }
-
-  async function copyText(text) {
+  async function copyText(text, message) {
     try {
       await navigator.clipboard.writeText(text);
-      toast("已复制", "MCP 配置已复制到剪贴板。", "ok");
+      toast(T("common.copied", "已复制"), message || "", "ok");
     } catch (e) {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand("copy"); toast("已复制", "MCP 配置已复制到剪贴板。", "ok"); }
+      const area = document.createElement("textarea");
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      try { document.execCommand("copy"); toast(T("common.copied", "已复制"), message || "", "ok"); }
       catch (err) { toast("复制失败", "请手动选择文本复制。", "err"); }
-      ta.remove();
+      area.remove();
     }
   }
 
@@ -195,48 +271,49 @@
   /* Markdown renderer                                                  */
   /* ------------------------------------------------------------------ */
   function inlineMd(text) {
-    let s = escapeHtml(text);
-    s = s.replace(/`([^`]+)`/g, (m, c) => `<code>${c}</code>`);
-    s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-    s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    let value = escapeHtml(text);
+    value = value.replace(/`([^`]+)`/g, (match, code) => `<code>${code}</code>`);
+    value = value.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    value = value.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    value = value.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
       '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
-    return s;
+    value = value.replace(/\[\[([^\]]+)\]\]/g, "<mark>$1</mark>");
+    return value;
   }
 
-  function renderMarkdown(src) {
-    if (!src) return "";
+  function renderMarkdown(source) {
+    if (!source) return "";
     const codeBlocks = [];
-    let text = String(src).replace(/```([a-zA-Z0-9_+-]*)\n?([\s\S]*?)```/g, (m, lang, code) => {
+    let text = String(source).replace(/```([a-zA-Z0-9_+-]*)\n?([\s\S]*?)```/g, (match, lang, code) => {
       codeBlocks.push(`<pre><code>${escapeHtml(code.replace(/\n$/, ""))}</code></pre>`);
       return `@@CODEBLOCK${codeBlocks.length - 1}@@`;
     });
     const lines = text.split(/\r?\n/);
     const out = [];
-    let para = [];
+    let paragraph = [];
     let list = null;
     let table = null;
 
-    const flushPara = () => {
-      if (para.length) {
-        out.push(`<p>${para.map(inlineMd).join("<br>")}</p>`);
-        para = [];
+    const flushParagraph = () => {
+      if (paragraph.length) {
+        out.push(`<p>${paragraph.map(inlineMd).join("<br>")}</p>`);
+        paragraph = [];
       }
     };
     const flushList = () => {
       if (list) {
-        out.push(`<${list.type}>${list.items.map((x) => `<li>${inlineMd(x)}</li>`).join("")}</${list.type}>`);
+        out.push(`<${list.type}>${list.items.map((item) => `<li>${inlineMd(item)}</li>`).join("")}</${list.type}>`);
         list = null;
       }
     };
     const flushTable = () => {
       if (table) {
-        const rows = table.rows.filter((r) => !r.separator);
+        const rows = table.rows.filter((row) => !row.separator);
         if (rows.length) {
           const head = rows[0];
           const body = rows.slice(1);
-          out.push("<table><thead><tr>" + head.cells.map((c) => `<th>${inlineMd(c)}</th>`).join("") +
-            "</tr></thead><tbody>" + body.map((r) => "<tr>" + r.cells.map((c) => `<td>${inlineMd(c)}</td>`).join("") + "</tr>").join("") +
+          out.push("<table><thead><tr>" + head.cells.map((cell) => `<th>${inlineMd(cell)}</th>`).join("") +
+            "</tr></thead><tbody>" + body.map((row) => "<tr>" + row.cells.map((cell) => `<td>${inlineMd(cell)}</td>`).join("") + "</tr>").join("") +
             "</tbody></table>");
         }
         table = null;
@@ -246,68 +323,82 @@
     for (const rawLine of lines) {
       const line = rawLine.replace(/\s+$/, "");
       if (/^\s*\|.*\|\s*$/.test(line)) {
-        flushPara(); flushList();
-        const cells = line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
-        const separator = cells.every((c) => /^:?-{2,}:?$/.test(c));
+        flushParagraph(); flushList();
+        const cells = line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+        const separator = cells.every((cell) => /^:?-{2,}:?$/.test(cell));
         if (!table) table = { rows: [] };
         table.rows.push({ cells, separator });
         continue;
       }
       if (table) flushTable();
-      if (!line.trim()) { flushPara(); flushList(); continue; }
-      if (/^#{1,4}\s+/.test(line)) {
-        flushPara(); flushList();
-        const level = Math.min(4, (line.match(/^#+/) || ["#"])[0].length);
+      if (!line.trim()) { flushParagraph(); flushList(); continue; }
+      if (/^#{1,6}\s+/.test(line)) {
+        flushParagraph(); flushList();
+        const level = Math.min(6, (line.match(/^#+/) || ["#"])[0].length);
         out.push(`<h${level}>${inlineMd(line.replace(/^#+\s+/, ""))}</h${level}>`);
         continue;
       }
       if (/^>\s?/.test(line)) {
-        flushPara(); flushList();
+        flushParagraph(); flushList();
         out.push(`<blockquote>${inlineMd(line.replace(/^>\s?/, ""))}</blockquote>`);
         continue;
       }
       const ul = line.match(/^\s*[-*+]\s+(.*)$/);
       if (ul) {
-        flushPara();
+        flushParagraph();
         if (!list || list.type !== "ul") { flushList(); list = { type: "ul", items: [] }; }
         list.items.push(ul[1]);
         continue;
       }
       const ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
       if (ol) {
-        flushPara();
+        flushParagraph();
         if (!list || list.type !== "ol") { flushList(); list = { type: "ol", items: [] }; }
         list.items.push(ol[1]);
         continue;
       }
       if (/^\s*([-*_])\1{2,}\s*$/.test(line)) {
-        flushPara(); flushList(); out.push("<hr>"); continue;
+        flushParagraph(); flushList(); out.push("<hr>"); continue;
       }
       flushList();
-      para.push(line);
+      paragraph.push(line);
     }
-    flushPara(); flushList(); flushTable();
+    flushParagraph(); flushList(); flushTable();
     let html = out.join("");
-    html = html.replace(/@@CODEBLOCK(\d+)@@/g, (m, i) => codeBlocks[Number(i)] || "");
+    html = html.replace(/@@CODEBLOCK(\d+)@@/g, (match, index) => codeBlocks[Number(index)] || "");
     return html;
   }
 
   /* ------------------------------------------------------------------ */
   /* Navigation                                                         */
   /* ------------------------------------------------------------------ */
-  function showView(name) {
+  function viewMeta(name) {
+    const meta = VIEW_META[name] || VIEW_META.agent;
+    return (window.I18N && window.I18N.lang === "en") ? meta.en : meta.zh;
+  }
+
+  function showView(name, options = {}) {
     if (!VIEW_META[name]) name = "agent";
     STATE.view = name;
-    $$(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.view === name));
-    $$(".view").forEach((v) => v.classList.toggle("active", v.id === `view-${name}`));
-    const [title, sub] = VIEW_META[name];
+    $$(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === name));
+    $$(".view").forEach((view) => view.classList.toggle("active", view.id === `view-${name}`));
+    const [title, subtitle] = viewMeta(name);
     $("#viewTitle").textContent = title;
-    $("#viewSubtitle").textContent = sub;
+    $("#viewSubtitle").textContent = subtitle;
     if (location.hash !== `#${name}`) history.replaceState(null, "", `#${name}`);
     if (name === "design" && !STATE.design) $("#emptyDesign").classList.remove("hidden");
-    if (name === "about") refreshMcpCode();
     if (name === "design" && STATE.design) setTimeout(redrawDesignCharts, 50);
+    if (name === "analysis" && scanChart) setTimeout(() => scanChart.draw(), 60);
     if (name === "stress" && STATE.lastStress) setTimeout(() => renderStress(STATE.lastStress), 50);
+    if (name === "library" && window.Library && !options.skipLibrary) {
+      window.Library.onShow();
+    }
+    if (name === "docs" && window.Docs && !options.skipDocs) {
+      window.Docs.onShow();
+    }
+    if (name === "about") refreshMcpCode();
+    const quick = window.Assistant;
+    if (quick && quick.updateContextLabel) quick.updateContextLabel();
   }
 
   function redrawDesignCharts() {
@@ -316,12 +407,12 @@
   }
 
   function initNav() {
-    $$(".nav-item").forEach((btn) => btn.addEventListener("click", () => showView(btn.dataset.view)));
+    $$(".nav-item").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
     const hash = (location.hash || "").replace("#", "");
     if (VIEW_META[hash]) showView(hash);
     window.addEventListener("hashchange", () => {
-      const h = (location.hash || "").replace("#", "");
-      if (VIEW_META[h] && h !== STATE.view) showView(h);
+      const value = (location.hash || "").replace("#", "");
+      if (VIEW_META[value] && value !== STATE.view) showView(value);
     });
   }
 
@@ -330,126 +421,133 @@
   /* ------------------------------------------------------------------ */
   async function loadProviders() {
     try {
-      const r = await api("/api/providers");
-      STATE.providers = r.providers || [];
+      const result = await api("/api/providers");
+      STATE.providers = result.providers || [];
       populateProviderSelect();
-    } catch (e) {
+    } catch (error) {
       STATE.providers = [];
-      toast("服务商目录加载失败", e.message, "err", 6000);
+      toast("服务商目录加载失败", error.message, "err", 6000);
     }
   }
 
   function providerById(id) {
-    return (STATE.providers || []).find((p) => p.id === id) || null;
+    return (STATE.providers || []).find((provider) => provider.id === id) || null;
   }
 
-  function providerLabel(p) {
-    if (!p) return "";
-    const zh = p.name_zh || p.name || p.id;
-    if (p.name && p.name !== zh && !/[\u4e00-\u9fff]/.test(p.name)) {
-      return `${zh}（${p.name}）`;
+  function providerLabel(provider) {
+    if (!provider) return "";
+    const zh = provider.name_zh || provider.name || provider.id;
+    if (provider.name && provider.name !== zh && !/[\u4e00-\u9fff]/.test(provider.name)) {
+      return `${zh}（${provider.name}）`;
     }
     return zh;
   }
 
   function populateProviderSelect() {
-    const sel = $("#setProvider");
-    if (!sel) return;
-    const featured = STATE.providers.filter((p) => p.featured);
-    const rest = STATE.providers.filter((p) => !p.featured);
-    const opt = (p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(providerLabel(p))}</option>`;
-    sel.innerHTML = `<option value="">请选择模型服务商</option>` +
-      (featured.length ? `<optgroup label="常用服务商">${featured.map(opt).join("")}</optgroup>` : "") +
-      (rest.length ? `<optgroup label="全部服务商（${rest.length}）">${rest.map(opt).join("")}</optgroup>` : "") +
+    const select = $("#setProvider");
+    if (!select) return;
+    const featured = STATE.providers.filter((provider) => provider.featured);
+    const rest = STATE.providers.filter((provider) => !provider.featured);
+    const option = (provider) => `<option value="${escapeHtml(provider.id)}">${escapeHtml(providerLabel(provider))}</option>`;
+    select.innerHTML = `<option value="">请选择模型服务商</option>` +
+      (featured.length ? `<optgroup label="常用 / Featured">${featured.map(option).join("")}</optgroup>` : "") +
+      (rest.length ? `<optgroup label="全部 / All (${rest.length})">${rest.map(option).join("")}</optgroup>` : "") +
       `<option value="custom">自定义 OpenAI 兼容服务</option>`;
   }
 
   function updateProviderNote(id) {
-    const el = $("#providerNote");
-    if (!el) return;
-    const p = providerById(id);
-    if (!p) {
-      el.innerHTML = id === "custom"
-        ? "填写完整的 Base URL（通常以 /v1 结尾）、模型 ID 和 API Key。适用于任意 OpenAI 兼容服务。"
-        : "选择服务商后会自动填入 Base URL，并列出该服务商可用模型。目录来自开源项目 " +
-          '<a href="https://github.com/sst/models.dev" target="_blank" rel="noreferrer">models.dev</a>。';
+    const element = $("#providerNote");
+    if (!element) return;
+    const provider = providerById(id);
+    if (!provider) {
+      element.innerHTML = id === "custom"
+        ? "填写完整端点、模型 ID 与 API Key；适用于任意 OpenAI 兼容或 Anthropic 兼容服务。"
+        : "选择服务商后自动填入 Base URL 与模型列表。目录来自内置参考值，可一键更新。";
       return;
     }
-    const env = (p.env || []).join(", ");
-    el.innerHTML = `${escapeHtml(p.notes || "")}${p.notes ? "<br>" : ""}` +
+    const env = (provider.env || []).join(", ");
+    element.innerHTML = `${escapeHtml(provider.notes || "")}${provider.notes ? "<br>" : ""}` +
       `API Key 环境变量：<code>${escapeHtml(env || "—")}</code>` +
-      (p.doc ? ` · <a href="${escapeHtml(p.doc)}" target="_blank" rel="noreferrer">服务商文档</a>` : "");
+      ` · <a href="${escapeHtml(provider.doc || "#")}" target="_blank" rel="noreferrer">文档</a>` +
+      ` · <a href="${escapeHtml(provider.release_url || provider.doc || "#")}" target="_blank" rel="noreferrer">发布公告</a>`;
   }
 
   function populateModels(providerId, current) {
-    const sel = $("#setModel");
-    if (!sel) return;
-    const p = providerById(providerId);
-    let list = p ? (p.models || []).map((m) => m.id) : [];
-    if (providerId === "custom") list = (STATE.models || []).slice();
-    if (current && !list.includes(current) && providerId) list.unshift(current);
-    sel.innerHTML = `<option value="">请选择模型</option>` +
-      list.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
-    sel.value = current && list.includes(current) ? current : "";
+    const select = $("#setModel");
+    if (!select) return;
+    const provider = providerById(providerId);
+    let list = provider ? (provider.models || []).map((model) => ({
+      id: model.id, name: model.name || model.id, meta: model,
+    })) : [];
+    if (providerId === "custom") {
+      list = (STATE.models || []).map((id) => ({ id, name: id, meta: null }));
+    }
+    if (current && !list.some((item) => item.id === current) && providerId) {
+      list.unshift({ id: current, name: current, meta: null });
+    }
+    select.innerHTML = `<option value="">请选择模型</option>` +
+      list.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}${item.name !== item.id ? ` · ${escapeHtml(item.id)}` : ""}</option>`).join("");
+    select.value = current && list.some((item) => item.id === current) ? current : "";
     updateProviderNote(providerId);
     syncChatModelSelect();
   }
 
   function syncChatModelSelect() {
-    const sel = $("#modelSelect");
-    if (!sel) return;
+    const select = $("#modelSelect");
+    if (!select) return;
     const llm = (STATE.config && STATE.config.llm) || {};
-    const p = providerById(llm.provider);
+    const provider = providerById(llm.provider);
     const isCustom = llm.provider === "custom";
-    let list = p ? (p.models || []).map((m) => m.id) : (isCustom ? (STATE.models || []).slice() : []);
+    let list = provider ? (provider.models || []).map((model) => ({ id: model.id, name: model.name || model.id })) : [];
+    if (isCustom) list = (STATE.models || []).map((id) => ({ id, name: id }));
     const current = llm.model || "";
-    if (current && (p || isCustom) && !list.includes(current)) list.unshift(current);
+    if (current && (provider || isCustom) && !list.some((item) => item.id === current)) {
+      list.unshift({ id: current, name: current });
+    }
     if (!list.length) {
-      sel.innerHTML = `<option value="">请先选择模型</option>`;
+      select.innerHTML = `<option value="">请先选择模型</option>`;
       return;
     }
-    sel.innerHTML = list.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
-    sel.value = current && list.includes(current) ? current : list[0];
+    select.innerHTML = list.map((item) =>
+      `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name)}</option>`).join("");
+    select.value = current && list.some((item) => item.id === current) ? current : list[0].id;
   }
 
   async function loadStatus() {
     try {
-      const s = await api("/api/status");
-      STATE.status = s;
-      const llmOk = s.llm && s.llm.configured;
-      const label = llmOk ? (s.llm.model || "模型") : "未选择模型服务";
+      const status = await api("/api/status");
+      STATE.status = status;
+      const llmOk = status.llm && status.llm.configured;
+      const label = llmOk ? (status.llm.model || "模型") : T("top.noModel", "未选择模型服务");
       $("#llmStatus").innerHTML = `<i class="dot ${llmOk ? "ok" : "warn"}"></i><span>${escapeHtml(label)}</span>`;
       $("#llmStatus").title = llmOk
-        ? `${s.llm.provider_name || s.llm.provider || ""} · ${s.llm.base_url} · ${s.llm.model}`
-        : "点击右上角设置，选择模型服务商并填写你自己的 API Key";
-      const mat = s.matlab || {};
-      const matOk = !!mat.matlab_path;
-      $("#matlabStatus").innerHTML = `<i class="dot ${matOk ? "ok" : ""}"></i><span>${matOk ? escapeHtml(mat.matlab_version || "MATLAB") : "MATLAB 未安装"}</span>`;
-      $("#matlabStatus").title = mat.matlab_path || "未检测到 MATLAB";
-      $("#mcpStatus").innerHTML = `<i class="dot ok"></i><span>MCP 就绪</span>`;
-      $("#mcpStateText").textContent = "stdio / HTTP / SSE · 15 个工具";
-      const eng = $("#engineStatus");
-      if (eng) {
-        eng.innerHTML =
-          `<b>Python 内核</b>：内置，已通过 300 组随机用例与 MATLAB 5/5 交叉验证<br>` +
-          `<b>MATLAB</b>：${mat.matlab_path ? escapeHtml(mat.matlab_version || mat.matlab_path) : "未检测到"}<br>` +
-          `<b>原版 exe</b>：${mat.classic_app_available ? "已找到 Impedance_Matching.exe" : "未找到"}<br>` +
-          `<b>MATLAB Runtime</b>：${mat.mcr_installed ? "已安装" : "未检测到（安装包 MyAppInstaller_mcr.exe 已内置）"}`;
+        ? `${status.llm.provider_name || status.llm.provider || ""} · ${status.llm.base_url} · ${status.llm.model}`
+        : "点击设置选择服务商并填写 API Key";
+      $("#mcpStatus").innerHTML = `<i class="dot ok"></i><span>MCP</span>`;
+      $("#mcpStateText").textContent = "stdio / HTTP / SSE · 20 tools";
+      const libraryInfo = status.library || {};
+      const libPill = $("#libraryStatusPill");
+      if (libPill) {
+        const count = libraryInfo.docs || 0;
+        const countText = count
+          ? `${count} ${T("top.books", "本")}`
+          : T("top.library", "教材库");
+        libPill.innerHTML = `<i class="dot ${count ? "ok" : "warn"}"></i><span>${escapeHtml(countText)}</span>`;
+        libPill.title = libraryInfo.running ? "正在建立索引…" : `已索引 ${libraryInfo.indexed_pages || 0} 页`;
       }
       syncChatModelSelect();
-    } catch (e) {
+    } catch (error) {
       $("#llmStatus").innerHTML = `<i class="dot err"></i><span>服务未连接</span>`;
-      $("#matlabStatus").innerHTML = `<i class="dot err"></i><span>状态未知</span>`;
-      toast("无法连接本地服务", e.message, "err");
+      toast("无法连接本地服务", error.message, "err");
     }
   }
 
   async function loadConfig() {
     try {
-      const r = await api("/api/config");
-      STATE.config = r.config;
-      fillSettings(r.config);
-    } catch (e) { /* ignore */ }
+      const result = await api("/api/config");
+      STATE.config = result.config;
+      fillSettings(result.config);
+    } catch (error) { /* ignore */ }
   }
 
   function fillSettings(cfg) {
@@ -458,46 +556,69 @@
     const providerId = llm.provider || "";
     $("#setProvider").value = providerId;
     if ($("#setProvider").value !== providerId) $("#setProvider").value = "";
+    $("#setProtocol").value = llm.protocol || llm.api_style || "openai";
+    $("#setBaseUrlOpenai").value = llm.base_url_openai || (llm.protocol !== "anthropic" ? (llm.base_url || "") : "");
+    $("#setBaseUrlAnthropic").value = llm.base_url_anthropic || (llm.protocol === "anthropic" ? (llm.base_url || "") : "");
     $("#setBaseUrl").value = llm.base_url || "";
     $("#setApiKey").value = "";
     $("#setModelCustom").value = "";
     $("#setApiKey").placeholder = llm.has_key
       ? `已配置 ${llm.key_hint || ""}（留空不修改）`
-      : "填写该服务商控制台的 API Key";
+      : "填写该服务商的 API Key";
     $("#setTemp").value = llm.temperature != null ? llm.temperature : 0.25;
-    $("#setMaxTokens").value = llm.max_tokens || 2600;
+    $("#setMaxTokens").value = llm.max_tokens || 4096;
+    $("#setReasoning").value = llm.reasoning_effort || "";
+    $("#setThinkingBudget").value = llm.thinking_budget || 0;
     populateModels(providerId, llm.model || "");
     STATE.providerChanged = false;
-    const eng = cfg.engine || "python";
-    $$('input[name="engine"]').forEach((r) => { r.checked = r.value === eng; });
-    const mat = (STATE.status && STATE.status.matlab) || {};
-    $("#engineStatus").innerHTML =
-      `<b>Python 内核</b>：内置，已通过 300 组随机用例与 MATLAB 5/5 交叉验证<br>` +
-      `<b>MATLAB</b>：${mat.matlab_path ? escapeHtml(mat.matlab_version || mat.matlab_path) : "未检测到"}<br>` +
-      `<b>原版 exe</b>：${mat.classic_app_available ? "已找到 Impedance_Matching.exe" : "未找到"}<br>` +
-      `<b>MATLAB Runtime</b>：${mat.mcr_installed ? "已安装" : "未检测到（安装包 MyAppInstaller_mcr.exe 已内置）"}`;
+    fillProfileForm(profileFor(providerId, llm.model || ""));
+    const ui = cfg.ui || {};
+    const library = cfg.library || {};
+    const usageCfg = cfg.usage || {};
+    $("#setLang").value = ui.lang || "zh";
+    $("#setAutoIndex").checked = library.auto_index !== false;
+    $("#setOcrFirst").value = library.ocr_first_pages != null ? library.ocr_first_pages : 2;
+    $("#setAutoPeak").checked = usageCfg.auto_peak !== false;
+    $("#saveHint").textContent = "";
   }
 
   function settingsPayload() {
     const providerId = $("#setProvider").value;
-    const p = providerById(providerId);
+    const provider = providerById(providerId);
+    const protocol = $("#setProtocol").value || "openai";
     const model = ($("#setModelCustom").value.trim() || $("#setModel").value || "").trim();
+    const baseOpenai = $("#setBaseUrlOpenai").value.trim();
+    const baseAnthropic = $("#setBaseUrlAnthropic").value.trim();
+    const baseTyped = $("#setBaseUrl").value.trim();
+    let baseUrl = baseTyped;
+    if (protocol === "openai" && baseOpenai) baseUrl = baseOpenai;
+    if (protocol === "anthropic" && baseAnthropic) baseUrl = baseAnthropic;
+    const profile = profileFromForm();
+    const profiles = {};
+    if (providerId && model) profiles[`${providerId}/${model}`] = profile;
     const llm = {
       provider: providerId,
-      provider_name: p ? providerLabel(p) : (providerId === "custom" ? "自定义 OpenAI 兼容服务" : ""),
-      base_url: $("#setBaseUrl").value.trim(),
+      provider_name: provider ? providerLabel(provider) : (providerId === "custom" ? "Custom" : ""),
+      protocol,
+      api_style: protocol === "custom" ? "as_is" : protocol,
+      base_url: baseUrl,
+      base_url_openai: baseOpenai,
+      base_url_anthropic: baseAnthropic,
       model,
       temperature: Number($("#setTemp").value),
       max_tokens: Number($("#setMaxTokens").value),
-      auth_header: p ? p.auth_header : "Authorization",
-      auth_prefix: p ? p.auth_prefix : "Bearer ",
-      api_style: p ? p.api_style : "openai",
-      chat_path: p ? p.chat_path : "",
+      reasoning_effort: $("#setReasoning").value || "",
+      thinking_budget: Number($("#setThinkingBudget").value || 0),
+      auth_header: provider ? provider.auth_header : "Authorization",
+      auth_prefix: provider ? provider.auth_prefix : "Bearer ",
+      chat_path: provider ? provider.chat_path : "",
       extra_headers: {},
+      model_profile: profile,
+      profiles,
     };
     const key = $("#setApiKey").value.trim();
     if (key) llm.api_key = key;
-    return { llm, key, providerId, provider: p, model };
+    return { llm, key, providerId, provider, model, protocol };
   }
 
   async function openSettings() {
@@ -505,11 +626,19 @@
     if (!STATE.providers.length) await loadProviders();
     await loadConfig();
     loadMcpCode();
+    loadCatalogStatus();
+    loadUsage();
+    switchSettingsTab("service");
   }
 
   function closeSettings() {
     $("#settingsModal").classList.add("hidden");
     $("#saveHint").textContent = "";
+  }
+
+  function switchSettingsTab(name) {
+    $$(".settings-tab").forEach((button) => button.classList.toggle("active", button.dataset.tab === name));
+    $$(".settings-pane").forEach((pane) => pane.classList.toggle("active", pane.dataset.pane === name));
   }
 
   async function saveSettings() {
@@ -524,55 +653,171 @@
     if (!key && (!existingKey || STATE.providerChanged)) {
       return toast("请填写 API Key", "每个服务商都需要使用你自己的 Key；本软件不内置任何厂商密钥。", "amber", 5000);
     }
-    const engine = ($$('input[name="engine"]').find((r) => r.checked) || {}).value || "python";
+    const payload = {
+      llm,
+      ui: {
+        lang: $("#setLang").value || "zh",
+        assistant_open: !!STATE.config?.ui?.assistant_open,
+      },
+      library: {
+        auto_index: $("#setAutoIndex").checked,
+        ocr_first_pages: Number($("#setOcrFirst").value || 0),
+      },
+      usage: {
+        auto_peak: $("#setAutoPeak").checked,
+      },
+    };
     try {
-      const r = await api("/api/config", { method: "POST", body: { llm, engine } });
-      STATE.config = r.config;
+      const result = await api("/api/config", { method: "POST", body: payload });
+      STATE.config = result.config;
       $("#setApiKey").value = "";
       $("#saveHint").textContent = "已保存";
-      toast("设置已保存", `${provider ? providerLabel(provider) : "自定义服务"} · ${model}`, "ok");
+      if (window.I18N) {
+        window.I18N.setLang(payload.ui.lang);
+      }
       await loadStatus();
       await loadConfig();
-    } catch (e) {
-      toast("保存失败", e.message + (e.data && e.data.hint ? ` ${e.data.hint}` : ""), "err", 6000);
+      toast("设置已保存", `${provider ? providerLabel(provider) : "自定义服务"} · ${model}`, "ok");
+    } catch (error) {
+      toast("保存失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 6000);
     }
   }
 
   async function testLlm() {
-    const out = $("#llmTestResult");
-    out.className = "inline-status";
-    out.textContent = "测试中…";
+    const output = $("#llmTestResult");
+    output.className = "inline-status";
+    output.textContent = "测试中…";
     const { llm, key, providerId } = settingsPayload();
     if (!providerId || !llm.base_url || !llm.model) {
-      out.className = "inline-status err";
-      out.textContent = "请先选择服务商，并填写 Base URL 与模型 ID。";
+      output.className = "inline-status err";
+      output.textContent = "请先选择服务商，并填写 Base URL 与模型 ID。";
       return;
     }
     const existingKey = !!(STATE.config && STATE.config.llm && STATE.config.llm.has_key);
     if (!key && (!existingKey || STATE.providerChanged)) {
-      out.className = "inline-status err";
-      out.textContent = "请填写该服务商的 API Key。";
+      output.className = "inline-status err";
+      output.textContent = "请填写该服务商的 API Key。";
       return;
     }
     try {
-      const r = await api("/api/config/test", { method: "POST", body: { llm } });
-      out.className = "inline-status ok";
-      out.textContent = `连接成功 · ${r.model} · ${r.latency_s}s`;
-      toast("模型连接成功", `${r.model}，延迟 ${r.latency_s}s。`, "ok");
-    } catch (e) {
-      out.className = "inline-status err";
-      out.textContent = e.message + (e.data && e.data.hint ? `（${e.data.hint}）` : "");
+      const result = await api("/api/config/test", { method: "POST", body: { llm } });
+      output.className = "inline-status ok";
+      output.textContent = `连接成功 · ${result.model} · ${result.latency_s}s`;
+      toast("模型连接成功", `${result.model}，延迟 ${result.latency_s}s。`, "ok");
+    } catch (error) {
+      output.className = "inline-status err";
+      output.textContent = error.message + (error.data && error.data.hint ? `（${error.data.hint}）` : "");
     }
+  }
+
+  function modelMeta(providerId, modelId) {
+    const provider = providerById(providerId);
+    if (!provider) return null;
+    return (provider.models || []).find((model) => model.id === modelId) || null;
+  }
+
+  function profileFor(providerId, modelId) {
+    const base = modelMeta(providerId, modelId) || {};
+    const llm = (STATE.config && STATE.config.llm) || {};
+    const saved = (llm.profiles || {})[`${providerId}/${modelId}`] ||
+      (llm.model_profile || {});
+    const profile = Object.assign({}, base, saved || {});
+    profile.pricing = Object.assign({}, base.pricing || {}, (saved && saved.pricing) || {});
+    return profile;
+  }
+
+  function setProfileField(id, value) {
+    const element = $(id);
+    if (!element) return;
+    element.value = value == null ? "" : value;
+  }
+
+  function fillProfileForm(profile) {
+    profile = profile || {};
+    const pricing = profile.pricing || {};
+    const peak = pricing.peak || {};
+    const off = pricing.off_peak || {};
+    STATE.profileMeta = profile;
+    $("#profileName").textContent = `${profile.name || profile.id || "—"}${profile.id && profile.name && profile.name !== profile.id ? ` · ${profile.id}` : ""}`;
+    $("#profileNote").textContent = `${providerById($("#setProvider").value)?.name_zh || ""} ${profile.notes || ""}`.trim();
+    setProfileField("#mpContext", profile.context || 0);
+    setProfileField("#mpMaxOutput", profile.max_output || 0);
+    setProfileField("#mpConcurrency", profile.concurrency || 0);
+    $("#mpVision").checked = !!profile.vision;
+    $("#mpAudio").checked = !!profile.audio;
+    $("#mpTools").checked = profile.tool_call !== false;
+    $("#mpJson").checked = profile.json_output !== false;
+    $("#mpReasoning").checked = !!profile.reasoning;
+    $("#mpResponses").checked = !!profile.responses_api;
+    $("#mpAnthropic").checked = !!profile.anthropic_api;
+    $("#mpFim").checked = !!profile.fim;
+    $("#mpCurrency").value = pricing.currency || "CNY";
+    setProfileField("#mpCacheHit", pricing.input_cache_hit ?? 0);
+    setProfileField("#mpCacheMiss", pricing.input_cache_miss ?? 0);
+    setProfileField("#mpOutput", pricing.output ?? 0);
+    setProfileField("#mpPeakHit", peak.input_cache_hit ?? "");
+    setProfileField("#mpPeakMiss", peak.input_cache_miss ?? "");
+    setProfileField("#mpPeakOutput", peak.output ?? "");
+    setProfileField("#mpOffHit", off.input_cache_hit ?? "");
+    setProfileField("#mpOffMiss", off.input_cache_miss ?? "");
+    setProfileField("#mpOffOutput", off.output ?? "");
+    setProfileField("#mpRelease", profile.release || "");
+    setProfileField("#mpNotes", profile.notes || "");
+  }
+
+  function profileFromForm() {
+    const numberOrEmpty = (id) => {
+      const value = ($(id).value || "").trim();
+      return value === "" ? undefined : Number(value);
+    };
+    const profile = {
+      context: Number($("#mpContext").value || 0),
+      max_output: Number($("#mpMaxOutput").value || 0),
+      concurrency: Number($("#mpConcurrency").value || 0),
+      vision: $("#mpVision").checked,
+      audio: $("#mpAudio").checked,
+      tool_call: $("#mpTools").checked,
+      json_output: $("#mpJson").checked,
+      reasoning: $("#mpReasoning").checked,
+      responses_api: $("#mpResponses").checked,
+      anthropic_api: $("#mpAnthropic").checked,
+      fim: $("#mpFim").checked,
+      release: $("#mpRelease").value.trim(),
+      notes: $("#mpNotes").value.trim(),
+      pricing: {
+        currency: $("#mpCurrency").value || "CNY",
+        input_cache_hit: Number($("#mpCacheHit").value || 0),
+        input_cache_miss: Number($("#mpCacheMiss").value || 0),
+        output: Number($("#mpOutput").value || 0),
+      },
+    };
+    const h = numberOrEmpty("#mpPeakHit");
+    const m = numberOrEmpty("#mpPeakMiss");
+    const o = numberOrEmpty("#mpPeakOutput");
+    if (h !== undefined || m !== undefined || o !== undefined) {
+      profile.pricing.peak = {
+        input_cache_hit: h || 0, input_cache_miss: m || 0, output: o || 0,
+      };
+    }
+    const oh = numberOrEmpty("#mpOffHit");
+    const om = numberOrEmpty("#mpOffMiss");
+    const oo = numberOrEmpty("#mpOffOutput");
+    if (oh !== undefined || om !== undefined || oo !== undefined) {
+      profile.pricing.off_peak = {
+        input_cache_hit: oh || 0, input_cache_miss: om || 0, output: oo || 0,
+      };
+    }
+    return profile;
   }
 
   async function loadMcpCode() {
     try {
-      const r = await api("/api/mcp/config");
-      const snippet = r.snippet || "{}";
+      const result = await api("/api/mcp/config");
+      const snippet = result.snippet || "{}";
       $("#settingsMcpCode").textContent = snippet;
       $("#aboutMcpCode").textContent = snippet;
       return snippet;
-    } catch (e) {
+    } catch (error) {
       return "{}";
     }
   }
@@ -584,9 +829,128 @@
 
   async function copyMcpConfig() {
     try {
-      const r = await api("/api/mcp/config");
-      await copyText(r.snippet || JSON.stringify(r.servers || {}, null, 2));
-    } catch (e) { toast("复制失败", e.message, "err"); }
+      const result = await api("/api/mcp/config");
+      await copyText(result.snippet || JSON.stringify(result.servers || {}, null, 2), "MCP 配置已复制。");
+    } catch (error) { toast("复制失败", error.message, "err"); }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Catalog and usage settings                                         */
+  /* ------------------------------------------------------------------ */
+  function catalogLog(line) {
+    STATE.catalogLog.push(`[${new Date().toLocaleTimeString()}] ${line}`);
+    const element = $("#catalogLog");
+    if (element) element.textContent = STATE.catalogLog.slice(-80).join("\n");
+  }
+
+  async function loadCatalogStatus() {
+    try {
+      const summary = await api("/api/providers/summary");
+      const element = $("#catalogStatus");
+      if (element) {
+        const en = window.I18N && window.I18N.lang === "en";
+        element.innerHTML = `${en ? "Built-in" : "内置"} <b>${summary.providers}</b> ${en ? "providers" : "家"} · <b>${summary.models}</b> ${en ? "models" : "个模型"}` +
+          (summary.override_updated_at ? ` · ${en ? "override updated" : "覆盖层更新于"} ${escapeHtml(summary.override_updated_at)}` : "") +
+          (summary.backup_available ? ` · ${en ? "rollback available" : "可回滚"}` : "");
+      }
+      return summary;
+    } catch (error) {
+      const element = $("#catalogStatus");
+      if (element) element.textContent = error.message;
+      return null;
+    }
+  }
+
+  async function catalogUpdate(mode) {
+    const labels = {
+      models_dev: "从 models.dev 更新",
+      provider_api: "读取当前厂商 /models",
+      announcements: "读取官方公告",
+      ai: "AI 校对更新",
+    };
+    if (mode === "ai" && !window.confirm("AI 校对更新会把当前目录与官方公告摘要发送给模型。AI 可能出错，需要逐项核对。继续？")) {
+      return;
+    }
+    catalogLog(`${labels[mode]}：开始…`);
+    try {
+      const body = { mode };
+      if (mode === "announcements") body.provider_id = $("#setProvider").value;
+      if (mode === "ai") body.provider_ids = $("#setProvider").value ? [$("#setProvider").value] : [];
+      const result = await api("/api/providers/update", { method: "POST", body });
+      if (result.ok === false) {
+        catalogLog(`${labels[mode]} 失败：${result.message || "未知错误"}`);
+        toast("目录更新失败", result.message || "", "err", 7000);
+      } else {
+        catalogLog(`${labels[mode]} 完成：${result.message || ""}`);
+        if (result.warnings && result.warnings.length) {
+          catalogLog(`警告：${result.warnings.slice(0, 12).join("；")}`);
+        }
+        if (result.candidates && result.candidates.length) {
+          catalogLog(`候选模型：${result.candidates.slice(0, 30).join(", ")}`);
+        }
+        if (result.added != null) catalogLog(`新增模型：${result.added}`);
+        toast("目录更新完成", result.message || "", "ok", 6000);
+        await loadProviders();
+        await loadCatalogStatus();
+      }
+    } catch (error) {
+      catalogLog(`${labels[mode]} 失败：${error.message}`);
+      toast("目录更新失败", error.message, "err", 7000);
+    }
+  }
+
+  async function catalogRollback() {
+    try {
+      const result = await api("/api/providers/rollback", { method: "POST", body: {} });
+      catalogLog(result.message || "已回滚");
+      toast(result.ok ? "已回滚" : "无法回滚", result.message || "", result.ok ? "ok" : "amber");
+      await loadProviders();
+      await loadCatalogStatus();
+    } catch (error) { toast("回滚失败", error.message, "err"); }
+  }
+
+  async function catalogReset() {
+    try {
+      const result = await api("/api/providers/reset", { method: "POST", body: {} });
+      catalogLog(result.message || "已恢复内置目录");
+      toast("已恢复内置目录", result.message || "", "ok");
+      await loadProviders();
+      await loadCatalogStatus();
+    } catch (error) { toast("恢复失败", error.message, "err"); }
+  }
+
+  async function loadUsage() {
+    try {
+      const data = await api("/api/usage/summary");
+      const cards = $("#usageCards");
+      if (cards) {
+        const item = (label, value, sub) =>
+          `<div class="usage-card"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b><small>${escapeHtml(sub || "")}</small></div>`;
+        const all = data.all || {};
+        const today = data.today || {};
+        const en = window.I18N && window.I18N.lang === "en";
+        const todayReq = en ? "Today requests" : "今日请求";
+        const todayCost = en ? "Today cost" : "今日费用";
+        const allReq = en ? "Total requests" : "累计请求";
+        const allCost = en ? "Total cost" : "累计费用";
+        const cacheLabel = en ? "cache hit" : "缓存命中";
+        cards.innerHTML =
+          item(todayReq, String(today.requests || 0), `${fmtTokens(today.total_tokens)} tokens`) +
+          item(todayCost, fmtMoney(today.cost, Object.keys(today.currencies || {})[0] || "CNY"), `${cacheLabel} ${(100 * (today.cache_hit_rate || 0)).toFixed(1)}%`) +
+          item(allReq, String(all.requests || 0), `${fmtTokens(all.total_tokens)} tokens`) +
+          item(allCost, fmtMoney(all.cost, Object.keys(all.currencies || {})[0] || "CNY"), `${cacheLabel} ${(100 * (all.cache_hit_rate || 0)).toFixed(1)}%`);
+      }
+      const tbody = $("#usageTable");
+      if (tbody) {
+        const rows = (data.recent || []).map((row) =>
+          `<tr><td>${escapeHtml(String(row.time || "").replace("T", " "))}</td><td>${escapeHtml(row.model || "")}</td>` +
+          `<td>${fmtTokens(row.prompt_tokens)}</td><td>${fmtTokens(row.completion_tokens)}</td>` +
+          `<td>${(100 * (row.cache_hit_rate || 0)).toFixed(1)}%</td>` +
+          `<td>${fmtMoney(row.cost, row.currency)}</td></tr>`).join("");
+        tbody.innerHTML = rows || `<tr><td colspan="6">暂无记录</td></tr>`;
+      }
+      if ($("#usagePath")) $("#usagePath").textContent = data.log_path || "";
+    } catch (error) { /* ignore */ }
   }
 
   /* ------------------------------------------------------------------ */
@@ -598,61 +962,77 @@
     const input = $("#chatInput");
     input.addEventListener("input", () => {
       input.style.height = "auto";
-      input.style.height = Math.min(180, input.scrollHeight) + "px";
+      input.style.height = Math.min(200, input.scrollHeight) + "px";
     });
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
         sendChat();
       }
     });
+    input.addEventListener("paste", handlePaste);
     $("#btnSend").addEventListener("click", sendChat);
     $("#btnAttach").addEventListener("click", () => $("#fileInput").click());
     $("#fileInput").addEventListener("change", handleFiles);
     $("#chatScroll").addEventListener("scroll", () => {
-      const el = $("#chatScroll");
-      chatAutoScroll = el.scrollHeight - el.scrollTop - el.clientHeight < 90;
+      const element = $("#chatScroll");
+      chatAutoScroll = element.scrollHeight - element.scrollTop - element.clientHeight < 90;
     });
-    $$("#suggestGrid .suggest").forEach((b) => b.addEventListener("click", () => {
-      $("#chatInput").value = b.dataset.prompt || "";
+    $$("#suggestGrid .suggest").forEach((button) => button.addEventListener("click", () => {
+      $("#chatInput").value = button.dataset.prompt || "";
       $("#chatInput").focus();
       sendChat();
     }));
-    $("#btnCopyMcp").addEventListener("click", copyMcpConfig);
-    $("#btnCopyMcpSide").addEventListener("click", copyMcpConfig);
-    $("#btnCopyMcpAbout").addEventListener("click", copyMcpConfig);
-    $("#btnCopyMcpSettings").addEventListener("click", copyMcpConfig);
+    ["#btnCopyMcp", "#btnCopyMcpSide", "#btnCopyMcpAbout", "#btnCopyMcpSettings"].forEach((selector) => {
+      const button = $(selector);
+      if (button) button.addEventListener("click", copyMcpConfig);
+    });
+    const composer = $(".composer-box");
+    if (composer) {
+      composer.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        composer.classList.add("dragging");
+      });
+      composer.addEventListener("dragleave", () => composer.classList.remove("dragging"));
+      composer.addEventListener("drop", (event) => {
+        event.preventDefault();
+        composer.classList.remove("dragging");
+        handleFiles({ target: { files: event.dataTransfer.files, value: "" } });
+      });
+    }
     initToolList();
   }
 
   function initToolList() {
     const list = $("#toolList");
-    list.innerHTML = MCP_TOOLS.map(([name, label, desc]) =>
-      `<div class="tool-row"><span class="tiny-dot"></span><code>${escapeHtml(name)}</code><span>${escapeHtml(desc)}</span></div>`
+    if (!list) return;
+    list.innerHTML = MCP_TOOLS.map(([name, label, description]) =>
+      `<div class="tool-row" title="${escapeHtml(description)}"><span class="tiny-dot"></span><code>${escapeHtml(name)}</code><span>${escapeHtml(description)}</span></div>`
     ).join("");
   }
 
   function scrollChat() {
     if (!chatAutoScroll) return;
-    const el = $("#chatScroll");
-    el.scrollTop = el.scrollHeight;
+    const element = $("#chatScroll");
+    element.scrollTop = element.scrollHeight;
   }
 
-  function addUserMessage(text, attachments) {
+  function addUserMessage(container, text, attachments) {
     const wrap = document.createElement("div");
     wrap.className = "msg msg-user";
-    const files = (attachments || []).map((a) =>
-      `<span class="attachment-chip">${escapeHtml(a.name || "附件")} · ${escapeHtml(a.kind || "")}</span>`).join("");
-    wrap.innerHTML = `<div class="avatar">我</div><div class="msg-body"><div class="bubble">${escapeHtml(text).replace(/\n/g, "<br>")}${files ? `<div style="margin-top:6px">${files}</div>` : ""}</div></div>`;
-    $("#messages").appendChild(wrap);
+    const files = (attachments || []).map((attachment) =>
+      `<span class="attachment-chip">${escapeHtml(attachment.name || "附件")} · ${escapeHtml(attachment.kind || "")}${attachment.image_count ? ` · ${attachment.image_count} img` : ""}</span>`).join("");
+    wrap.innerHTML = `<div class="avatar">我</div><div class="msg-body"><div class="bubble">${escapeHtml(text).replace(/\n/g, "<br>")}${files ? `<div class="bubble-files">${files}</div>` : ""}</div></div>`;
+    (container || $("#messages")).appendChild(wrap);
     scrollChat();
+    return wrap;
   }
 
-  function addAssistantShell() {
+  function makeAssistant(container) {
     const wrap = document.createElement("div");
     wrap.className = "msg msg-assistant";
     wrap.innerHTML = `<div class="avatar"><svg><use href="#i-logo"/></svg></div><div class="msg-body"><div class="md"></div><div class="typing"><i></i><i></i><i></i></div></div>`;
-    $("#messages").appendChild(wrap);
+    (container || $("#messages")).appendChild(wrap);
     scrollChat();
     return {
       wrap,
@@ -661,6 +1041,7 @@
       typing: $(".typing", wrap),
       buffer: "",
       lastRender: 0,
+      citations: new Set(),
     };
   }
 
@@ -680,16 +1061,15 @@
     scrollChat();
   }
 
-  function addToolCard(assistant, ev) {
+  function addToolCard(assistant, event) {
     const card = document.createElement("div");
     card.className = "tool-card";
-    card.dataset.callId = ev.id;
+    card.dataset.callId = event.id;
     card.innerHTML = `
       <div class="tool-card-head">
         <div class="tool-icon"><svg><use href="#i-settings"/></svg></div>
-        <div><b>${escapeHtml(ev.label || ev.name)}</b><small>${escapeHtml(ev.name)}</small></div>
-        <span class="spacer"></span>
-        <span class="tool-state">运行中</span>
+        <div><b>${escapeHtml(event.label || event.name)}</b><small>${escapeHtml(event.name)}</small></div>
+        <span class="spacer"></span><span class="tool-state">运行中</span>
       </div>
       <div class="tool-card-body"><span class="tool-summary">正在调用本地引擎…</span></div>`;
     assistant.body.appendChild(card);
@@ -697,45 +1077,43 @@
     return card;
   }
 
-  function updateToolCard(assistant, ev) {
-    const card = assistant.body.querySelector(`.tool-card[data-call-id="${CSS.escape(String(ev.id))}"]`);
+  function updateToolCard(assistant, event) {
+    const card = assistant.body.querySelector(`.tool-card[data-call-id="${CSS.escape(String(event.id))}"]`);
     if (!card) return;
-    const stateEl = $(".tool-state", card);
-    stateEl.className = `tool-state ${ev.ok ? "ok" : "err"}`;
-    stateEl.textContent = ev.ok ? `完成 · ${ev.elapsed_ms || 0}ms` : "失败";
+    const state = $(".tool-state", card);
+    state.className = `tool-state ${event.ok ? "ok" : "err"}`;
+    state.textContent = event.ok ? `完成 · ${event.elapsed_ms || 0}ms` : "失败";
     const body = $(".tool-card-body", card);
-    body.innerHTML = `<span class="tool-summary">${escapeHtml(ev.summary || "无返回摘要")}</span>` +
-      (ev.data ? `<details><summary>查看工具返回</summary><pre>${escapeHtml(JSON.stringify(ev.data, null, 2))}</pre></details>` : "");
-    if (ev.ok && ev.data && ev.data.components) appendDesignCard(assistant.body, ev.data);
+    body.innerHTML = `<span class="tool-summary">${escapeHtml(event.summary || "无返回摘要")}</span>` +
+      (event.data ? `<details><summary>查看工具返回</summary><pre>${escapeHtml(JSON.stringify(event.data, null, 2))}</pre></details>` : "");
+    if (event.ok && event.data && event.data.components) appendDesignCard(assistant.body, event.data);
     scrollChat();
   }
 
-  function appendDesignCard(container, d) {
-    const comps = d.components || {};
-    const bw = d.bandwidth || {};
+  function appendDesignCard(container, design) {
+    const components = design.components || {};
+    const bandwidth = design.bandwidth || {};
     const values = [
-      ["电感 L", fmtComp(comps, "L")],
-      ["C1", fmtComp(comps, "C1")],
-      ["C2", fmtComp(comps, "C2")],
+      ["L", fmtComp(components, "L")],
+      ["C1", fmtComp(components, "C1")],
+      ["C2", fmtComp(components, "C2")],
     ];
-    if (comps.C3_pF > 0) values.push(["C3", fmtComp(comps, "C3")]);
-    else values.push(["拓扑", d.topology_name || d.topology || "—"]);
+    if (components.C3_pF > 0) values.push(["C3", fmtComp(components, "C3")]);
+    else values.push([T("design.topology", "拓扑"), topologyName(design)]);
     const card = document.createElement("div");
     card.className = "design-card";
     card.innerHTML = `
       <div class="design-card-head">
         <svg style="width:16px;height:16px;color:var(--cyan)"><use href="#i-check"/></svg>
-        <b>${escapeHtml(d.topology_name || d.topology || "匹配方案")}</b>
+        <b>${escapeHtml(topologyName(design))}</b>
         <span class="tag green">节点法已复核</span>
       </div>
-      <div class="design-values">
-        ${values.map(([k, v]) => `<div class="design-value"><span>${escapeHtml(k)}</span><b>${escapeHtml(v)}</b></div>`).join("")}
-      </div>
+      <div class="design-values">${values.map(([key, value]) => `<div class="design-value"><span>${escapeHtml(key)}</span><b>${escapeHtml(value)}</b></div>`).join("")}</div>
       <div class="design-card-foot">
-        <span class="metric">VSWR <b>${fmtFixed(d.vswr, 4)}</b></span>
-        <span class="metric">S11 <b>${fmtS11(d.s11_db)}</b></span>
-        <span class="metric">带宽 <b>${fmt(bw.percent, 1)}%</b></span>
-        <span class="metric">Q <b>${fmt(d.q, 2)}</b></span>
+        <span class="metric">VSWR <b>${fmtFixed(design.vswr, 4)}</b></span>
+        <span class="metric">S11 <b>${fmtS11(design.s11_db)}</b></span>
+        <span class="metric">BW <b>${fmt(bandwidth.percent, 1)}%</b></span>
+        <span class="metric">Q <b>${fmt(design.q, 2)}</b></span>
       </div>
       <div class="design-card-actions">
         <button class="btn tiny" data-action="open-design">在设计中打开</button>
@@ -744,41 +1122,121 @@
     container.appendChild(card);
   }
 
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-action]");
-    if (!btn) return;
-    if (btn.dataset.action === "open-design" || btn.dataset.action === "report") {
+  function citationCard(citation) {
+    if (!citation) return "";
+    const snippet = String(citation.snippet || "").replace(/\[\[([^\]]+)\]\]/g, "<mark>$1</mark>").slice(0, 500);
+    if (citation.kind === "textbook") {
+      return `<div class="citation-card" data-citation-kind="textbook" data-doc-id="${citation.doc_id}" data-page="${citation.page}" data-rects="${escapeHtml(JSON.stringify(citation.rects || []))}">
+        <img src="${escapeHtml(citation.thumb_url || "")}" alt="page">
+        <div class="citation-copy"><b>${escapeHtml(citation.title || "教材")}</b><small>第 ${citation.page} 页</small><p>${snippet}</p></div>
+        <button class="btn tiny" data-open-citation="1">打开</button>
+      </div>`;
+    }
+    return `<div class="citation-card" data-citation-kind="documentation" data-category="${escapeHtml(citation.category || "")}" data-block="${escapeHtml(citation.block_id || "")}" data-line="${citation.line || 0}">
+      <div class="citation-doc-icon"><svg><use href="#i-docs"/></svg></div>
+      <div class="citation-copy"><b>${escapeHtml(citation.title || "文档")}</b><small>第 ${citation.line || 0} 行</small><p>${snippet}</p></div>
+      <button class="btn tiny" data-open-citation="1">打开</button>
+    </div>`;
+  }
+
+  function addCitationCard(assistant, citation) {
+    if (!citation || !assistant) return;
+    const key = citation.kind === "textbook"
+      ? `t:${citation.doc_id}:${citation.page}:${citation.snippet || ""}`
+      : `d:${citation.category}:${citation.block_id}`;
+    if (assistant.citations.has(key)) return;
+    assistant.citations.add(key);
+    const wrap = document.createElement("div");
+    wrap.className = "citation-wrap";
+    wrap.innerHTML = citationCard(citation);
+    assistant.body.appendChild(wrap);
+    scrollChat();
+  }
+
+  document.addEventListener("click", (event) => {
+    const action = event.target.closest("[data-action]");
+    if (action) {
       if (!STATE.design) { toast("暂无设计", "请先完成一次设计。", "amber"); return; }
-      if (btn.dataset.action === "open-design") {
+      if (action.dataset.action === "open-design") {
         fillFormFromDesign(STATE.design);
         showView("design");
         renderDesign(STATE.design);
       } else {
         exportReport();
       }
+      return;
+    }
+    const citationButton = event.target.closest("[data-open-citation]");
+    if (citationButton) {
+      const card = citationButton.closest(".citation-card");
+      if (!card) return;
+      if (card.dataset.citationKind === "textbook" && window.Library) {
+        let rects = [];
+        try { rects = JSON.parse(card.dataset.rects || "[]"); } catch (e) { rects = []; }
+        showView("library");
+        window.Library.openPage(Number(card.dataset.docId), Number(card.dataset.page), rects);
+      } else if (window.Docs) {
+        showView("docs");
+        window.Docs.openCitation(card.dataset.category, card.dataset.block, Number(card.dataset.line || 0));
+      }
     }
   });
 
-  async function handleFiles(e) {
-    const files = Array.from(e.target.files || []);
-    e.target.value = "";
-    for (const file of files.slice(0, 6 - STATE.attachments.length)) {
-      if (file.size > 25 * 1024 * 1024) {
-        toast("文件过大", `${file.name} 超过 25 MB。`, "err");
+  function handlePaste(event) {
+    const items = event.clipboardData && event.clipboardData.items;
+    if (!items) return;
+    const files = [];
+    for (const item of items) {
+      if (item.kind === "file") {
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+    }
+    if (files.length) {
+      event.preventDefault();
+      handleFiles({ target: { files, value: "" } });
+      return;
+    }
+    const text = event.clipboardData.getData("text/plain") || "";
+    if (text.length > 20000) {
+      event.preventDefault();
+      uploadText(text);
+    }
+  }
+
+  async function uploadText(text, name) {
+    try {
+      const info = await api("/api/upload-text", {
+        method: "POST",
+        body: { text, name: name || "" },
+      });
+      STATE.attachments.push(info);
+      renderAttachmentBar();
+      toast("剪贴板已作为附件", `${info.name} · ${info.chars || 0} 字符`, "ok");
+    } catch (error) { toast("剪贴板附件失败", error.message, "err"); }
+  }
+
+  async function handleFiles(event) {
+    const files = Array.from(event.target.files || []);
+    if (event.target) event.target.value = "";
+    for (const file of files.slice(0, Math.max(0, 8 - STATE.attachments.length))) {
+      if (file.size > 60 * 1024 * 1024) {
+        toast("文件过大", `${file.name} 超过 60 MB。`, "err");
         continue;
       }
       try {
-        const b64 = await readFileBase64(file);
+        const base64 = await readFileBase64(file);
         const info = await api("/api/upload", {
           method: "POST",
-          body: { name: file.name, content_base64: b64 },
+          body: { name: file.name, content_base64: base64 },
         });
         info.name = info.name || file.name;
         STATE.attachments.push(info);
         renderAttachmentBar();
-        toast("附件已解析", `${info.name} · ${info.chars || 0} 字符`, "ok");
-      } catch (err) {
-        toast("附件失败", `${file.name}：${err.message}`, "err", 6000);
+        const extra = info.note ? ` · ${info.note}` : "";
+        toast("附件已解析", `${info.name} · ${info.kind} · ${info.chars || 0} 字符${info.image_count ? ` · ${info.image_count} 图` : ""}${extra}`, "ok", 5000);
+      } catch (error) {
+        toast("附件失败", `${file.name}：${error.message}`, "err", 7000);
       }
     }
   }
@@ -787,8 +1245,8 @@
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
-        const s = String(reader.result || "");
-        resolve(s.includes(",") ? s.split(",")[1] : s);
+        const value = String(reader.result || "");
+        resolve(value.includes(",") ? value.split(",")[1] : value);
       };
       reader.onerror = () => reject(new Error("读取文件失败"));
       reader.readAsDataURL(file);
@@ -797,15 +1255,139 @@
 
   function renderAttachmentBar() {
     const bar = $("#attachmentBar");
-    bar.innerHTML = STATE.attachments.map((a, i) =>
-      `<span class="attachment-chip" title="${escapeHtml(a.preview || "")}">
-        ${escapeHtml(a.name)} <small style="color:var(--muted-2)">${escapeHtml(a.kind || "")} · ${a.chars || 0} 字</small>
-        <button data-remove-attach="${i}" title="移除"><svg><use href="#i-close"/></svg></button>
+    if (!bar) return;
+    bar.innerHTML = STATE.attachments.map((attachment, index) =>
+      `<span class="attachment-chip" title="${escapeHtml(attachment.preview || "")}">
+        ${escapeHtml(attachment.name)} <small>${escapeHtml(attachment.kind || "")} · ${attachment.chars || 0} 字${attachment.image_count ? ` · ${attachment.image_count} 图` : ""}</small>
+        <button data-remove-attach="${index}" title="Remove"><svg><use href="#i-close"/></svg></button>
       </span>`).join("");
-    $$("[data-remove-attach]", bar).forEach((b) => b.addEventListener("click", () => {
-      STATE.attachments.splice(Number(b.dataset.removeAttach), 1);
+    $$("[data-remove-attach]", bar).forEach((button) => button.addEventListener("click", () => {
+      STATE.attachments.splice(Number(button.dataset.removeAttach), 1);
       renderAttachmentBar();
     }));
+  }
+
+  function buildContext() {
+    const context = { view: STATE.view, lang: window.I18N ? window.I18N.lang : "zh" };
+    if (STATE.design) {
+      context.design = {
+        topology: STATE.design.topology,
+        topology_name: STATE.design.topology_name,
+        frequency_mhz: STATE.design.frequency_mhz,
+        load: STATE.design.load,
+        components: STATE.design.components,
+        vswr: STATE.design.vswr,
+        bandwidth_percent: (STATE.design.bandwidth || {}).percent,
+      };
+    }
+    const selection = String(window.getSelection ? window.getSelection().toString() : "").slice(0, 1200);
+    if (STATE.view === "library" && window.Library && window.Library.current()) {
+      const current = window.Library.current();
+      context.library = {
+        doc_id: current.docId, page: current.page, title: current.title,
+        selection: selection || "",
+      };
+    }
+    if (STATE.view === "docs" && window.Docs && window.Docs.current()) {
+      const current = window.Docs.current();
+      context.docs = {
+        category: current.category, title: current.title,
+        heading: current.heading || "", line: current.line || 0,
+        selection: selection || "",
+      };
+    }
+    return context;
+  }
+
+  async function streamChat(payload, handlers = {}) {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      let detail = {};
+      try { detail = await response.json(); } catch (e) { /* ignore */ }
+      throw Object.assign(new Error(detail.message || `服务返回 HTTP ${response.status}`), { data: detail });
+    }
+    if (!response.body) throw new Error("浏览器不支持流式响应");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let content = "";
+    let errored = false;
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let index;
+      while ((index = buffer.indexOf("\n\n")) >= 0) {
+        const chunk = buffer.slice(0, index);
+        buffer = buffer.slice(index + 2);
+        let eventName = "message";
+        let dataString = "";
+        for (const line of chunk.split("\n")) {
+          if (line.startsWith("event:")) eventName = line.slice(6).trim();
+          else if (line.startsWith("data:")) dataString += line.slice(5).trim();
+        }
+        if (!dataString) continue;
+        let data = {};
+        try { data = JSON.parse(dataString); } catch (e) { continue; }
+        if (eventName === "error") errored = true;
+        if (eventName === "token") content += data.text || "";
+        if (eventName === "done" && data.content) content = data.content;
+        if (handlers.onEvent) handlers.onEvent(eventName, data);
+      }
+    }
+    return { content, errored };
+  }
+
+  function handleChatEvent(eventName, data, assistant, options = {}) {
+    if (eventName === "status") {
+      if (assistant.typing && data.text) assistant.typing.title = data.text;
+    } else if (eventName === "tool_call") {
+      addToolCard(assistant, data);
+    } else if (eventName === "tool_result") {
+      updateToolCard(assistant, data);
+    } else if (eventName === "design") {
+      if (data.design) {
+        STATE.design = mergeDesign(data.design);
+        updateContext(STATE.design);
+        if (data.design.steps && data.design.steps.length && STATE.view === "design") {
+          renderDesign(STATE.design);
+        } else {
+          ensureFullDesign(data.design).catch(() => {});
+        }
+      }
+    } else if (eventName === "token") {
+      if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
+      pushToken(assistant, data.text || "");
+    } else if (eventName === "citation") {
+      addCitationCard(assistant, data);
+    } else if (eventName === "usage") {
+      STATE.lastStats = data;
+      renderChatStats(data, options.statsTarget || "#chatStats");
+    } else if (eventName === "error") {
+      assistant.errored = true;
+      if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
+      const hint = data.hint || "";
+      assistant.md.innerHTML = `<div class="error-box"><b>智能体暂时不可用</b><p>${escapeHtml(data.message || "未知错误")}</p>${hint ? `<p class="muted">${escapeHtml(hint)}</p>` : ""}<button class="btn tiny" onclick="document.getElementById('btnSettings').click()">打开设置</button></div>`;
+    } else if (eventName === "done") {
+      if (assistant.typing) assistant.typing.remove();
+    }
+  }
+
+  function renderChatStats(stats, target) {
+    const element = typeof target === "string" ? $(target) : target;
+    if (!element || !stats) return;
+    const cache = (100 * (stats.cache_hit_rate || 0)).toFixed(1);
+    const context = (100 * (stats.context_pct || 0)).toFixed(1);
+    element.innerHTML =
+      `<span class="stat-chip" title="Input / output tokens">↑${fmtTokens(stats.prompt_tokens)} ↓${fmtTokens(stats.completion_tokens)}</span>` +
+      `<span class="stat-chip" title="Cache hit rate">${T("stats.cache", "缓存")} ${cache}%</span>` +
+      `<span class="stat-chip" title="Context usage">${T("stats.context", "上下文")} ${context}%</span>` +
+      `<span class="stat-chip" title="Estimated cost">${fmtMoney(stats.total_cost, stats.currency, stats.pricing_configured)}</span>` +
+      `<span class="stat-chip ${stats.price_bucket === "off_peak" ? "off" : ""}">${escapeHtml(stats.price_bucket || "")}</span>`;
   }
 
   async function sendChat() {
@@ -815,85 +1397,53 @@
     if (!text && !STATE.attachments.length) return;
     const llm = (STATE.config && STATE.config.llm) || {};
     if (!llm.provider || !llm.has_key || !llm.base_url || !llm.model) {
-      toast("请先配置模型服务", "点击右上角「设置」，选择服务商并填写你自己的 API Key。", "amber", 5000);
+      toast("请先配置模型服务", "点击设置，选择服务商并填写你自己的 API Key。", "amber", 5000);
       openSettings();
       return;
     }
     if (!$("#modelSelect").value) {
-      toast("请先选择模型", "在输入框下方选择模型，或在设置中选择服务商模型。", "amber");
+      toast("请先选择模型", "在输入框下方选择模型。", "amber");
       return;
     }
     $("#chatWelcome").classList.add("hidden");
     const attachments = STATE.attachments.slice();
     const userText = text || "请阅读附件并总结与微波阻抗匹配相关的关键信息。";
-    addUserMessage(userText, attachments);
-    STATE.chat.push({ role: "user", content: userText });
+    addUserMessage($("#messages"), userText, attachments);
+    STATE.chat.push({
+      role: "user",
+      content: userText + (attachments.length ? `\n[附件: ${attachments.map((item) => item.name).join(", ")}]` : ""),
+    });
     input.value = "";
     input.style.height = "auto";
     STATE.attachments = [];
     renderAttachmentBar();
     STATE.streaming = true;
     $("#btnSend").disabled = true;
-    const assistant = addAssistantShell();
+    const assistant = makeAssistant($("#messages"));
     STATE.lastAssistant = assistant;
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: STATE.chat.slice(-18),
-          attachments: attachments.map((a) => ({ id: a.id, name: a.name })),
-          model: $("#modelSelect").value,
-        }),
+      const result = await streamChat({
+        messages: STATE.chat.slice(-18),
+        attachments: attachments.map((item) => ({ id: item.id, name: item.name })),
+        model: $("#modelSelect").value,
+        context: buildContext(),
+      }, {
+        onEvent: (eventName, data) => handleChatEvent(eventName, data, assistant),
       });
-      if (!res.ok) {
-        let detail = {};
-        try { detail = await res.json(); } catch (e) { /* ignore */ }
-        throw Object.assign(new Error(detail.message || `服务返回 HTTP ${res.status}`), { data: detail });
-      }
-      if (!res.body) throw new Error("浏览器不支持流式响应");
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-      let finalContent = "";
-      let errored = false;
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        let idx;
-        while ((idx = buf.indexOf("\n\n")) >= 0) {
-          const chunk = buf.slice(0, idx);
-          buf = buf.slice(idx + 2);
-          const lines = chunk.split("\n");
-          let event = "message", dataStr = "";
-          for (const line of lines) {
-            if (line.startsWith("event:")) event = line.slice(6).trim();
-            else if (line.startsWith("data:")) dataStr += line.slice(5).trim();
-          }
-          if (!dataStr) continue;
-          let data = {};
-          try { data = JSON.parse(dataStr); } catch (e) { continue; }
-          if (event === "error") errored = true;
-          handleSseEvent(event, data, assistant);
-          if (event === "token") finalContent += data.text || "";
-          if (event === "done") finalContent = data.content || finalContent;
-        }
-      }
       if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
-      if (!errored) {
-        assistant.md.innerHTML = renderMarkdown(finalContent || assistant.buffer || "（未收到回答）");
-        STATE.chat.push({ role: "assistant", content: finalContent || assistant.buffer || "" });
+      if (!assistant.errored) {
+        assistant.md.innerHTML = renderMarkdown(result.content || assistant.buffer || "（未收到回答）");
+        STATE.chat.push({ role: "assistant", content: result.content || assistant.buffer || "" });
         if (STATE.chat.length > 24) STATE.chat = STATE.chat.slice(-24);
       }
       scrollChat();
-    } catch (e) {
+    } catch (error) {
       assistant.errored = true;
       if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
-      const hint = (e.data && e.data.hint) || "";
-      assistant.md.innerHTML = `<div class="error-box"><b>智能体暂时不可用</b><p>${escapeHtml(e.message)}</p>${hint ? `<p class="muted">${escapeHtml(hint)}</p>` : ""}<button class="btn tiny" onclick="document.getElementById('btnSettings').click()">打开设置</button></div>`;
-      toast("智能体调用失败", e.message, "err", 7000);
+      const hint = (error.data && error.data.hint) || "";
+      assistant.md.innerHTML = `<div class="error-box"><b>智能体暂时不可用</b><p>${escapeHtml(error.message)}</p>${hint ? `<p class="muted">${escapeHtml(hint)}</p>` : ""}<button class="btn tiny" onclick="document.getElementById('btnSettings').click()">打开设置</button></div>`;
+      toast("智能体调用失败", error.message, "err", 7000);
     } finally {
       STATE.streaming = false;
       $("#btnSend").disabled = false;
@@ -901,52 +1451,17 @@
     }
   }
 
-  function handleSseEvent(event, data, assistant) {
-    if (event === "status") {
-      if (assistant.typing && data.text) {
-        assistant.typing.title = data.text;
-      }
-    } else if (event === "tool_call") {
-      addToolCard(assistant, data);
-    } else if (event === "tool_result") {
-      updateToolCard(assistant, data);
-    } else if (event === "design") {
-      if (data.design) {
-        STATE.design = mergeDesign(data.design);
-        updateContext(STATE.design);
-        if (data.design.steps && data.design.steps.length) {
-          if (STATE.view === "design") renderDesign(STATE.design);
-        } else {
-          ensureFullDesign(data.design).catch(() => {});
-        }
-      }
-    } else if (event === "token") {
-      if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
-      pushToken(assistant, data.text || "");
-    } else if (event === "attachments") {
-      /* server echo, nothing to do */
-    } else if (event === "error") {
-      assistant.errored = true;
-      if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
-      const hint = data.hint || "";
-      assistant.md.innerHTML = `<div class="error-box"><b>智能体暂时不可用</b><p>${escapeHtml(data.message || "未知错误")}</p>${hint ? `<p class="muted">${escapeHtml(hint)}</p>` : ""}<button class="btn tiny" onclick="document.getElementById('btnSettings').click()">打开设置</button></div>`;
-    } else if (event === "done") {
-      if (assistant.typing) assistant.typing.remove();
-    }
-  }
-
-  function mergeDesign(d) {
-    // The chat tool result is compact; the design tab expects a full result.
+  function mergeDesign(design) {
     const existing = STATE.design;
-    if (existing && existing.topology === d.topology &&
-        existing.frequency_mhz === d.frequency_mhz &&
-        existing.load && d.load && existing.load.r === d.load.r && existing.load.x === d.load.x) {
-      return Object.assign({}, existing, d, {
-        steps: existing.steps || d.steps,
-        bandwidth: Object.assign({}, existing.bandwidth || {}, d.bandwidth || {}),
+    if (existing && existing.topology === design.topology &&
+        existing.frequency_mhz === design.frequency_mhz &&
+        existing.load && design.load && existing.load.r === design.load.r && existing.load.x === design.load.x) {
+      return Object.assign({}, existing, design, {
+        steps: existing.steps || design.steps,
+        bandwidth: Object.assign({}, existing.bandwidth || {}, design.bandwidth || {}),
       });
     }
-    return d;
+    return design;
   }
 
   /* ------------------------------------------------------------------ */
@@ -965,26 +1480,25 @@
     $("#btnContextReport").addEventListener("click", exportReport);
   }
 
-  function updateContext(d) {
-    if (!d) return;
+  function updateContext(design) {
+    if (!design) return;
     const tag = $("#contextTag");
-    tag.textContent = d.topology_name || d.topology || "已设计";
+    tag.textContent = topologyName(design);
     tag.className = "tag green";
-    const comps = d.components || {};
+    const components = design.components || {};
     $("#contextDesign").outerHTML = `
       <div id="contextDesign">
         <div class="context-values">
-          <div><span>电感 L</span><b>${escapeHtml(fmtComp(comps, "L"))}</b></div>
-          <div><span>VSWR</span><b>${fmtFixed(d.vswr, 4)}</b></div>
-          <div><span>C1 / C2</span><b>${escapeHtml(fmtComp(comps, "C1"))} / ${escapeHtml(fmtComp(comps, "C2"))}</b></div>
-          <div><span>带宽</span><b>${fmt((d.bandwidth || {}).percent, 1)}%</b></div>
+          <div><span>L</span><b>${escapeHtml(fmtComp(components, "L"))}</b></div>
+          <div><span>VSWR</span><b>${fmtFixed(design.vswr, 4)}</b></div>
+          <div><span>C1 / C2</span><b>${escapeHtml(fmtComp(components, "C1"))} / ${escapeHtml(fmtComp(components, "C2"))}</b></div>
+          <div><span>BW</span><b>${fmt((design.bandwidth || {}).percent, 1)}%</b></div>
         </div>
       </div>`;
-    const steps = d.steps || [];
     miniChart.setData({
-      steps: steps,
-      load: d.load ? { re: d.load.r, im: d.load.x } : null,
-      z0: d.z0 || 50,
+      steps: design.steps || [],
+      load: design.load ? { re: design.load.r, im: design.load.x } : null,
+      z0: design.z0 || 50,
     });
     miniChart.progress = 1;
     miniChart.draw();
@@ -1007,13 +1521,13 @@
       STATE.design = full;
       renderDesign(full);
       updateContext(full);
-    } catch (e) {
-      toast("无法打开设计", e.message, "err");
+    } catch (error) {
+      toast("无法打开设计", error.message, "err");
     }
   }
 
   /* ------------------------------------------------------------------ */
-  /* Design form                                                        */
+  /* Design                                                             */
   /* ------------------------------------------------------------------ */
   let smith = null;
   let lastBW = null;
@@ -1031,30 +1545,47 @@
       auto_fixed: autoFixed,
     };
     if (!autoFixed || overrides.L_uh !== undefined) {
-      const l = overrides.L_uh !== undefined ? overrides.L_uh : $("#inL").value;
-      if (l !== "" && Number(l) > 0) payload.L_uh = Number(l);
+      const value = overrides.L_uh !== undefined ? overrides.L_uh : $("#inL").value;
+      if (value !== "" && Number(value) > 0) payload.L_uh = Number(value);
     }
     if (TOPO_HAS_C3[topology] && (!autoFixed || overrides.c3_pf !== undefined)) {
-      const c3 = overrides.c3_pf !== undefined ? overrides.c3_pf : $("#inC3").value;
-      if (c3 !== "" && Number(c3) > 0) payload.c3_pf = Number(c3);
+      const value = overrides.c3_pf !== undefined ? overrides.c3_pf : $("#inC3").value;
+      if (value !== "" && Number(value) > 0) payload.c3_pf = Number(value);
     }
     return payload;
   }
 
-  function setTopology(top) {
-    STATE.topology = top;
-    $$(".topo-pill").forEach((b) => b.classList.toggle("active", b.dataset.topology === top));
-    $("#topoDesc").textContent = TOPO_DESC[top] || "";
+  function setTopology(topology) {
+    STATE.topology = topology;
+    $$(".topo-pill").forEach((button) => button.classList.toggle("active", button.dataset.topology === topology));
+    const desc = (window.I18N && window.I18N.lang === "en") ? TOPO_DESC_EN : TOPO_DESC;
+    $("#topoDesc").textContent = desc[topology] || "";
     const c3Field = $("#c3Field");
-    if (c3Field) {
-      const visible = !!TOPO_HAS_C3[top];
-      c3Field.style.display = visible ? "" : "none";
-    }
+    if (c3Field) c3Field.style.display = TOPO_HAS_C3[topology] ? "" : "none";
+  }
+
+  function localizeSelects() {
+    const en = window.I18N && window.I18N.lang === "en";
+    const names = {
+      l_right: ["L-type (right)", "L型（右）"],
+      l_left: ["L-type (left)", "L型（左）"],
+      t: ["T-type", "T型"],
+      pi1: ["π-type I", "π型Ⅰ"],
+      pi2: ["π-type II", "π型Ⅱ"],
+    };
+    ["#anTopology", "#stTopology"].forEach((selector) => {
+      const select = $(selector);
+      if (!select) return;
+      $$("option", select).forEach((option) => {
+        const pair = names[option.value];
+        if (pair) option.textContent = en ? pair[0] : pair[1];
+      });
+    });
   }
 
   function initDesignForm() {
-    $$(".topo-pill").forEach((b) => b.addEventListener("click", () => {
-      setTopology(b.dataset.topology);
+    $$(".topo-pill").forEach((button) => button.addEventListener("click", () => {
+      setTopology(button.dataset.topology);
       if (STATE.design) runDesign();
     }));
     $("#autoFixed").addEventListener("change", () => {
@@ -1065,7 +1596,8 @@
     $("#btnDesign").addEventListener("click", runDesign);
     $("#btnDesignEmpty").addEventListener("click", () => {
       $("#inFreq").value = 2400; $("#inZ0").value = 50; $("#inR").value = 20; $("#inX").value = 5;
-      setTopology("auto"); runDesign();
+      setTopology("auto");
+      runDesign();
     });
     $("#btnScan").addEventListener("click", () => {
       if (!STATE.design && !$("#inL").value) return toast("需要电感 L", "先完成一次设计，或取消自动选值并填写 L。", "amber");
@@ -1073,45 +1605,46 @@
       showView("analysis");
       runAnalysisScan();
     });
-    $("#btnMatlabVerify").addEventListener("click", runMatlabVerify);
+    $("#btnDesignToStress").addEventListener("click", () => {
+      if (!STATE.design) return toast("暂无设计", "先完成一次设计。", "amber");
+      fillStressFromDesign();
+      showView("stress");
+    });
     $("#btnPlay").addEventListener("click", () => {
       if (!smith) return;
       if (smith.playing) smith.pause(); else smith.play();
     });
     $("#btnResetChart").addEventListener("click", () => smith && smith.reset());
-    $("#speedRange").addEventListener("input", (e) => smith && smith.setSpeed(Number(e.target.value)));
+    $("#speedRange").addEventListener("input", (event) => smith && smith.setSpeed(Number(event.target.value)));
   }
 
   async function runDesign() {
-    const btn = $("#btnDesign");
-    btn.disabled = true;
-    btn.textContent = "计算中…";
+    const button = $("#btnDesign");
+    button.disabled = true;
+    button.textContent = T("design.calculating", "计算中…");
     try {
       const payload = designPayload();
-      const d = await api("/api/design", { method: "POST", body: payload });
-      STATE.design = d;
+      const design = await api("/api/design", { method: "POST", body: payload });
+      STATE.design = design;
       $("#emptyDesign").classList.add("hidden");
       $("#designResult").classList.remove("hidden");
-      renderDesign(d);
-      updateContext(d);
-      toast("设计完成", `${d.topology_name}：VSWR ${fmtFixed(d.vswr, 4)}，${d.components_display ? Object.values(d.components_display).filter((x) => x !== "—").join(" / ") : ""}`, "ok", 4200);
-      if (!STATE.config || !STATE.config.llm || !STATE.config.llm.has_key) {
-        /* local design still works without an API key */
-      }
-    } catch (e) {
-      showDesignError(e);
+      renderDesign(design);
+      updateContext(design);
+      toast(T("design.done", "设计完成"), `${topologyName(design)}：VSWR ${fmtFixed(design.vswr, 4)}，${design.components_display ? Object.values(design.components_display).filter((value) => value !== "—").join(" / ") : ""}`, "ok", 4200);
+    } catch (error) {
+      showDesignError(error);
     } finally {
-      btn.disabled = false;
-      btn.textContent = "求解设计";
+      button.disabled = false;
+      button.textContent = T("design.solve", "求解设计");
     }
   }
 
-  function showDesignError(e) {
+  function showDesignError(error) {
     $("#emptyDesign").classList.add("hidden");
     $("#designResult").classList.remove("hidden");
-    $("#designKpis").innerHTML = `<div class="kpi-card bad"><span>计算失败</span><b>—</b><small>${escapeHtml(e.message)}</small></div>`;
-    $("#stepList").innerHTML = `<div class="empty-mini">${escapeHtml(e.message)}${e.data && e.data.hint ? `<br><br>${escapeHtml(e.data.hint)}` : ""}</div>`;
-    $("#warningList").innerHTML = `<li>${escapeHtml(e.message)}</li>${e.data && e.data.hint ? `<li>${escapeHtml(e.data.hint)}</li>` : ""}`;
+    $("#designKpis").innerHTML = `<div class="kpi-card bad"><span>计算失败</span><b>—</b><small>${escapeHtml(error.message)}</small></div>`;
+    $("#stepList").innerHTML = `<div class="empty-mini">${escapeHtml(error.message)}${error.data && error.data.hint ? `<br><br>${escapeHtml(error.data.hint)}` : ""}</div>`;
+    $("#warningList").innerHTML = `<li>${escapeHtml(error.message)}</li>${error.data && error.data.hint ? `<li>${escapeHtml(error.data.hint)}</li>` : ""}`;
     $("#warnCount").textContent = "!";
     if (smith) smith.setData({ steps: [], load: null, z0: 50 });
     $("#topoName").textContent = "—";
@@ -1122,146 +1655,141 @@
     $("#sensNote").textContent = "";
     $("#altGrid").innerHTML = "";
     $("#alternativesPanel").classList.add("hidden");
-    toast("无法完成该设计", e.message + (e.data && e.data.hint ? ` ${e.data.hint}` : ""), "err", 7000);
+    toast("无法完成该设计", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 7000);
   }
 
-  function fillFormFromDesign(d) {
-    if (!d) return;
-    $("#inFreq").value = d.frequency_mhz;
-    $("#inZ0").value = d.z0 || 50;
-    $("#inR").value = d.load ? d.load.r : 20;
-    $("#inX").value = d.load ? d.load.x : 0;
-    if (d.components) {
-      $("#inL").value = Number(d.components.L_uH).toFixed(5);
-      $("#inC3").value = Number(d.components.C3_pF).toFixed(4);
+  function fillFormFromDesign(design) {
+    if (!design) return;
+    $("#inFreq").value = design.frequency_mhz;
+    $("#inZ0").value = design.z0 || 50;
+    $("#inR").value = design.load ? design.load.r : 20;
+    $("#inX").value = design.load ? design.load.x : 0;
+    if (design.components) {
+      $("#inL").value = Number(design.components.L_uH).toFixed(5);
+      $("#inC3").value = Number(design.components.C3_pF).toFixed(4);
     }
-    if (d.topology && d.topology !== "auto") setTopology(d.topology);
-    else setTopology("auto");
+    setTopology(design.topology && design.topology !== "auto" ? design.topology : "auto");
     $("#designResult").classList.remove("hidden");
     $("#emptyDesign").classList.add("hidden");
   }
 
-  function renderDesign(d) {
-    if (!d) return;
+  function renderDesign(design) {
+    if (!design) return;
     $("#emptyDesign").classList.add("hidden");
     $("#designResult").classList.remove("hidden");
-    const bw = d.bandwidth || {};
-    const kpis = $("#designKpis");
-    kpis.innerHTML = `
-      <div class="kpi-card ${vswrClass(d.vswr)}"><span>VSWR</span><b>${fmtFixed(d.vswr, 4)}</b><small>目标 &lt; 1.5</small></div>
-      <div class="kpi-card ${d.s11_db < -15 ? "good" : d.s11_db < -10 ? "warn" : "bad"}"><span>S11</span><b>${fmtS11(d.s11_db)}</b><small>回波损耗 ${fmtRL(d.return_loss_db)}</small></div>
-      <div class="kpi-card ${bw.percent > 20 ? "good" : bw.percent > 8 ? "warn" : "bad"}"><span>带宽</span><b>${fmt(bw.percent, 1)}%</b><small>VSWR &lt; ${bw.vswr_limit || 2}</small></div>
-      <div class="kpi-card ${d.q < 2 ? "good" : d.q < 5 ? "warn" : "bad"}"><span>设计 Q</span><b>${fmt(d.q, 2)}</b><small>越低越宽</small></div>`;
+    const bandwidth = design.bandwidth || {};
+    $("#designKpis").innerHTML = `
+      <div class="kpi-card ${vswrClass(design.vswr)}"><span>VSWR</span><b>${fmtFixed(design.vswr, 4)}</b><small>target &lt; 1.5</small></div>
+      <div class="kpi-card ${design.s11_db < -15 ? "good" : design.s11_db < -10 ? "warn" : "bad"}"><span>S11</span><b>${fmtS11(design.s11_db)}</b><small>RL ${fmtRL(design.return_loss_db)}</small></div>
+      <div class="kpi-card ${bandwidth.percent > 20 ? "good" : bandwidth.percent > 8 ? "warn" : "bad"}"><span>${T("design.bw", "带宽")}</span><b>${fmt(bandwidth.percent, 1)}%</b><small>VSWR &lt; ${bandwidth.vswr_limit || 2}</small></div>
+      <div class="kpi-card ${design.q < 2 ? "good" : design.q < 5 ? "warn" : "bad"}"><span>${T("design.q", "设计 Q")}</span><b>${fmt(design.q, 2)}</b><small>${T("design.qSub", "越低越宽")}</small></div>`;
 
-    $("#smithSub").textContent = `${d.topology_name || d.topology} · 匹配轨迹（负载 → 源）`;
+    $("#smithSub").textContent = `${topologyName(design)} · ${T("design.trajectory", "匹配轨迹（负载 → 源）")}`;
     smith.setData({
-      steps: d.steps || [],
-      load: d.load ? { re: d.load.r, im: d.load.x } : null,
-      z0: d.z0 || 50,
+      steps: design.steps || [],
+      load: design.load ? { re: design.load.r, im: design.load.x } : null,
+      z0: design.z0 || 50,
       scanPoints: [],
     });
     setTimeout(() => { smith.progress = 0; smith.play(); }, 180);
 
-    const legend = $("#smithLegend");
-    legend.innerHTML = `<span><i class="legend-dot" style="background:#fb923c"></i>负载</span><span><i class="legend-dot" style="background:#34d399"></i>匹配点 50Ω</span>` +
-      (d.steps || []).map((s, i) => `<span><i class="legend-dot" style="background:${["#22d3ee", "#34d399", "#fbbf24", "#a78bfa", "#f87171"][i % 5]}"></i>${escapeHtml(s.label)}</span>`).join("");
+    $("#smithLegend").innerHTML = `<span><i class="legend-dot" style="background:#fb923c"></i>${T("design.load", "负载")}</span><span><i class="legend-dot" style="background:#34d399"></i>${T("design.match", "匹配点 50Ω")}</span>` +
+      (design.steps || []).map((step, index) => `<span><i class="legend-dot" style="background:${["#22d3ee", "#34d399", "#fbbf24", "#a78bfa", "#f87171"][index % 5]}"></i>${escapeHtml(stepLabel(step))}</span>`).join("");
 
     const stepList = $("#stepList");
-    stepList.innerHTML = (d.steps || []).map((s, i) => `
-      <div class="step-item" data-step="${i}">
-        <div class="step-num">${i + 1}</div>
-        <div class="step-body"><b>${escapeHtml(s.label)}</b><small>${escapeHtml(s.note || "")}</small></div>
-        <span class="step-kind">${s.kind === "series" ? "串联" : "并联"}</span>
+    stepList.innerHTML = (design.steps || []).map((step, index) => `
+      <div class="step-item" data-step="${index}">
+        <div class="step-num">${index + 1}</div>
+        <div class="step-body"><b>${escapeHtml(stepLabel(step))}</b><small>${escapeHtml(stepNote(step))}</small></div>
+        <span class="step-kind">${step.kind === "series" ? T("design.series", "串联") : T("design.shunt", "并联")}</span>
       </div>`).join("");
-    $("#stepCount").textContent = `${(d.steps || []).length} 步`;
-    $$(".step-item", stepList).forEach((el) => el.addEventListener("click", () => {
-      $$(".step-item", stepList).forEach((x) => x.classList.remove("active"));
-      el.classList.add("active");
-      smith.progress = (Number(el.dataset.step) + 1) / Math.max(1, (d.steps || []).length);
+    $("#stepCount").textContent = `${(design.steps || []).length}`;
+    $$(".step-item", stepList).forEach((element) => element.addEventListener("click", () => {
+      $$(".step-item", stepList).forEach((item) => item.classList.remove("active"));
+      element.classList.add("active");
+      smith.progress = (Number(element.dataset.step) + 1) / Math.max(1, (design.steps || []).length);
       smith.draw();
     }));
-    $("#formulaBox").innerHTML = `<b>设计公式</b><br>${escapeHtml(d.formulas || "—")}`;
-    $("#topoName").textContent = d.topology_name || d.topology || "—";
-    $("#topoDiagram").innerHTML = topologySVG(d.topology, d.components || {});
-    renderComponentGrid(d.components || {}, d.topology, d);
+    $("#formulaBox").innerHTML = `<b>${T("design.formula", "设计公式")}</b><br>${escapeHtml(design.formulas || "—")}`;
+    $("#topoName").textContent = topologyName(design);
+    $("#topoDiagram").innerHTML = topologySVG(design.topology, design.components || {});
+    renderComponentGrid(design.components || {}, design.topology, design);
 
-    lastBW = d.bandwidth;
-    ChartKit.drawLineChart($("#bwCanvas"), Object.assign({ mark_mhz: d.frequency_mhz }, d.bandwidth || {}));
-    const bwRange = bw.low_mhz && bw.high_mhz ? `${fmt(bw.low_mhz, 2)} – ${fmt(bw.high_mhz, 2)} MHz` : "未找到合格频段";
-    $("#bwTag").textContent = `${fmt(bw.percent, 1)}%`;
-    $("#bwNote").textContent = `${bwRange} · 扫频范围 ±60% · 虚线为 VSWR=${bw.vswr_limit || 2}`;
+    lastBW = design.bandwidth;
+    ChartKit.drawLineChart($("#bwCanvas"), Object.assign({ mark_mhz: design.frequency_mhz }, design.bandwidth || {}));
+    const range = bandwidth.low_mhz && bandwidth.high_mhz ? `${fmt(bandwidth.low_mhz, 2)} – ${fmt(bandwidth.high_mhz, 2)} MHz` : T("design.noBand", "未找到合格频段");
+    $("#bwTag").textContent = `${fmt(bandwidth.percent, 1)}%`;
+    $("#bwNote").textContent = `${range} · ±60% · VSWR=${bandwidth.vswr_limit || 2}`;
 
-    lastSens = d.sensitivity || [];
+    lastSens = design.sensitivity || [];
     drawSensitivity(lastSens);
-    $("#sensNote").textContent = "每根柱为该元件 ±5% 偏差下的最差 VSWR；绿色 <1.5，黄色 <2，红色 ≥2。";
+    $("#sensNote").textContent = T("design.sensNote", "每根柱为该元件 ±5% 偏差下的最差 VSWR；绿色 <1.5，黄色 <2，红色 ≥2。");
 
-    const warnings = d.warnings || [];
-    $("#warnCount").textContent = warnings.length ? `${warnings.length} 条` : "0";
+    const warnings = design.warnings || [];
+    $("#warnCount").textContent = warnings.length ? `${warnings.length}` : "0";
     $("#warningList").innerHTML = warnings.length
-      ? warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join("")
-      : `<li class="ok">节点法复核通过，未发现显著的元件可实现性风险。仍建议用实际元件模型复核。</li>`;
+      ? warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")
+      : `<li class="ok">${T("design.noWarnings", "节点法复核通过，未发现显著的元件可实现性风险。仍建议用实际元件模型复核。")}</li>`;
 
-    const alts = d.alternatives || [];
-    const altPanel = $("#alternativesPanel");
-    if (alts.length) {
-      altPanel.classList.remove("hidden");
-      $("#altGrid").innerHTML = alts.map((a, i) => `
-        <div class="alt-card ${i === 0 ? "best" : ""}">
-          <div class="alt-card-head"><b>${escapeHtml(a.topology_name)}</b><span class="tag ${i === 0 ? "cyan" : ""}">${i === 0 ? "推荐" : ""}</span></div>
-          <p>${escapeHtml(a.components_display ? Object.values(a.components_display).filter((x) => x !== "—").join(" / ") : "")}</p>
-          <p class="alt-metric">带宽 ${fmt(a.bandwidth_percent, 1)}% · Q ${fmt(a.q, 2)}</p>
-          <button class="btn tiny ghost" data-alt-topology="${escapeHtml(a.topology)}">应用此方案</button>
+    const alternatives = design.alternatives || [];
+    const alternativePanel = $("#alternativesPanel");
+    if (alternatives.length) {
+      alternativePanel.classList.remove("hidden");
+      $("#altGrid").innerHTML = alternatives.map((alternative, index) => `
+        <div class="alt-card ${index === 0 ? "best" : ""}">
+          <div class="alt-card-head"><b>${escapeHtml(topologyName({topology: alternative.topology, topology_name: alternative.topology_name}))}</b><span class="tag ${index === 0 ? "cyan" : ""}">${index === 0 ? T("design.recommended", "推荐") : ""}</span></div>
+          <p>${escapeHtml(alternative.components_display ? Object.values(alternative.components_display).filter((value) => value !== "—").join(" / ") : "")}</p>
+          <p class="alt-metric">BW ${fmt(alternative.bandwidth_percent, 1)}% · Q ${fmt(alternative.q, 2)}</p>
+          <button class="btn tiny ghost" data-alt-topology="${escapeHtml(alternative.topology)}">${T("design.apply", "应用此方案")}</button>
         </div>`).join("");
-      $$("[data-alt-topology]").forEach((b) => b.addEventListener("click", () => {
-        setTopology(b.dataset.altTopology);
+      $$("[data-alt-topology]").forEach((button) => button.addEventListener("click", () => {
+        setTopology(button.dataset.altTopology);
         runDesign();
       }));
     } else {
-      altPanel.classList.add("hidden");
+      alternativePanel.classList.add("hidden");
     }
 
-    // Update L/C3 inputs with the solved values (still disabled when auto).
-    if (d.components) {
-      $("#inL").value = Number(d.components.L_uH).toFixed(5);
-      $("#inC3").value = Number(d.components.C3_pF).toFixed(4);
+    if (design.components) {
+      $("#inL").value = Number(design.components.L_uH).toFixed(5);
+      $("#inC3").value = Number(design.components.C3_pF).toFixed(4);
     }
-    $("#designModeTag").textContent = d.engine && d.engine.includes("matlab") ? "MATLAB 内核" : "Python 内核";
-    setTimeout(() => { smith._notify(); }, 0);
+    $("#designModeTag").textContent = "Python";
+    setTimeout(() => smith._notify(), 0);
   }
 
-  function renderComponentGrid(comps, topology, d) {
+  function renderComponentGrid(components, topology) {
     const items = [
-      ["L", "电感", fmtComp(comps, "L"), "串联电感"],
-      ["C1", "电容 C1", fmtComp(comps, "C1"), topology === "l_right" || topology === "pi2" ? "源端并联" : topology === "l_left" || topology === "pi1" ? "负载端并联" : "串联/并联"],
-      ["C2", "电容 C2", fmtComp(comps, "C2"), "串联匹配电容"],
+      ["L", "电感", fmtComp(components, "L"), "串联电感"],
+      ["C1", "电容 C1", fmtComp(components, "C1"), topology === "l_right" || topology === "pi2" ? "源端并联" : topology === "l_left" || topology === "pi1" ? "负载端并联" : "串联/并联"],
+      ["C2", "电容 C2", fmtComp(components, "C2"), "串联匹配电容"],
     ];
-    if (comps.C3_pF > 0) items.push(["C3", "电容 C3", fmtComp(comps, "C3"), topology === "t" ? "源端串联" : topology === "pi1" ? "源端并联" : "负载端并联"]);
-    else items.push(["Zin", "输入阻抗", (d && d.input_impedance_display) || "—", "节点法复核值"]);
-    $("#componentGrid").innerHTML = items.slice(0, 4).map(([sym, name, val, role]) =>
-      `<div class="component-item"><span>${escapeHtml(name)}<small>${escapeHtml(sym)}</small></span><b>${escapeHtml(val)}</b><small>${escapeHtml(role)}</small></div>`
+    if (components.C3_pF > 0) items.push(["C3", "电容 C3", fmtComp(components, "C3"), topology === "t" ? "源端串联" : topology === "pi1" ? "源端并联" : "负载端并联"]);
+    else items.push(["Zin", "输入阻抗", "—", "节点法复核值"]);
+    $("#componentGrid").innerHTML = items.slice(0, 4).map(([symbol, name, value, role]) =>
+      `<div class="component-item"><span>${escapeHtml(name)}<small>${escapeHtml(symbol)}</small></span><b>${escapeHtml(value)}</b><small>${escapeHtml(role)}</small></div>`
     ).join("");
   }
 
   function drawSensitivity(items) {
-    const data = (items || []).map((s) => ({
-      label: s.element,
-      value: Number(s.worst_vswr) || 0,
-      raw: s,
+    const data = (items || []).map((item) => ({
+      label: item.element,
+      value: Number(item.worst_vswr) || 0,
+      raw: item,
     }));
     ChartKit.drawBars($("#sensCanvas"), data, {
       unit: "",
       padLeft: 58,
-      format: (v) => v.toFixed(2),
-      colorFn: (d) => d.value <= 1.5 ? "#34d399" : d.value <= 2 ? "#fbbf24" : "#f87171",
+      format: (value) => value.toFixed(2),
+      colorFn: (item) => item.value <= 1.5 ? "#34d399" : item.value <= 2 ? "#fbbf24" : "#f87171",
     });
   }
 
-  function topologySVG(topology, comps) {
-    const L = fmtComp(comps, "L");
-    const C1 = fmtComp(comps, "C1");
-    const C2 = fmtComp(comps, "C2");
-    const C3 = fmtComp(comps, "C3");
-    const c = (label, value) => `${label} ${value}`;
+  function topologySVG(topology, components) {
+    const L = fmtComp(components, "L");
+    const C1 = fmtComp(components, "C1");
+    const C2 = fmtComp(components, "C2");
+    const C3 = fmtComp(components, "C3");
     const W = 820, H = 190;
     const series = (x, label, value) => `
       <rect x="${x}" y="70" width="62" height="26" rx="5" fill="#0a1a2c" stroke="#2f4a68"/>
@@ -1275,19 +1803,12 @@
       <line x1="${x}" y1="152" x2="${x}" y2="164" stroke="#3c5978" stroke-width="1.6"/>
       <line x1="${x - 12}" y1="164" x2="${x + 12}" y2="164" stroke="#3c5978" stroke-width="2.6"/>`;
     let body = "";
-    if (topology === "l_right") {
-      body = shunt(180, "C1", C1) + `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(330, "L", L) + series(470, "C2", C2);
-    } else if (topology === "l_left") {
-      body = `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(320, "L", L) + series(440, "C2", C2) + shunt(640, "C1", C1);
-    } else if (topology === "t") {
-      body = series(170, "C3", C3) + `<line x1="232" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + shunt(400, "L+C2", `${L} / ${C2}`) + series(540, "C1", C1);
-    } else if (topology === "pi1") {
-      body = shunt(180, "C3", C3) + `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(330, "L", L) + series(450, "C2", C2) + shunt(640, "C1", C1);
-    } else if (topology === "pi2") {
-      body = shunt(180, "C1", C1) + `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(330, "L", L) + series(450, "C2", C2) + shunt(640, "C3", C3);
-    } else {
-      body = `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>`;
-    }
+    if (topology === "l_right") body = shunt(180, "C1", C1) + `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(330, "L", L) + series(470, "C2", C2);
+    else if (topology === "l_left") body = `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(320, "L", L) + series(440, "C2", C2) + shunt(640, "C1", C1);
+    else if (topology === "t") body = series(170, "C3", C3) + `<line x1="232" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + shunt(400, "L+C2", `${L} / ${C2}`) + series(540, "C1", C1);
+    else if (topology === "pi1") body = shunt(180, "C3", C3) + `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(330, "L", L) + series(450, "C2", C2) + shunt(640, "C1", C1);
+    else if (topology === "pi2") body = shunt(180, "C1", C1) + `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(330, "L", L) + series(450, "C2", C2) + shunt(640, "C3", C3);
+    else body = `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>`;
     return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
       <defs><radialGradient id="srcG" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#164e63"/><stop offset="100%" stop-color="#082f49"/></radialGradient></defs>
       <circle cx="60" cy="83" r="20" fill="url(#srcG)" stroke="#22d3ee" stroke-width="1.4"/>
@@ -1297,83 +1818,43 @@
       <line x1="700" y1="83" x2="744" y2="83" stroke="#3c5978" stroke-width="1.8"/>
       <rect x="744" y="63" width="50" height="40" rx="7" fill="#211a0a" stroke="#d97706" stroke-width="1.4"/>
       <text x="769" y="87" font-size="11" fill="#fcd34d" text-anchor="middle">Z_L</text>
-      <text x="60" y="175" font-size="9" fill="#5c7694" text-anchor="middle">源</text>
-      <text x="769" y="175" font-size="9" fill="#5c7694" text-anchor="middle">负载</text>
+      <text x="60" y="175" font-size="9" fill="#5c7694" text-anchor="middle">SRC</text>
+      <text x="769" y="175" font-size="9" fill="#5c7694" text-anchor="middle">LOAD</text>
     </svg>`;
   }
 
   /* ------------------------------------------------------------------ */
-  /* Report / MATLAB                                                    */
+  /* Report                                                             */
   /* ------------------------------------------------------------------ */
   async function exportReport() {
-    const d = STATE.design;
-    if (!d) return toast("暂无设计", "请先完成一次设计，再导出报告。", "amber");
+    const design = STATE.design;
+    if (!design) return toast("暂无设计", "请先完成一次设计，再导出报告。", "amber");
     try {
-      const r = await api("/api/report", {
+      const result = await api("/api/report", {
         method: "POST",
         body: {
-          topology: d.topology,
-          frequency_mhz: d.frequency_mhz,
-          load_r: d.load.r,
-          load_x: d.load.x,
-          z0: d.z0 || 50,
-          L_uh: d.components.L_uH,
-          C1_pF: d.components.C1_pF,
-          C2_pF: d.components.C2_pF,
-          c3_pf: d.components.C3_pF,
-          note: "由「智配芯生 · ImpedanceMCP」生成",
+          topology: design.topology,
+          frequency_mhz: design.frequency_mhz,
+          load_r: design.load.r,
+          load_x: design.load.x,
+          z0: design.z0 || 50,
+          L_uh: design.components.L_uH,
+          C1_pF: design.components.C1_pF,
+          C2_pF: design.components.C2_pF,
+          c3_pf: design.components.C3_pF,
+          note: "Generated by Impedance Matching AI",
         },
       });
       toast("报告已生成", "正在新窗口打开 HTML 报告。", "ok");
-      downloadUrl(r.url);
-    } catch (e) {
-      toast("导出失败", e.message, "err");
-    }
-  }
-
-  async function runMatlabVerify() {
-    const btn = $("#btnMatlabVerify");
-    btn.disabled = true;
-    btn.textContent = "MATLAB 计算中…";
-    try {
-      const payload = designPayload();
-      const actualTop = STATE.topology === "auto" && STATE.design ? STATE.design.topology : STATE.topology;
-      const comps = STATE.design ? STATE.design.components : null;
-      if (!comps) throw new Error("请先完成一次设计，再调用 MATLAB 复核。");
-      const r = await api("/api/matlab/verify", {
-        method: "POST",
-        body: {
-          topology: actualTop,
-          frequency_mhz: payload.frequency_mhz,
-          load_r: payload.load_r,
-          load_x: payload.load_x,
-          z0: payload.z0,
-          L_uh: comps.L_uH,
-          c3_pf: comps.C3_pF,
-        },
-      });
-      toast("MATLAB 复核完成", `${r.summary || ""}`, r.ok ? "ok" : "err", 8000);
-    } catch (e) {
-      toast("MATLAB 复核失败", e.message + (e.data && e.data.hint ? ` ${e.data.hint}` : ""), "err", 8000);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "MATLAB 复核";
-    }
-  }
-
-  async function openMatlab() {
-    try {
-      const r = await api("/api/matlab/open", { method: "POST", body: {} });
-      toast("原版软件已启动", r.summary || "Impedance_Matching.exe", "ok");
-    } catch (e) {
-      toast("无法启动原版软件", e.message + (e.data && e.data.hint ? ` ${e.data.hint}` : ""), "err", 7000);
+      openDocument(result.url);
+    } catch (error) {
+      toast("导出失败", error.message, "err");
     }
   }
 
   /* ------------------------------------------------------------------ */
   /* Analysis                                                           */
   /* ------------------------------------------------------------------ */
-  let scanChart = null;
 
   function initAnalysis() {
     scanChart = new SmithChart($("#scanCanvas"), { tooltip: $("#scanTooltip") });
@@ -1386,14 +1867,14 @@
   }
 
   function fillAnalysisFromDesign() {
-    const d = STATE.design;
-    if (d) {
-      $("#anTopology").value = d.topology && d.topology !== "auto" ? d.topology : "l_right";
-      $("#anFreq").value = d.frequency_mhz;
-      $("#anZ0").value = d.z0 || 50;
-      $("#anL").value = Number(d.components.L_uH).toFixed(5);
-      $("#anR").value = d.load.r;
-      $("#anX").value = d.load.x;
+    const design = STATE.design;
+    if (design) {
+      $("#anTopology").value = design.topology && design.topology !== "auto" ? design.topology : "l_right";
+      $("#anFreq").value = design.frequency_mhz;
+      $("#anZ0").value = design.z0 || 50;
+      $("#anL").value = Number(design.components.L_uH).toFixed(5);
+      $("#anR").value = design.load.r;
+      $("#anX").value = design.load.x;
       $("#anTopology").dispatchEvent(new Event("change"));
     } else {
       $("#anFreq").value = $("#inFreq").value;
@@ -1403,9 +1884,11 @@
   }
 
   async function runAnalysisScan() {
-    const btn = $("#btnRunScan");
-    btn.disabled = true;
-    btn.textContent = "扫描中…";
+    const button = $("#btnRunScan");
+    const errorBox = $("#scanError");
+    errorBox.textContent = "";
+    button.disabled = true;
+    button.textContent = T("analysis.running", "扫描中…");
     try {
       const topology = $("#anTopology").value;
       const body = {
@@ -1420,49 +1903,50 @@
       if (["t", "pi1", "pi2"].includes(topology)) {
         body.c3_range_pf = [Number($("#anC3min").value), Number($("#anC3max").value)];
       }
-      const r = await api("/api/scan", { method: "POST", body });
-      STATE.scan = r;
-      renderScan(r);
+      const result = await api("/api/scan", { method: "POST", body });
+      if (result.ok === false) throw new Error(result.error || result.message || "扫描失败");
+      STATE.scan = result;
+      renderScan(result);
       compareTopologies();
-    } catch (e) {
-      toast("扫描失败", e.message + (e.data && e.data.hint ? ` ${e.data.hint}` : ""), "err", 7000);
-      $("#scanSummary").textContent = e.message;
+    } catch (error) {
+      errorBox.textContent = error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : "");
+      toast("扫描失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 7000);
+      $("#scanSummary").textContent = error.message;
     } finally {
-      btn.disabled = false;
-      btn.textContent = "运行扫描";
+      button.disabled = false;
+      button.textContent = T("analysis.run", "运行扫描");
     }
   }
 
-  function renderScan(r) {
-    const kpis = $("#scanKpis");
-    kpis.innerHTML = `
-      <div class="kpi-card"><span>R 范围</span><b>${fmt(r.r_min, 1)}–${fmt(r.r_max, 1)}</b><small>Ω · 5–95% ${fmt(r.r_p05, 1)}–${fmt(r.r_p95, 1)}</small></div>
-      <div class="kpi-card"><span>X 范围</span><b>${fmt(r.x_min, 1)}–${fmt(r.x_max, 1)}</b><small>Ω · 5–95% ${fmt(r.x_p05, 1)}–${fmt(r.x_p95, 1)}</small></div>
-      <div class="kpi-card"><span>有效点</span><b>${r.points_count || 0}</b><small>网格扫描</small></div>
-      <div class="kpi-card"><span>采样点</span><b>${(r.points || []).length}</b><small>用于圆图绘制</small></div>`;
-    $("#scanTopoTag").textContent = TOPO_SHORT[r.topology] || r.topology;
+  function renderScan(result) {
+    $("#scanKpis").innerHTML = `
+      <div class="kpi-card"><span>R</span><b>${fmt(result.r_min, 1)}–${fmt(result.r_max, 1)}</b><small>Ω · 5–95% ${fmt(result.r_p05, 1)}–${fmt(result.r_p95, 1)}</small></div>
+      <div class="kpi-card"><span>X</span><b>${fmt(result.x_min, 1)}–${fmt(result.x_max, 1)}</b><small>Ω · 5–95% ${fmt(result.x_p05, 1)}–${fmt(result.x_p95, 1)}</small></div>
+      <div class="kpi-card"><span>${T("analysis.valid", "有效点")}</span><b>${result.points_count || 0}</b><small>${T("analysis.points", "个")}</small></div>
+      <div class="kpi-card"><span>${T("analysis.sampled", "采样点")}</span><b>${(result.points || []).length}</b><small>${T("analysis.chart", "圆图")}</small></div>`;
+    $("#scanTopoTag").textContent = TOPO_SHORT[result.topology] || result.topology;
     scanChart.setData({
       steps: [],
       load: STATE.design && STATE.design.load ? { re: STATE.design.load.r, im: STATE.design.load.x } : null,
-      z0: r.z0 || 50,
-      scanPoints: r.points || [],
+      z0: result.z0 || 50,
+      scanPoints: result.points || [],
     });
-    const cx = (r.r_max + r.r_min) / 2;
-    const cy = (r.x_max + r.x_min) / 2;
+    const centerX = (result.r_max + result.r_min) / 2;
+    const centerY = (result.x_max + result.x_min) / 2;
     $("#scanSummary").innerHTML =
-      `在 <b>${fmt(r.frequency_mhz, 1)} MHz</b>、L=<b>${fmt($("#anL").value, 4)} µH</b> 下，` +
-      `<b>${escapeHtml(TOPO_SHORT[r.topology] || r.topology)}</b> 可覆盖的负载范围约为 ` +
-      `R <b>${fmt(r.r_min, 2)}–${fmt(r.r_max, 2)} Ω</b>、X <b>${fmt(r.x_min, 2)}–${fmt(r.x_max, 2)} Ω</b>；` +
-      `中心约 <b>${fmt(cx, 1)} ${cy >= 0 ? "+" : "−"} j${fmt(Math.abs(cy), 1)} Ω</b>。` +
+      `在 <b>${fmt(result.frequency_mhz, 1)} MHz</b>、L=<b>${fmt($("#anL").value, 4)} µH</b> 下，` +
+      `<b>${escapeHtml(TOPO_SHORT[result.topology] || result.topology)}</b> 可覆盖的负载范围约为 ` +
+      `R <b>${fmt(result.r_min, 2)}–${fmt(result.r_max, 2)} Ω</b>、X <b>${fmt(result.x_min, 2)}–${fmt(result.x_max, 2)} Ω</b>；` +
+      `中心约 <b>${fmt(centerX, 1)} ${centerY >= 0 ? "+" : "−"} j${fmt(Math.abs(centerY), 1)} Ω</b>。` +
       `若目标负载落在灰色区域之外，可调整 L、扩大电容范围或改用三元件拓扑。`;
   }
 
   async function compareTopologies() {
-    const btn = $("#btnCompare");
-    btn.disabled = true;
-    btn.textContent = "比较中…";
+    const button = $("#btnCompare");
+    button.disabled = true;
+    button.textContent = T("analysis.comparing", "比较中…");
     try {
-      const r = await api("/api/suggest", {
+      const result = await api("/api/suggest", {
         method: "POST",
         body: {
           frequency_mhz: Number($("#anFreq").value),
@@ -1471,36 +1955,36 @@
           z0: Number($("#anZ0").value || 50),
         },
       });
-      const list = r.alternatives || [];
+      const list = result.alternatives || [];
       if (!list.length) {
-        $("#compareList").innerHTML = `<div class="empty-mini">五种拓扑均不可行，请尝试其他频率或含串联电感的方案。</div>`;
+        $("#compareList").innerHTML = `<div class="empty-mini">${T("analysis.noTopology", "五种拓扑均不可行，请尝试其他频率或含串联电感的方案。")}</div>`;
         return;
       }
-      const maxBw = Math.max(...list.map((x) => x.bandwidth_percent || 0), 1);
-      $("#compareList").innerHTML = list.map((a, i) => `
+      const maxBandwidth = Math.max(...list.map((item) => item.bandwidth_percent || 0), 1);
+      $("#compareList").innerHTML = list.map((alternative) => `
         <div class="compare-row">
           <div>
-            <b>${escapeHtml(a.topology_name)}</b>
-            <small>${escapeHtml(a.components_display ? Object.values(a.components_display).filter((x) => x !== "—").join(" / ") : "")}</small>
-            <div class="compare-bar"><i style="width:${Math.max(4, (a.bandwidth_percent || 0) / maxBw * 100)}%"></i></div>
+            <b>${escapeHtml(topologyName({topology: alternative.topology, topology_name: alternative.topology_name}))}</b>
+            <small>${escapeHtml(alternative.components_display ? Object.values(alternative.components_display).filter((value) => value !== "—").join(" / ") : "")}</small>
+            <div class="compare-bar"><i style="width:${Math.max(4, (alternative.bandwidth_percent || 0) / maxBandwidth * 100)}%"></i></div>
           </div>
           <div style="text-align:right">
-            <div style="font-size:11px;color:var(--green)">${fmt(a.bandwidth_percent, 1)}%</div>
-            <button class="btn tiny ghost" data-use-topology="${escapeHtml(a.topology)}">应用</button>
+            <div style="font-size:11px;color:var(--green)">${fmt(alternative.bandwidth_percent, 1)}%</div>
+            <button class="btn tiny ghost" data-use-topology="${escapeHtml(alternative.topology)}">${T("design.apply", "应用")}</button>
           </div>
         </div>`).join("");
-      $$("[data-use-topology]").forEach((b) => b.addEventListener("click", () => {
-        setTopology(b.dataset.useTopology);
+      $$("[data-use-topology]").forEach((buttonElement) => buttonElement.addEventListener("click", () => {
+        setTopology(buttonElement.dataset.useTopology);
         $("#inFreq").value = $("#anFreq").value;
         $("#inZ0").value = $("#anZ0").value;
         showView("design");
         runDesign();
       }));
-    } catch (e) {
-      toast("比较失败", e.message, "err");
+    } catch (error) {
+      toast("比较失败", error.message, "err");
     } finally {
-      btn.disabled = false;
-      btn.textContent = "重新比较";
+      button.disabled = false;
+      button.textContent = T("analysis.recompare", "重新比较");
     }
   }
 
@@ -1517,27 +2001,32 @@
     syncC3();
     $("#btnStress").addEventListener("click", runStress);
     $("#btnStressFromDesign").addEventListener("click", () => {
-      const d = STATE.design;
-      if (!d) return toast("暂无设计", "请先在「匹配设计」中完成一次设计。", "amber");
-      $("#stTopology").value = d.topology;
-      $("#stFreq").value = d.frequency_mhz;
-      $("#stR").value = d.load.r;
-      $("#stX").value = d.load.x;
-      $("#stL").value = Number(d.components.L_uH).toFixed(5);
-      $("#stC1").value = Number(d.components.C1_pF).toFixed(4);
-      $("#stC2").value = Number(d.components.C2_pF).toFixed(4);
-      $("#stC3").value = Number(d.components.C3_pF).toFixed(4);
-      syncC3();
+      if (!STATE.design) return toast("暂无设计", "请先在匹配设计中完成一次设计。", "amber");
+      fillStressFromDesign();
       toast("已填入当前设计", "可以直接开始耐压分析。", "ok");
     });
   }
 
+  function fillStressFromDesign() {
+    const design = STATE.design;
+    if (!design) return;
+    $("#stTopology").value = design.topology;
+    $("#stFreq").value = design.frequency_mhz;
+    $("#stR").value = design.load.r;
+    $("#stX").value = design.load.x;
+    $("#stL").value = Number(design.components.L_uH).toFixed(5);
+    $("#stC1").value = Number(design.components.C1_pF).toFixed(4);
+    $("#stC2").value = Number(design.components.C2_pF).toFixed(4);
+    $("#stC3").value = Number(design.components.C3_pF).toFixed(4);
+    $("#stTopology").dispatchEvent(new Event("change"));
+  }
+
   async function runStress() {
-    const btn = $("#btnStress");
-    btn.disabled = true;
-    btn.textContent = "计算中…";
+    const button = $("#btnStress");
+    button.disabled = true;
+    button.textContent = T("stress.running", "计算中…");
     try {
-      const r = await api("/api/stress", {
+      const result = await api("/api/stress", {
         method: "POST",
         body: {
           topology: $("#stTopology").value,
@@ -1552,61 +2041,60 @@
           rated_voltage: Number($("#stRated").value || 0),
         },
       });
-      renderStress(r);
-    } catch (e) {
-      toast("耐压计算失败", e.message + (e.data && e.data.hint ? ` ${e.data.hint}` : ""), "err", 7000);
+      renderStress(result);
+    } catch (error) {
+      toast("耐压计算失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 7000);
     } finally {
-      btn.disabled = false;
-      btn.textContent = "开始耐压分析";
+      button.disabled = false;
+      button.textContent = T("stress.run", "开始耐压分析");
     }
   }
 
-  function renderStress(r) {
-    STATE.lastStress = r;
-    const els = r.elements || [];
-    const maxV = els.length ? Math.max(...els.map((e) => e.voltage_peak)) : 0;
+  function renderStress(result) {
+    STATE.lastStress = result;
+    const elements = result.elements || [];
+    const maxVoltage = elements.length ? Math.max(...elements.map((element) => element.voltage_peak)) : 0;
     const rated = Number($("#stRated").value || 0);
-    const sfs = rated > 0 ? els.map((e) => rated / Math.max(1e-9, e.voltage_peak)) : [];
-    const minSf = sfs.length ? Math.min(...sfs) : null;
+    const factors = rated > 0 ? elements.map((element) => rated / Math.max(1e-9, element.voltage_peak)) : [];
+    const minFactor = factors.length ? Math.min(...factors) : null;
     $("#stressKpis").innerHTML = `
-      <div class="kpi-card"><span>输入峰值电压</span><b>${fmt(r.input_voltage_peak, 1)}</b><small>V · 源开路 ${fmt(r.source_voltage_peak, 1)} V</small></div>
-      <div class="kpi-card"><span>负载峰值电压</span><b>${fmt(r.load_voltage_peak, 1)}</b><small>V</small></div>
-      <div class="kpi-card ${maxV > 100 ? "warn" : ""}"><span>最大元件电压</span><b>${fmt(maxV, 1)}</b><small>V peak</small></div>
-      <div class="kpi-card ${minSf !== null ? (minSf >= 2 ? "good" : minSf >= 1.3 ? "warn" : "bad") : ""}"><span>最小安全系数</span><b>${minSf === null ? "—" : fmt(minSf, 2)}</b><small>额定 / 峰值</small></div>`;
-    $("#stressTag").textContent = `${TOPO_SHORT[r.topology] || r.topology} · ${fmt(r.power_w, 2)} W`;
-    ChartKit.drawBars($("#stressCanvas"), els.map((e) => ({
-      label: e.name, value: e.voltage_peak, raw: e,
+      <div class="kpi-card"><span>${T("stress.sourceV", "源峰值电压")}</span><b>${fmt(result.input_voltage_peak, 1)}</b><small>V · source open ${fmt(result.source_voltage_peak, 1)} V</small></div>
+      <div class="kpi-card"><span>${T("stress.loadV", "负载峰值电压")}</span><b>${fmt(result.load_voltage_peak, 1)}</b><small>V</small></div>
+      <div class="kpi-card ${maxVoltage > 100 ? "warn" : ""}"><span>${T("stress.maxV", "最大元件电压")}</span><b>${fmt(maxVoltage, 1)}</b><small>V peak</small></div>
+      <div class="kpi-card ${minFactor !== null ? (minFactor >= 2 ? "good" : minFactor >= 1.3 ? "warn" : "bad") : ""}"><span>${T("stress.sf", "最小安全系数")}</span><b>${minFactor === null ? "—" : fmt(minFactor, 2)}</b><small>${T("stress.sfSub", "额定 / 峰值")}</small></div>`;
+    $("#stressTag").textContent = `${TOPO_SHORT[result.topology] || result.topology} · ${fmt(result.power_w, 2)} W`;
+    ChartKit.drawBars($("#stressCanvas"), elements.map((element) => ({
+      label: element.name, value: element.voltage_peak, raw: element,
     })), {
       unit: " V",
       padLeft: 58,
-      format: (v) => `${v.toFixed(1)} V`,
-      colorFn: (d) => {
+      format: (value) => `${value.toFixed(1)} V`,
+      colorFn: (item) => {
         if (!rated) return "#22d3ee";
-        const sf = rated / Math.max(1e-9, d.value);
-        return sf >= 2 ? "#34d399" : sf >= 1.3 ? "#fbbf24" : "#f87171";
+        const factor = rated / Math.max(1e-9, item.value);
+        return factor >= 2 ? "#34d399" : factor >= 1.3 ? "#fbbf24" : "#f87171";
       },
     });
-    const tbody = $("#stressTable tbody");
-    tbody.innerHTML = els.map((e, i) => {
-      const sf = rated > 0 ? rated / Math.max(1e-9, e.voltage_peak) : null;
-      const cls = sf === null ? "" : sf >= 2 ? "good" : sf >= 1.3 ? "warn" : "bad";
-      return `<tr><td>${escapeHtml(e.name)}</td><td>${fmt(e.voltage_peak, 2)}</td><td>${fmt(e.voltage_rms, 2)}</td><td>${fmt(e.current_peak, 3)}</td><td>${fmt(e.current_rms, 3)}</td><td class="${cls}">${sf === null ? "—" : fmt(sf, 2)}</td></tr>`;
+    $("#stressTable tbody").innerHTML = elements.map((element) => {
+      const factor = rated > 0 ? rated / Math.max(1e-9, element.voltage_peak) : null;
+      const cls = factor === null ? "" : factor >= 2 ? "good" : factor >= 1.3 ? "warn" : "bad";
+      return `<tr><td>${escapeHtml(element.name)}</td><td>${fmt(element.voltage_peak, 2)}</td><td>${fmt(element.voltage_rms, 2)}</td><td>${fmt(element.current_peak, 3)}</td><td>${fmt(element.current_rms, 3)}</td><td class="${cls}">${factor === null ? "—" : fmt(factor, 2)}</td></tr>`;
     }).join("");
 
     const advice = [];
-    if (r.vswr > 1.2) advice.push(`当前网络 VSWR=${fmt(r.vswr, 3)}，并非完全匹配；失配会在节点产生额外驻波电压，建议先复核元件值。`);
-    if (maxV > 100) advice.push(`最高峰值电压 ${fmt(maxV, 1)} V，建议选用 C0G/NP0 高压电容与高 SRF 电感，并按额定值至少 2× 降额。`);
-    if (maxV > 0 && maxV < 10) advice.push("峰值电压较低，常规 0402/0603 射频元件即可，但仍需检查 RMS 电流。");
-    const maxI = els.length ? Math.max(...els.map((e) => e.current_peak)) : 0;
-    if (maxI > 1) advice.push(`最大峰值电流 ${fmt(maxI, 2)} A，注意电感的饱和电流与电容的纹波电流额定值。`);
-    if (minSf !== null && minSf < 2) advice.push(`最小安全系数 ${fmt(minSf, 2)} 小于 2，建议提高元件额定电压或降低输入功率。`);
-    if (r.efficiency !== null && r.efficiency !== undefined && r.efficiency < 0.98) advice.push("网络效率低于 98%，可能由失配或数值截断导致；请用 evaluate_network 复核 Zin。");
+    if (result.vswr > 1.2) advice.push(`当前网络 VSWR=${fmt(result.vswr, 3)}，并非完全匹配；失配会在节点产生额外驻波电压。`);
+    if (maxVoltage > 100) advice.push(`最高峰值电压 ${fmt(maxVoltage, 1)} V，建议选用 C0G/NP0 高压电容与高 SRF 电感，并按额定值至少 2× 降额。`);
+    if (maxVoltage > 0 && maxVoltage < 10) advice.push("峰值电压较低，常规 0402/0603 射频元件即可，但仍需检查 RMS 电流。");
+    const maxCurrent = elements.length ? Math.max(...elements.map((element) => element.current_peak)) : 0;
+    if (maxCurrent > 1) advice.push(`最大峰值电流 ${fmt(maxCurrent, 2)} A，注意电感的饱和电流与电容的纹波电流额定值。`);
+    if (minFactor !== null && minFactor < 2) advice.push(`最小安全系数 ${fmt(minFactor, 2)} 小于 2，建议提高元件额定电压或降低输入功率。`);
+    if (result.efficiency !== null && result.efficiency !== undefined && result.efficiency < 0.98) advice.push("网络效率低于 98%，可能由失配或数值截断导致；请用 evaluate_network 复核 Zin。");
     advice.push("本计算采用完整网络节点法，包含 50Ω 源阻抗的负载效应；实际选型还需考虑温度降额、寄生参数与 PCB 布局。");
-    $("#stressAdvice").innerHTML = advice.map((a, i) => `<li class="${i === advice.length - 1 ? "" : ""}">${escapeHtml(a)}</li>`).join("");
+    $("#stressAdvice").innerHTML = advice.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
   }
 
   /* ------------------------------------------------------------------ */
-  /* Presets / misc                                                     */
+  /* Presets / settings wiring                                          */
   /* ------------------------------------------------------------------ */
   const PRESETS = [
     { name: "2.4G Wi-Fi", f: 2400, r: 20, x: 5, top: "auto" },
@@ -1618,12 +2106,14 @@
   ];
 
   function initPresets() {
-    $("#presetList").innerHTML = PRESETS.map((p, i) =>
-      `<button class="preset-chip" data-preset="${i}">${escapeHtml(p.name)}</button>`).join("");
-    $$("[data-preset]").forEach((b) => b.addEventListener("click", () => {
-      const p = PRESETS[Number(b.dataset.preset)];
-      $("#inFreq").value = p.f; $("#inR").value = p.r; $("#inX").value = p.x;
-      setTopology(p.top);
+    $("#presetList").innerHTML = PRESETS.map((preset, index) =>
+      `<button class="preset-chip" data-preset="${index}">${escapeHtml(preset.name)}</button>`).join("");
+    $$("[data-preset]").forEach((button) => button.addEventListener("click", () => {
+      const preset = PRESETS[Number(button.dataset.preset)];
+      $("#inFreq").value = preset.f;
+      $("#inR").value = preset.r;
+      $("#inX").value = preset.x;
+      setTopology(preset.top);
       runDesign();
     }));
   }
@@ -1634,83 +2124,87 @@
     $("#btnCancelSettings").addEventListener("click", closeSettings);
     $("#btnSaveSettings").addEventListener("click", saveSettings);
     $("#btnTestLlm").addEventListener("click", testLlm);
-    $("#btnRecheck").addEventListener("click", loadStatus);
-    $("#btnOpenMatlab").addEventListener("click", openMatlab);
-    $("#btnMatlab").addEventListener("click", openMatlab);
     $("#btnReport").addEventListener("click", exportReport);
-    $("#settingsModal").addEventListener("click", (e) => {
-      if (e.target === $("#settingsModal")) closeSettings();
+    $("#settingsModal").addEventListener("click", (event) => {
+      if (event.target === $("#settingsModal")) closeSettings();
     });
+    $$(".settings-tab").forEach((button) => button.addEventListener("click", () => switchSettingsTab(button.dataset.tab)));
+    $("#btnLang").addEventListener("click", switchLanguage);
     $("#setProvider").addEventListener("change", () => {
-      const pid = $("#setProvider").value;
-      const p = providerById(pid);
-      $("#setBaseUrl").value = p ? (p.api || "") : "";
+      const providerId = $("#setProvider").value;
+      const provider = providerById(providerId);
+      $("#setBaseUrlOpenai").value = provider ? (provider.api || "") : "";
+      $("#setBaseUrlAnthropic").value = provider ? (provider.api_anthropic || "") : "";
+      const protocol = provider && provider.api_style === "anthropic" ? "anthropic" : "openai";
+      $("#setProtocol").value = providerId === "custom" ? "custom" : protocol;
+      $("#setBaseUrl").value = $("#setProtocol").value === "anthropic"
+        ? $("#setBaseUrlAnthropic").value : $("#setBaseUrlOpenai").value;
       $("#setApiKey").value = "";
       const saved = (STATE.config && STATE.config.llm) || {};
-      if (pid && saved.provider === pid && saved.has_key) {
+      if (providerId && saved.provider === providerId && saved.has_key) {
         $("#setApiKey").placeholder = `已配置 ${saved.key_hint || ""}（留空不修改）`;
       } else {
-        $("#setApiKey").placeholder = `填写 ${(p && p.env && p.env[0]) || "API Key"}`;
+        $("#setApiKey").placeholder = `填写 ${(provider && provider.env && provider.env[0]) || "API Key"}`;
       }
-      populateModels(pid, "");
-      STATE.providerChanged = pid !== (saved.provider || "");
+      populateModels(providerId, "");
+      STATE.providerChanged = providerId !== (saved.provider || "");
+      fillProfileForm(profileFor(providerId, $("#setModel").value || ""));
     });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !$("#settingsModal").classList.contains("hidden")) closeSettings();
+    $("#setProtocol").addEventListener("change", () => {
+      const protocol = $("#setProtocol").value;
+      $("#setBaseUrl").value = protocol === "anthropic"
+        ? $("#setBaseUrlAnthropic").value
+        : protocol === "custom" ? $("#setBaseUrl").value : $("#setBaseUrlOpenai").value;
     });
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Help                                                               */
-  /* ------------------------------------------------------------------ */
-  let currentHelp = HELP_DOCS[0];
-
-  function renderHelpList(filter = "") {
-    const q = filter.trim().toLowerCase();
-    const list = HELP_DOCS.filter((d) =>
-      !q || `${d.title} ${d.desc} ${d.keys}`.toLowerCase().includes(q));
-    const box = $("#helpList");
-    box.innerHTML = list.map((d) => `
-      <button class="help-item ${d.file === currentHelp.file ? "active" : ""}" data-help-file="${escapeHtml(d.file)}">
-        <b>${escapeHtml(d.title)}</b><small>${escapeHtml(d.desc)}</small>
-      </button>`).join("");
-    $$("[data-help-file]", box).forEach((b) => b.addEventListener("click", () => {
-      const doc = HELP_DOCS.find((d) => d.file === b.dataset.helpFile);
-      if (doc) loadHelpDoc(doc);
-    }));
-    if (list.length && !list.some((d) => d.file === currentHelp.file)) loadHelpDoc(list[0]);
-  }
-
-  function loadHelpDoc(doc) {
-    currentHelp = doc;
-    $("#helpTitle").textContent = doc.title;
-    $("#helpDesc").textContent = doc.desc;
-    $("#helpFrame").src = `/help/${encodeURIComponent(doc.file)}`;
-    $$(".help-item").forEach((b) => b.classList.toggle("active", b.dataset.helpFile === doc.file));
-  }
-
-  function initHelp() {
-    renderHelpList();
-    loadHelpDoc(currentHelp);
-    $("#helpSearch").addEventListener("input", (e) => renderHelpList(e.target.value));
-    $("#helpOpen").addEventListener("click", () => {
-      openDocument(`/help/${encodeURIComponent(currentHelp.file)}`);
+    $("#setModel").addEventListener("change", () => {
+      const model = $("#setModel").value;
+      $("#setModelCustom").value = "";
+      fillProfileForm(profileFor($("#setProvider").value, model));
+      syncChatModelSelect();
     });
-    $("#helpPrint").addEventListener("click", () => {
-      const frame = $("#helpFrame");
+    $("#btnProfileReset").addEventListener("click", () => {
+      const providerId = $("#setProvider").value;
+      const model = $("#setModelCustom").value.trim() || $("#setModel").value;
+      fillProfileForm(profileFor(providerId, model));
+    });
+    $("#btnCatalogModelsDev").addEventListener("click", () => catalogUpdate("models_dev"));
+    $("#btnCatalogProvider").addEventListener("click", () => catalogUpdate("provider_api"));
+    $("#btnCatalogAnnounce").addEventListener("click", () => catalogUpdate("announcements"));
+    $("#btnCatalogAI").addEventListener("click", () => catalogUpdate("ai"));
+    $("#btnCatalogRollback").addEventListener("click", catalogRollback);
+    $("#btnCatalogReset").addEventListener("click", catalogReset);
+    $("#btnUsageClear").addEventListener("click", async () => {
       try {
-        frame.contentWindow.focus();
-        frame.contentWindow.print();
-      } catch (e) {
-        toast("打印失败", "请点击「新标签打开」后在浏览器中打印。", "amber");
-      }
+        await api("/api/usage/clear", { method: "POST", body: {} });
+        toast("用量日志已清空", "", "ok");
+        loadUsage();
+      } catch (error) { toast("清空失败", error.message, "err"); }
     });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !$("#settingsModal").classList.contains("hidden")) closeSettings();
+    });
+    document.addEventListener("langchange", () => {
+      const [title, subtitle] = viewMeta(STATE.view);
+      $("#viewTitle").textContent = title;
+      $("#viewSubtitle").textContent = subtitle;
+      setTopology(STATE.topology);
+      localizeSelects();
+    });
+  }
+
+  async function switchLanguage() {
+    const next = (window.I18N && window.I18N.lang === "en") ? "zh" : "en";
+    window.I18N.setLang(next);
+    try {
+      await api("/api/config", { method: "POST", body: { ui: { lang: next } } });
+    } catch (error) { /* non-fatal */ }
   }
 
   /* ------------------------------------------------------------------ */
   /* Boot                                                               */
   /* ------------------------------------------------------------------ */
   let booted = false;
+
   async function init() {
     if (booted) return;
     booted = true;
@@ -1722,7 +2216,6 @@
     initContext();
     initPresets();
     initGlobal();
-    initHelp();
     smith = new SmithChart($("#smithCanvas"), {
       tooltip: $("#smithTooltip"),
       onStateChange: (playing) => {
@@ -1732,23 +2225,54 @@
       },
     });
     setTopology("auto");
+    localizeSelects();
     await loadProviders();
     await loadStatus();
     await loadConfig();
     await loadMcpCode();
-    // If the app opens with no design, show the empty state.
     $("#designResult").classList.add("hidden");
     $("#emptyDesign").classList.remove("hidden");
+    if (window.Library) window.Library.init();
+    if (window.Docs) window.Docs.init();
+    if (window.Assistant) window.Assistant.init();
+    if (window.I18N) window.I18N.setLang(window.I18N.lang);
   }
 
   document.addEventListener("DOMContentLoaded", init);
   if (document.readyState !== "loading") init();
-  window.__IMP = { state: STATE, updateContext, renderDesign, runDesign, ensureFullDesign };
-  window.addEventListener("error", (e) => {
-    if (e && e.message) toast("界面脚本错误", e.message, "err", 8000);
-  });
-  window.addEventListener("unhandledrejection", (e) => {
-    const r = e && e.reason;
-    if (r && r.message) toast("请求失败", r.message, "err", 8000);
-  });
+
+  window.IMP = {
+    state: STATE,
+    api,
+    toast,
+    t: T,
+    escapeHtml,
+    renderMarkdown,
+    showView,
+    streamChat,
+    makeAssistant,
+    addUserMessage,
+    handleChatEvent,
+    finishAssistant,
+    addCitationCard,
+    renderChatStats,
+    buildContext,
+    openSettings,
+    loadProviders,
+    loadConfig,
+    loadStatus,
+    providerById,
+    providerLabel,
+    syncChatModelSelect,
+    updateContext,
+    renderDesign,
+    runDesign,
+    ensureFullDesign,
+    exportReport,
+    fillStressFromDesign,
+    fmt,
+    fmtComp,
+    fmtTokens,
+    fmtMoney,
+  };
 })();

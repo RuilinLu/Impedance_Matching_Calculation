@@ -3,10 +3,10 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "impedance-mcp"
+name = "impedance-matching-ai"
 version = "4.3.0"
-description = "智配芯生 · ImpedanceMCP — microwave impedance-matching calculation, simulation and MCP tools"
-readme = { text = "智配芯生 · ImpedanceMCP — microwave impedance-matching AI agent and MCP toolkit", content-type = "text/markdown" }
+description = "Impedance Matching AI — microwave impedance matching, Smith chart simulation, textbook search and MCP tools"
+readme = { text = "Impedance Matching AI — standalone matching calculator, textbook library and MCP server", content-type = "text/markdown" }
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
@@ -17,20 +17,28 @@ authors = [
 ]
 dependencies = [
   "numpy>=1.24",
+  "pymupdf>=1.24",
   "pywebview>=6.0; sys_platform == 'win32'",
   "pythonnet>=3.0; sys_platform == 'win32'",
 ]
 
 [project.optional-dependencies]
-attachments = ["pypdf>=4.0", "openpyxl>=3.1", "Pillow>=10.0"]
+attachments = [
+  "rapidocr_onnxruntime>=1.2",
+  "python-docx>=1.1",
+  "python-pptx>=0.6",
+  "openpyxl>=3.1",
+  "Pillow>=10.0",
+]
 
 [project.scripts]
-impedance-mcp = "impedance_mcp.mcp_server:main"
+impedance-ai = "impedance_mcp.mcp_server:main"
 impedance-app = "impedance_mcp.desktop:main"
 impedance-web = "impedance_mcp.web_server:main"
+impedance-mcp = "impedance_mcp.mcp_server:main"
 
 [tool.setuptools]
 packages = ["impedance_mcp"]
 
 [tool.setuptools.package-data]
-impedance_mcp = ["web/*", "providers.json"]
+impedance_mcp = ["web/*", "docs_content/*.md", "providers.json"]

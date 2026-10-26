@@ -85,19 +85,22 @@ class MCPProtocolTests(unittest.TestCase):
 
     def test_initialize(self):
         r = self.responses[1]
-        self.assertEqual(r["result"]["serverInfo"]["name"], "impedance-mcp")
+        self.assertEqual(r["result"]["serverInfo"]["name"], "impedance-matching-ai")
         self.assertIn("protocolVersion", r["result"])
         self.assertIn("tools", r["result"]["capabilities"])
 
     def test_tools_list(self):
         tools = self.responses[2]["result"]["tools"]
         names = {t["name"] for t in tools}
-        self.assertEqual(len(tools), 15)
+        self.assertEqual(len(tools), 20)
         for expected in ("design_matching_network", "scan_matching_range",
                          "evaluate_network", "compute_voltage_stress",
                          "analyze_bandwidth", "compare_topologies",
                          "validate_design", "export_design_report",
-                         "launch_classic_app", "get_system_status"):
+                         "search_textbooks", "read_textbook_page",
+                         "translate_textbook_page", "search_docs",
+                         "get_code_reference", "get_library_status",
+                         "get_system_status"):
             self.assertIn(expected, names)
         for tool in tools:
             self.assertIn("inputSchema", tool)
@@ -142,12 +145,15 @@ class MCPProtocolTests(unittest.TestCase):
         uris = {r["uri"] for r in res}
         self.assertIn("impedance://catalog", uris)
         self.assertIn("impedance://knowledge", uris)
+        self.assertIn("impedance://library", uris)
+        self.assertIn("impedance://docs", uris)
         read = self.responses[10]["result"]["contents"][0]
         self.assertIn("topologies", read["text"])
 
     def test_prompts(self):
         prompts = self.responses[11]["result"]["prompts"]
         self.assertTrue(any(p["name"] == "design_match" for p in prompts))
+        self.assertTrue(any(p["name"] == "find_textbook" for p in prompts))
         msg = self.responses[12]["result"]["messages"][0]
         self.assertEqual(msg["role"], "user")
         self.assertIn("design_matching_network", msg["content"]["text"])

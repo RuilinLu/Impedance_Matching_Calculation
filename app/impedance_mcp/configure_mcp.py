@@ -41,7 +41,7 @@ def _write_json(path: Path, data: Dict[str, Any], key: str,
     else:
         backup = None
     root = data.setdefault(key, {})
-    root["impedance-matching"] = {
+    root["impedance-matching-ai"] = {
         "command": command,
         "args": args,
     }
@@ -56,12 +56,12 @@ def configure_zcode(command: str, args: List[str]) -> Dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8"))
     backup = _backup(path)
     servers = data.setdefault("mcp", {}).setdefault("servers", {})
-    servers["impedance-matching"] = {
+    servers["impedance-matching-ai"] = {
         "type": "stdio",
         "command": command,
         "args": args,
         "env": {"PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"},
-        "timeoutMs": 120000,
+        "timeoutMs": 180000,
     }
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     return {"ok": True, "path": str(path), "backup": str(backup)}
@@ -82,13 +82,13 @@ def configure_codex(command: str, args: List[str]) -> Dict[str, Any]:
     if not path.exists():
         return {"ok": False, "path": str(path), "reason": "未找到 Codex 配置，已跳过"}
     text = path.read_text(encoding="utf-8")
-    if "[mcp_servers.impedance-matching]" in text:
+    if "[mcp_servers.impedance-matching-ai]" in text:
         return {"ok": True, "path": str(path), "reason": "已存在，未修改"}
     backup = _backup(path)
     escaped = command.replace("\\", "\\\\").replace('"', '\\"')
     args_toml = ", ".join('"' + a.replace("\\", "\\\\").replace('"', '\\"') + '"' for a in args)
     block = (
-        "\n[mcp_servers.impedance-matching]\n"
+        "\n[mcp_servers.impedance-matching-ai]\n"
         f'command = "{escaped}"\n'
         f"args = [{args_toml}]\n"
         "startup_timeout_sec = 30\n"

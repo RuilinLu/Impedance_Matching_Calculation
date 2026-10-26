@@ -3,58 +3,66 @@
 from __future__ import annotations
 
 import copy
-import glob
 import json
 import os
-import re
-import shutil
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 FROZEN = bool(getattr(sys, "frozen", False))
+
 if FROZEN:
     # PyInstaller one-file: __file__ lives in the temporary _MEIPASS directory.
-    # Keep user data next to the executable's user profile, not in the temp dir.
+    # User data lives under %LOCALAPPDATA%\ImpedanceMatchingAI.
     APP_DIR = PACKAGE_DIR.parent
     EXE_DIR = Path(sys.executable).resolve().parent
-    PROJECT_ROOT = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "ImpedanceMCP"
+    PROJECT_ROOT = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "ImpedanceMatchingAI"
     DATA_DIR = PROJECT_ROOT / "data"
     WEB_DIR = PACKAGE_DIR / "web"
-    MATLAB_DIR = APP_DIR / "matlab"
 else:
     APP_DIR = PACKAGE_DIR.parent
     EXE_DIR = APP_DIR.parent
     PROJECT_ROOT = APP_DIR.parent
     DATA_DIR = PROJECT_ROOT / "data"
     WEB_DIR = PACKAGE_DIR / "web"
-    MATLAB_DIR = APP_DIR / "matlab"
+
 UPLOAD_DIR = DATA_DIR / "uploads"
 REPORT_DIR = DATA_DIR / "reports"
+LIBRARY_DIR = DATA_DIR / "library"
+CATALOG_DIR = DATA_DIR / "catalog"
 CONFIG_PATH = DATA_DIR / "config.json"
-if FROZEN:
-    HELP_DIR = EXE_DIR / "docs" if (EXE_DIR / "docs").exists() else (APP_DIR / "docs")
-else:
-    HELP_DIR = PROJECT_ROOT / "docs"
+USAGE_PATH = DATA_DIR / "usage.jsonl"
 
+# Textbooks are user-supplied and deliberately not part of the repository.
+LIBRARY_SOURCE_DIRS: List[Path] = []
+for _candidate in (
+    PROJECT_ROOT / "TextBook",
+    EXE_DIR / "TextBook",
+    APP_DIR / "TextBook",
+    APP_DIR.parent / "TextBook",
+):
+    if _candidate not in LIBRARY_SOURCE_DIRS:
+        LIBRARY_SOURCE_DIRS.append(_candidate)
 
 VERSION = "4.3.0"
-RELEASE_DATE = "2026-10-26"
+RELEASE_DATE = "2026-10-27"
+APP_NAME = "Impedance Matching AI"
+APP_NAME_ZH = "阻抗匹配智能计算与仿真"
+PROJECT_URL = "https://github.com/RuilinLu/Impedance_Matching_Calculation"
 TEAM = [
-    {"name": "卢瑞林", "role": "项目负责人 / 算法与 MCP 架构", "initials": "LRL"},
-    {"name": "卢柯吉", "role": "MATLAB 计算内核与仿真验证", "initials": "LKJ"},
-    {"name": "林芷伊", "role": "交互设计、可视化与文档", "initials": "LZY"},
-    {"name": "张昀蕾", "role": "测试、演示与用户研究", "initials": "ZYL"},
+    {"name": "卢瑞林", "role": "项目负责人 / 计算内核与智能体架构"},
+    {"name": "卢柯吉", "role": "数值算法与仿真验证"},
+    {"name": "林芷伊", "role": "交互设计、可视化与文档"},
+    {"name": "张昀蕾", "role": "测试、教材整理与用户研究"},
 ]
 AUTHOR_EMAILS = ["radarlurui@gmail.com", "Lu_Skywalker2915@sjtu.edu.cn"]
-PROJECT_URL = "https://github.com/RuilinLu/Impedance_Matching_Calculation"
 
 
 def ensure_dirs() -> None:
-    for p in (DATA_DIR, UPLOAD_DIR, REPORT_DIR):
-        p.mkdir(parents=True, exist_ok=True)
+    for path in (DATA_DIR, UPLOAD_DIR, REPORT_DIR, LIBRARY_DIR,
+                 LIBRARY_DIR / "books", LIBRARY_DIR / "cache", CATALOG_DIR):
+        path.mkdir(parents=True, exist_ok=True)
 
 
 def _env(key: str, default: str = "") -> str:
@@ -66,7 +74,10 @@ def default_config() -> Dict[str, Any]:
         "llm": {
             "provider": "",
             "provider_name": "",
+            "protocol": "openai",
             "base_url": "",
+            "base_url_openai": "",
+            "base_url_anthropic": "",
             "api_key": "",
             "model": "",
             "auth_header": "Authorization",
@@ -75,27 +86,38 @@ def default_config() -> Dict[str, Any]:
             "chat_path": "",
             "extra_headers": {},
             "temperature": 0.25,
-            "max_tokens": 2600,
-        },
-        "engine": "python",
-        "matlab": {
-            "matlab_path": "",
-            "classic_app_path": "",
+            "max_tokens": 4096,
+            "reasoning_effort": "",
+            "thinking_budget": 0,
+            "model_profile": {},
+            "profiles": {},
         },
         "ui": {
+            "lang": "zh",
             "last_topology": "l_right",
             "animation_speed": 45,
+            "assistant_open": False,
+            "library_zoom": 1.2,
+        },
+        "library": {
+            "ocr_first_pages": 2,
+            "search_limit": 24,
+            "auto_index": True,
+        },
+        "usage": {
+            "auto_peak": True,
+            "currency_display": "auto",
         },
     }
 
 
 def deep_merge(base: Dict[str, Any], update: Dict[str, Any]) -> Dict[str, Any]:
     out = copy.deepcopy(base)
-    for k, v in (update or {}).items():
-        if isinstance(v, dict) and isinstance(out.get(k), dict):
-            out[k] = deep_merge(out[k], v)
+    for key, value in (update or {}).items():
+        if isinstance(value, dict) and isinstance(out.get(key), dict):
+            out[key] = deep_merge(out[key], value)
         else:
-            out[k] = v
+            out[key] = value
     return out
 
 
@@ -108,8 +130,6 @@ def load_config() -> Dict[str, Any]:
             cfg = deep_merge(cfg, stored)
         except Exception:
             pass
-    # Optional generic environment overrides.  No vendor is selected by
-    # default: the user chooses a provider in the Settings dialog.
     env_key = _env("LLM_API_KEY")
     env_base = _env("LLM_BASE_URL")
     env_model = _env("LLM_MODEL")
@@ -119,7 +139,7 @@ def load_config() -> Dict[str, Any]:
         cfg["llm"]["base_url"] = env_base
         if not cfg["llm"].get("provider"):
             cfg["llm"]["provider"] = "custom"
-            cfg["llm"]["provider_name"] = "环境变量"
+            cfg["llm"]["provider_name"] = "Custom"
     if env_model:
         cfg["llm"]["model"] = env_model
     return cfg
@@ -129,12 +149,10 @@ def save_config(update: Dict[str, Any]) -> Dict[str, Any]:
     cfg = load_config()
     llm = (update or {}).get("llm", {})
     if isinstance(llm, dict):
-        if llm.get("clear_key"):
-            if not llm.get("api_key"):
-                llm["api_key"] = ""
-            llm.pop("clear_key", None)
-        key = llm.get("api_key")
-        if key in (None, "", "******", "***"):
+        if llm.get("clear_key") and not llm.get("api_key"):
+            llm["api_key"] = ""
+        llm.pop("clear_key", None)
+        if llm.get("api_key") in (None, "", "******", "***"):
             llm.pop("api_key", None)
         pid = str(llm.get("provider") or "")
         if pid and pid != "custom":
@@ -166,109 +184,6 @@ def public_config(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     return cfg
 
 
-# ---------------------------------------------------------------------------
-# MATLAB / MCR discovery
-# ---------------------------------------------------------------------------
-
-def _version_key(path: str) -> tuple:
-    m = re.search(r"R(\d{4})([ab])", path, re.I)
-    if not m:
-        return (0, 0)
-    return (int(m.group(1)), 1 if m.group(2).lower() == "b" else 0)
-
-
-def find_matlab() -> Optional[str]:
-    cfg_path = load_config().get("matlab", {}).get("matlab_path")
-    if cfg_path and Path(cfg_path).exists():
-        return str(cfg_path)
-    cands: List[str] = []
-    for pattern in (
-        r"C:\Program Files\MATLAB\R*\bin\matlab.exe",
-        r"D:\Program Files\MATLAB\R*\bin\matlab.exe",
-        r"E:\Program Files\MATLAB\R*\bin\matlab.exe",
-        r"C:\MATLAB\R*\bin\matlab.exe",
-        r"D:\MATLAB\R*\bin\matlab.exe",
-        r"E:\MATLAB\R*\bin\matlab.exe",
-    ):
-        cands.extend(glob.glob(pattern))
-    which = shutil.which("matlab")
-    if which:
-        cands.append(which)
-    cands = [c for c in cands if Path(c).exists()]
-    if not cands:
-        return None
-    cands.sort(key=_version_key, reverse=True)
-    return cands[0]
-
-
-def find_classic_app() -> Optional[str]:
-    cfg_path = load_config().get("matlab", {}).get("classic_app_path")
-    if cfg_path and Path(cfg_path).exists():
-        return str(cfg_path)
-    roots = [
-        EXE_DIR / "APP_Release_Release_Version",
-        EXE_DIR,
-        EXE_DIR.parent / "APP_Release_Release_Version",
-        EXE_DIR.parent,
-        EXE_DIR.parent.parent / "APP_Release_Release_Version",
-        EXE_DIR.parent.parent,
-        PROJECT_ROOT / "APP_Release_Release_Version",
-        PROJECT_ROOT,
-        APP_DIR,
-    ]
-    seen = set()
-    for root in roots:
-        key = str(root.resolve()) if root.exists() else str(root)
-        if key in seen:
-            continue
-        seen.add(key)
-        if not root.exists():
-            continue
-        for pattern in (
-            "**/for_redistribution_files_only/Impedance_Matching.exe",
-            "**/for_testing/Impedance_Matching.exe",
-            "**/Impedance_Matching.exe",
-        ):
-            hits = sorted(glob.glob(str(root / pattern), recursive=True),
-                          key=lambda p: ("for_redistribution_files_only" not in p, len(p)))
-            if hits:
-                return hits[0]
-    return None
-
-
-def find_mcr() -> Optional[str]:
-    patterns = [
-        r"C:\Program Files\MATLAB\MATLAB Runtime\R2023b",
-        r"D:\Program Files\MATLAB\MATLAB Runtime\R2023b",
-        r"E:\Program Files\MATLAB\MATLAB Runtime\R2023b",
-        r"C:\Program Files\MATLAB\MATLAB Runtime\R*",
-    ]
-    for p in patterns:
-        hits = sorted(glob.glob(p), reverse=True)
-        if hits:
-            return hits[0]
-    return None
-
-
-def matlab_status() -> Dict[str, Any]:
-    matlab = find_matlab()
-    exe = find_classic_app()
-    mcr = find_mcr()
-    return {
-        "matlab_path": matlab,
-        "matlab_version": Path(matlab).parts[-3] if matlab else None,
-        "classic_app_path": exe,
-        "classic_app_available": bool(exe),
-        "mcr_path": mcr,
-        "mcr_installed": bool(mcr),
-        "engine_mode": load_config().get("engine", "python"),
-        "notes": {
-            "mcr": "MyAppInstaller_mcr.exe 已内置 MATLAB Runtime R2023b，可直接安装。",
-            "matlab": "若安装 MATLAB R2025b，可启用 MATLAB 批处理内核进行交叉复核。",
-        },
-    }
-
-
 def llm_status(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     cfg = cfg or load_config()
     llm = cfg.get("llm", {})
@@ -279,19 +194,17 @@ def llm_status(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         "model": llm.get("model"),
         "provider": llm.get("provider"),
         "provider_name": llm.get("provider_name"),
+        "protocol": llm.get("protocol", "openai"),
         "api_style": llm.get("api_style", "openai"),
+        "has_key": bool(llm.get("api_key")),
     }
 
 
 def mcp_launch() -> tuple:
-    """Return the console executable that speaks MCP over stdio.
-
-    The GUI executable is built as a Windows-subsystem binary, so MCP clients
-    must launch the sibling console binary.  Source mode uses run_mcp.py.
-    """
+    """Return the console executable that speaks MCP over stdio."""
     if FROZEN:
         exe = Path(sys.executable).resolve()
-        for name in ("ImpedanceMCP_MCP.exe", "ImpedanceMCP.exe"):
+        for name in ("ImpedanceMatchingAI_MCP.exe", "ImpedanceMatchingAI.exe"):
             candidate = exe.with_name(name)
             if candidate.exists():
                 return str(candidate), ["--mcp"]
@@ -299,19 +212,15 @@ def mcp_launch() -> tuple:
     return sys.executable, [str(PROJECT_ROOT / "app" / "run_mcp.py")]
 
 
-def _mcp_launch() -> tuple:
-    return mcp_launch()
-
-
 def status() -> Dict[str, Any]:
     cfg = load_config()
     command, args = mcp_launch()
     return {
-        "name": "智配芯生 · ImpedanceMCP",
+        "name": APP_NAME,
+        "name_zh": APP_NAME_ZH,
         "version": VERSION,
         "release_date": RELEASE_DATE,
         "llm": llm_status(cfg),
-        "matlab": matlab_status(),
         "mcp": {
             "transport": "stdio",
             "command": command,
@@ -327,13 +236,14 @@ def status() -> Dict[str, Any]:
         "project_root": str(PROJECT_ROOT),
         "frozen": FROZEN,
         "executable": str(Path(sys.executable).resolve()),
+        "library_dirs": [str(p) for p in LIBRARY_SOURCE_DIRS],
     }
 
 
 def mcp_client_config() -> Dict[str, Any]:
-    command, args = _mcp_launch()
+    command, args = mcp_launch()
     return {
-        "impedance-matching": {
+        "impedance-matching-ai": {
             "type": "stdio",
             "command": command,
             "args": args,
@@ -341,6 +251,6 @@ def mcp_client_config() -> Dict[str, Any]:
                 "PYTHONUNBUFFERED": "1",
                 "PYTHONIOENCODING": "utf-8",
             },
-            "timeoutMs": 120000,
+            "timeoutMs": 180000,
         }
     }

@@ -1,4 +1,4 @@
-"""Native desktop window for ImpedanceMCP (WebView2, no external browser).
+"""Native desktop window for Impedance Matching AI (WebView2, no external browser).
 
 The existing HTML UI is served by the local HTTP API on 127.0.0.1 and rendered
 inside a WebView2 window created with pywebview.  The window has a normal
@@ -18,7 +18,7 @@ from typing import List, Optional
 
 from . import config, web_server
 
-TITLE = f"智配芯生 · ImpedanceMCP v{config.VERSION}"
+TITLE = f"Impedance Matching AI v{config.VERSION}"
 
 
 def _message_box(text: str, title: str = TITLE, error: bool = True) -> None:
@@ -32,15 +32,15 @@ def _message_box(text: str, title: str = TITLE, error: bool = True) -> None:
 def _webview2_runtime_hint() -> str:
     return (
         "未检测到 Microsoft Edge WebView2 Runtime，无法创建原生窗口。\n\n"
-        "请重新运行 ImpedanceMCP 安装程序（会自动安装 WebView2），"
+        "请重新运行 Impedance Matching AI 安装程序（会自动安装 WebView2），"
         "或从 Microsoft 官网安装 Evergreen WebView2 Runtime 后重试。\n\n"
         "如需临时使用浏览器界面，可运行：\n"
-        "ImpedanceMCP.exe --browser"
+        "ImpedanceMatchingAI.exe --browser"
     )
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="ImpedanceMCP native window")
+    parser = argparse.ArgumentParser(description="Impedance Matching AI native window")
     parser.add_argument("--port", type=int, default=0,
                         help="固定本地端口；0 表示自动选择空闲端口")
     parser.add_argument("--debug", action="store_true", help="启用 WebView 调试")
@@ -88,7 +88,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     return False
                 try:
                     webview.create_window(
-                        "ImpedanceMCP · 文档 / 报告",
+                        "Impedance Matching AI · 文档 / 报告",
                         url=url,
                         width=1200,
                         height=850,
@@ -129,7 +129,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             _message_box(
                 "原生窗口启动失败。\n\n"
                 f"{detail}\n\n"
-                "可运行 ImpedanceMCP.exe --browser 使用浏览器界面，"
+                "可运行 ImpedanceMatchingAI.exe --browser 使用浏览器界面，"
                 "并把上述错误信息反馈给开发者。"
             )
         if args.debug:

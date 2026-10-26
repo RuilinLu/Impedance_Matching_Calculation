@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Start the ImpedanceMCP MCP server over stdio (for ZCode / Claude / any MCP client)."""
+"""Start the Impedance Matching AI MCP server over stdio (for ZCode / Claude / any MCP client)."""
 
 from __future__ import annotations
 

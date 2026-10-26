@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Single launcher used by the Windows executable and by `python app/launcher.py`.
 
-    ImpedanceMCP.exe                    -> native desktop window (WebView2)
-    ImpedanceMCP.exe --browser          -> legacy local browser UI (debug only)
-    ImpedanceMCP_MCP.exe --mcp          -> MCP stdio server
-    ImpedanceMCP_MCP.exe --mcp --http 8790 -> MCP HTTP/SSE server
+    ImpedanceMatchingAI.exe            -> native desktop window (WebView2)
+    ImpedanceMatchingAI.exe --browser  -> local browser UI (debug only)
+    ImpedanceMatchingAI_MCP.exe --mcp  -> MCP stdio server
+    ImpedanceMatchingAI_MCP.exe --mcp --http 8790 -> MCP HTTP/SSE server
 """
 
 from __future__ import annotations

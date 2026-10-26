@@ -1,4 +1,4 @@
-# PyInstaller version resource for ImpedanceMCP
+# PyInstaller version resource for Impedance Matching AI
 VSVersionInfo(
   ffi=FixedFileInfo(
     filevers=(4, 3, 0, 0),
@@ -15,15 +15,15 @@ VSVersionInfo(
       StringTable(
         '080404B0',
         [
-          StringStruct('CompanyName', 'Shanghai Jiao Tong University - School of Integrated Circuits'),
-          StringStruct('FileDescription', 'ImpedanceMCP - Native Microwave Impedance Matching Desktop App'),
+          StringStruct('CompanyName', 'Impedance Matching AI contributors'),
+          StringStruct('FileDescription', 'Impedance Matching AI - microwave matching, Smith chart and textbook study'),
           StringStruct('FileVersion', '4.3.0.0'),
-          StringStruct('InternalName', 'ImpedanceMCP'),
+          StringStruct('InternalName', 'ImpedanceMatchingAI'),
           StringStruct('LegalCopyright', 'Copyright (c) 2025-2026 Ruilin Lu, Keji Lu, Zhiyi Lin, Yunlei Zhang. MIT License.'),
-          StringStruct('OriginalFilename', 'ImpedanceMCP.exe'),
-          StringStruct('ProductName', 'Zhipei Xinsheng - ImpedanceMCP'),
+          StringStruct('OriginalFilename', 'ImpedanceMatchingAI.exe'),
+          StringStruct('ProductName', 'Impedance Matching AI'),
           StringStruct('ProductVersion', '4.3.0.0'),
-          StringStruct('Comments', 'radarlurui@gmail.com | Lu_Skywalker2915@sjtu.edu.cn | https://github.com/RuilinLu/Impedance_Matching_Calculation')
+          StringStruct('Comments', 'radarlurui@gmail.com | https://github.com/RuilinLu/Impedance_Matching_Calculation')
         ]
       )
     ]),

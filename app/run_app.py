@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Start ImpedanceMCP in a native window (or `--browser` for the legacy UI)."""
+"""Start Impedance Matching AI in a native window (or `--browser` for the legacy UI)."""
 
 from __future__ import annotations
 

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
-<title>智配芯生 · ImpedanceMCP — 微波阻抗匹配智能计算与仿真</title>
+<title>Impedance Matching AI · 阻抗匹配智能计算与仿真</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/styles.css">
 </head>
@@ -17,6 +17,7 @@
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.2-2.8 7.4-7 9-4.2-1.6-7-4.8-7-9V6l7-3z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m9 12 2.2 2.2L15.5 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 10.5v5M12 7.5h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5H6.5A2.5 2.5 0 0 0 4 21V5.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20M8 7h8M8 10.5h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-docs" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M15 3v4h4M9 11h7M9 14.5h7M9 18h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
   <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1.1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
   <symbol id="i-attach" viewBox="0 0 24 24"><path d="M20 11.5 12.7 18.8a4 4 0 0 1-5.7-5.7l7.8-7.8a2.8 2.8 0 0 1 4 4l-7.9 7.9a1.7 1.7 0 0 1-2.4-2.4l7.1-7.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12 20 4l-4.5 16-3.4-6.1L4 12z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m12.1 13.9 3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
@@ -30,6 +31,12 @@
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 21 20H3L12 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 9v5M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m15.5 15.5 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-ocr" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 9h8M8 12h8M8 15h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-translate" viewBox="0 0 24 24"><path d="M4 5h9M8.5 5v2c0 3-2 5.5-4.5 6.5M6 9c.8 2.4 2.7 4 5 4.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="m13 20 4-10 4 10M14.5 16h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
 </svg>
 
 <div class="app">
@@ -37,45 +44,49 @@
     <div class="brand">
       <div class="brand-mark"><svg><use href="#i-logo"/></svg></div>
       <div class="brand-text">
-        <strong>智配芯生</strong>
-        <span>ImpedanceMCP</span>
+        <strong>Impedance Matching AI</strong>
+        <span data-i18n="brand.sub">阻抗匹配 · 计算 · 仿真 · 教学</span>
       </div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-item active" data-view="agent">
         <svg><use href="#i-bot"/></svg>
-        <span class="nav-copy"><b>AI 智能体</b><small>对话 · 工具 · 报告</small></span>
+        <span class="nav-copy"><b data-i18n="nav.agent">AI 智能体</b><small data-i18n="nav.agentSub">对话 · 工具 · 教材引用</small></span>
       </button>
       <button class="nav-item" data-view="design">
         <svg><use href="#i-design"/></svg>
-        <span class="nav-copy"><b>匹配设计</b><small>L / T / π 五种拓扑</small></span>
+        <span class="nav-copy"><b data-i18n="nav.design">匹配设计</b><small data-i18n="nav.designSub">L / T / π 五种拓扑</small></span>
       </button>
       <button class="nav-item" data-view="analysis">
         <svg><use href="#i-chart"/></svg>
-        <span class="nav-copy"><b>圆图分析</b><small>扫描 · 带宽 · 对比</small></span>
+        <span class="nav-copy"><b data-i18n="nav.analysis">圆图分析</b><small data-i18n="nav.analysisSub">扫描 · 密度 · 对比</small></span>
       </button>
       <button class="nav-item" data-view="stress">
         <svg><use href="#i-shield"/></svg>
-        <span class="nav-copy"><b>耐压分析</b><small>峰值电压 · 电流应力</small></span>
+        <span class="nav-copy"><b data-i18n="nav.stress">耐压分析</b><small data-i18n="nav.stressSub">峰值电压 · 电流应力</small></span>
       </button>
-      <button class="nav-item" data-view="help">
+      <button class="nav-item" data-view="library">
         <svg><use href="#i-book"/></svg>
-        <span class="nav-copy"><b>帮助文档</b><small>手册 · 公式 · MCP · 排查</small></span>
+        <span class="nav-copy"><b data-i18n="nav.library">教材库</b><small data-i18n="nav.librarySub">全文 · OCR · 翻译</small></span>
+      </button>
+      <button class="nav-item" data-view="docs">
+        <svg><use href="#i-docs"/></svg>
+        <span class="nav-copy"><b data-i18n="nav.docs">文档中心</b><small data-i18n="nav.docsSub">功能 · 代码 · AI · MCP</small></span>
       </button>
       <button class="nav-item" data-view="about">
         <svg><use href="#i-info"/></svg>
-        <span class="nav-copy"><b>关于与团队</b><small>架构 · MCP · 四位开发者</small></span>
+        <span class="nav-copy"><b data-i18n="nav.about">关于</b><small data-i18n="nav.aboutSub">架构 · 许可 · 开发者</small></span>
       </button>
     </nav>
     <div class="sidebar-foot">
       <div class="mcp-state" id="mcpState">
         <span class="pulse"></span>
-        <div><b>MCP Server</b><small id="mcpStateText">stdio · 15 个工具</small></div>
+        <div><b>MCP Server</b><small id="mcpStateText">stdio · 20 tools</small></div>
       </div>
       <button class="copy-config" id="btnCopyMcpSide">
-        <svg><use href="#i-copy"/></svg> 复制 ZCode 配置
+        <svg><use href="#i-copy"/></svg> <span data-i18n="mcp.copy">复制 MCP 配置</span>
       </button>
-      <div class="version">v4.3.0 · 2026-10-26<br>上海交通大学集成电路学院</div>
+      <div class="version">v4.3.0 · 2026-10-27<br><span data-i18n="brand.origin">独立开源项目</span></div>
     </div>
   </aside>
 
@@ -83,17 +94,17 @@
     <header class="topbar">
       <div class="topbar-title">
         <h1 id="viewTitle">AI 智能体</h1>
-        <p id="viewSubtitle">用自然语言驱动微波阻抗匹配计算、仿真与工程决策</p>
+        <p id="viewSubtitle">用自然语言驱动微波阻抗匹配计算、仿真与教材检索</p>
       </div>
       <div class="status-group">
-        <span class="pill" id="llmStatus"><i class="dot"></i><span>模型检测中…</span></span>
-        <span class="pill" id="matlabStatus"><i class="dot"></i><span>MATLAB 检测中…</span></span>
-        <span class="pill" id="mcpStatus"><i class="dot ok"></i><span>MCP 就绪</span></span>
+        <span class="pill" id="llmStatus"><i class="dot"></i><span data-i18n="top.modelChecking">模型检测中…</span></span>
+        <span class="pill" id="mcpStatus"><i class="dot ok"></i><span>MCP</span></span>
+        <span class="pill" id="libraryStatusPill"><i class="dot"></i><span data-i18n="top.library">教材库</span></span>
       </div>
       <div class="topbar-actions">
-        <button class="btn ghost icon-only" id="btnSettings" title="设置"><svg><use href="#i-settings"/></svg></button>
-        <button class="btn ghost" id="btnMatlab"><svg><use href="#i-external"/></svg><span>打开原版</span></button>
-        <button class="btn primary" id="btnReport"><svg><use href="#i-download"/></svg><span>导出报告</span></button>
+        <button class="btn ghost" id="btnLang" title="Language / 语言">EN</button>
+        <button class="btn ghost icon-only" id="btnSettings" title="Settings"><svg><use href="#i-settings"/></svg></button>
+        <button class="btn primary" id="btnReport"><svg><use href="#i-download"/></svg><span data-i18n="top.report">导出报告</span></button>
       </div>
     </header>
 
@@ -110,30 +121,26 @@
                   <div class="orbit-core"><svg><use href="#i-logo"/></svg></div>
                   <span class="orbit-dot d1"></span><span class="orbit-dot d2"></span><span class="orbit-dot d3"></span>
                 </div>
-                <h2>把匹配设计交给对话</h2>
-                <p>我会调用本地仿真引擎完成计算，再用微波工程语言解释每一步。试试下面的问题，或直接描述你的负载。</p>
+                <h2 data-i18n="agent.welcome">把匹配设计与教材检索交给对话</h2>
+                <p data-i18n="agent.welcomeSub">我会调用本地仿真引擎完成计算，再检索教材并用微波工程语言解释每一步。可以直接粘贴截图、代码或任意文件。</p>
                 <div class="suggest-grid" id="suggestGrid">
                   <button class="suggest" data-prompt="在 2.4 GHz 把 20+j5 Ω 匹配到 50 Ω，给出完整元件值和 VSWR。">
-                    <span class="suggest-icon">2.4G</span>
-                    <b>Wi-Fi 低阻负载</b><small>2.4 GHz · 20+j5 Ω</small>
+                    <span class="suggest-icon">2.4G</span><b data-i18n="agent.s1">Wi-Fi 低阻负载</b><small>2.4 GHz · 20+j5 Ω</small>
                   </button>
                   <button class="suggest" data-prompt="比较 L 型、T 型和 π 型，哪种更适合 100−j30 Ω 的高阻负载？给出带宽对比。">
-                    <span class="suggest-icon">高阻</span>
-                    <b>高阻拓扑对比</b><small>100−j30 Ω · 带宽优先</small>
+                    <span class="suggest-icon">高阻</span><b data-i18n="agent.s2">高阻拓扑对比</b><small>100−j30 Ω · 带宽优先</small>
+                  </button>
+                  <button class="suggest" data-prompt="在教材里查找 Smith 圆图上串联电感和并联电容的轨迹，并解释方向。">
+                    <span class="suggest-icon">教材</span><b data-i18n="agent.s3">教材原文检索</b><small>Smith chart · 轨迹</small>
                   </button>
                   <button class="suggest" data-prompt="为 433 MHz、15 Ω 的负载设计匹配网络，并分析 ±5% 容差和 10 W 下的元件耐压。">
-                    <span class="suggest-icon">433</span>
-                    <b>功率与容差</b><small>433 MHz · 10 W</small>
-                  </button>
-                  <button class="suggest" data-prompt="解释史密斯圆图上串联电感和并联电容的轨迹方向，并画一个例子。">
-                    <span class="suggest-icon">理论</span>
-                    <b>圆图原理</b><small>轨迹 · 等电阻圆</small>
+                    <span class="suggest-icon">433</span><b data-i18n="agent.s4">功率与容差</b><small>433 MHz · 10 W</small>
                   </button>
                 </div>
                 <div class="welcome-features">
-                  <span><svg><use href="#i-check"/></svg> 15 个 MCP 工具</span>
-                  <span><svg><use href="#i-check"/></svg> 节点法双重校验</span>
-                  <span><svg><use href="#i-check"/></svg> 支持 PDF / DOCX / XLSX 附件</span>
+                  <span><svg><use href="#i-check"/></svg> <span data-i18n="agent.f1">20 个本地工具</span></span>
+                  <span><svg><use href="#i-check"/></svg> <span data-i18n="agent.f2">教材全文 / OCR / 引用</span></span>
+                  <span><svg><use href="#i-check"/></svg> <span data-i18n="agent.f3">任意文件与剪贴板</span></span>
                 </div>
               </div>
               <div class="messages" id="messages"></div>
@@ -141,39 +148,40 @@
             <div class="composer">
               <div class="attachment-bar" id="attachmentBar"></div>
               <div class="composer-box">
-                <textarea id="chatInput" rows="1" placeholder="描述负载与频率，或直接提问…  Enter 发送，Shift+Enter 换行"></textarea>
+                <textarea id="chatInput" rows="1" data-i18n-ph="agent.placeholder" placeholder="描述负载与频率，或直接提问…  Enter 发送，Shift+Enter 换行；可粘贴截图或任意文件"></textarea>
                 <div class="composer-tools">
                   <div class="left-tools">
-                    <button class="tool-btn" id="btnAttach" title="上传附件"><svg><use href="#i-attach"/></svg></button>
-                    <input type="file" id="fileInput" multiple hidden accept=".txt,.md,.csv,.json,.pdf,.docx,.xlsx,.pptx,.ipynb,.py,.m,.png,.jpg,.jpeg">
-                    <select id="modelSelect" class="model-select" title="模型"></select>
+                    <button class="tool-btn" id="btnAttach" title="Upload"><svg><use href="#i-attach"/></svg></button>
+                    <input type="file" id="fileInput" multiple hidden>
+                    <select id="modelSelect" class="model-select" title="Model"></select>
                   </div>
                   <div class="right-tools">
-                    <span class="kbd-hint">Enter 发送</span>
-                    <button class="send-btn" id="btnSend" title="发送"><svg><use href="#i-send"/></svg></button>
+                    <span class="kbd-hint" data-i18n="agent.enter">Enter 发送 · Ctrl+V 粘贴</span>
+                    <button class="send-btn" id="btnSend" title="Send"><svg><use href="#i-send"/></svg></button>
                   </div>
                 </div>
               </div>
-              <div class="composer-note">AI 可能出错，工程结论请用「MATLAB 复核」与实测验证。</div>
+              <div class="chat-stats" id="chatStats"></div>
+              <div class="composer-note" data-i18n="agent.note">AI 可能出错，工程结论请用节点法复核与实测验证。</div>
             </div>
           </div>
           <aside class="agent-rail">
             <div class="rail-card">
-              <div class="rail-head"><h3>当前设计上下文</h3><span class="tag" id="contextTag">未设计</span></div>
+              <div class="rail-head"><h3 data-i18n="agent.context">当前设计上下文</h3><span class="tag" id="contextTag" data-i18n="agent.noDesign">未设计</span></div>
               <div id="contextDesign" class="context-empty">
                 <div class="empty-icon"><svg><use href="#i-chart"/></svg></div>
-                <p>完成一次设计后，这里会显示元件值、VSWR 和圆图缩略图。</p>
+                <p data-i18n="agent.contextEmpty">完成一次设计后，这里会显示元件值、VSWR 和圆图缩略图。</p>
               </div>
               <canvas id="miniSmith" class="mini-smith" width="280" height="280"></canvas>
               <div class="context-actions">
-                <button class="btn tiny" id="btnContextDesign">在设计中打开</button>
-                <button class="btn tiny ghost" id="btnContextReport">导出报告</button>
+                <button class="btn tiny" id="btnContextDesign" data-i18n="agent.openDesign">在设计中打开</button>
+                <button class="btn tiny ghost" id="btnContextReport" data-i18n="agent.export">导出报告</button>
               </div>
             </div>
             <div class="rail-card">
-              <div class="rail-head"><h3>MCP 工具</h3><span class="tag cyan">15</span></div>
+              <div class="rail-head"><h3 data-i18n="agent.tools">MCP 工具</h3><span class="tag cyan">20</span></div>
               <div class="tool-list" id="toolList"></div>
-              <button class="btn tiny block" id="btnCopyMcp"><svg><use href="#i-copy"/></svg> 复制 ZCode MCP 配置</button>
+              <button class="btn tiny block" id="btnCopyMcp"><svg><use href="#i-copy"/></svg> <span data-i18n="mcp.copy">复制 MCP 配置</span></button>
             </div>
           </aside>
         </div>
@@ -183,12 +191,9 @@
       <section class="view" id="view-design">
         <div class="design-layout">
           <aside class="form-panel">
-            <div class="form-head">
-              <h2>设计参数</h2>
-              <span class="tag" id="designModeTag">Python 内核</span>
-            </div>
+            <div class="form-head"><h2 data-i18n="design.title">设计参数</h2><span class="tag" id="designModeTag">Python</span></div>
             <div class="topology-pills" id="topologyPills">
-              <button class="topo-pill active" data-topology="auto">自动</button>
+              <button class="topo-pill active" data-topology="auto" data-i18n="design.auto">自动</button>
               <button class="topo-pill" data-topology="l_right">L·右</button>
               <button class="topo-pill" data-topology="l_left">L·左</button>
               <button class="topo-pill" data-topology="t">T</button>
@@ -197,82 +202,79 @@
             </div>
             <div class="topo-desc" id="topoDesc">自动比较五种拓扑，优先选择元件更少、可实现性更好的方案。</div>
             <div class="field-grid">
-              <label class="field"><span>频率 <em>MHz</em></span><input id="inFreq" type="number" value="2400" min="0.001" step="1"></label>
-              <label class="field"><span>系统阻抗 <em>Ω</em></span><input id="inZ0" type="number" value="50" min="1" step="1"></label>
-              <label class="field"><span>负载实部 R<sub>L</sub> <em>Ω</em></span><input id="inR" type="number" value="20" min="0.001" step="0.1"></label>
-              <label class="field"><span>负载虚部 X<sub>L</sub> <em>Ω</em></span><input id="inX" type="number" value="5" step="0.1"></label>
+              <label class="field"><span data-i18n="design.freq">频率 <em>MHz</em></span><input id="inFreq" type="number" value="2400" min="0.001" step="1"></label>
+              <label class="field"><span data-i18n="design.z0">系统阻抗 <em>Ω</em></span><input id="inZ0" type="number" value="50" min="1" step="1"></label>
+              <label class="field"><span data-i18n="design.rl">负载实部 R<sub>L</sub> <em>Ω</em></span><input id="inR" type="number" value="20" min="0.001" step="0.1"></label>
+              <label class="field"><span data-i18n="design.xl">负载虚部 X<sub>L</sub> <em>Ω</em></span><input id="inX" type="number" value="5" step="0.1"></label>
             </div>
-            <div class="section-label"><span>固定元件</span><i></i></div>
+            <div class="section-label"><span data-i18n="design.fixed">固定元件</span><i></i></div>
             <label class="toggle-row">
-              <span><b>自动选值</b><small>自动选择可行的 L 与 C3</small></span>
+              <span><b data-i18n="design.autoFixed">自动选值</b><small data-i18n="design.autoFixedSub">自动选择可行的 L 与 C3</small></span>
               <input type="checkbox" id="autoFixed" checked>
             </label>
             <div class="field-grid fixed-grid" id="fixedFields">
-              <label class="field"><span>电感 L <em>µH</em></span><input id="inL" type="number" value="1.94" min="0.000001" step="0.1" disabled></label>
-              <label class="field" id="c3Field"><span>电容 C3 <em>pF</em></span><input id="inC3" type="number" value="2" min="0.001" step="0.1" disabled></label>
+              <label class="field"><span data-i18n="design.l">电感 L <em>µH</em></span><input id="inL" type="number" value="1.94" min="0.000001" step="0.1" disabled></label>
+              <label class="field" id="c3Field"><span data-i18n="design.c3">电容 C3 <em>pF</em></span><input id="inC3" type="number" value="2" min="0.001" step="0.1" disabled></label>
             </div>
             <div class="form-actions">
-              <button class="btn primary block" id="btnDesign">求解设计</button>
+              <button class="btn primary block" id="btnDesign" data-i18n="design.solve">求解设计</button>
               <div class="btn-row">
-                <button class="btn ghost" id="btnScan">扫描范围</button>
-                <button class="btn ghost" id="btnMatlabVerify">MATLAB 复核</button>
+                <button class="btn ghost" id="btnScan" data-i18n="design.scan">扫描范围</button>
+                <button class="btn ghost" id="btnDesignToStress" data-i18n="design.stress">耐压分析</button>
               </div>
             </div>
-            <div class="section-label"><span>快速预设</span><i></i></div>
+            <div class="section-label"><span data-i18n="design.presets">快速预设</span><i></i></div>
             <div class="preset-list" id="presetList"></div>
-            <div class="form-note">提示：L 型适合纯阻抗变换；需要带宽或调节自由度时选 T / π 型。</div>
+            <div class="form-note" data-i18n="design.note">提示：L 型适合纯阻抗变换；需要带宽或调节自由度时选 T / π 型。</div>
           </aside>
 
           <div class="design-main" id="designMain">
             <div class="kpi-row" id="designKpis">
-              <div class="kpi-card"><span>VSWR</span><b>—</b><small>目标 &lt; 1.5</small></div>
+              <div class="kpi-card"><span>VSWR</span><b>—</b><small>target &lt; 1.5</small></div>
               <div class="kpi-card"><span>S11</span><b>—</b><small>dB</small></div>
-              <div class="kpi-card"><span>带宽</span><b>—</b><small>VSWR &lt; 2</small></div>
-              <div class="kpi-card"><span>设计 Q</span><b>—</b><small>越低越宽</small></div>
+              <div class="kpi-card"><span data-i18n="design.bw">带宽</span><b>—</b><small>VSWR &lt; 2</small></div>
+              <div class="kpi-card"><span data-i18n="design.q">设计 Q</span><b>—</b><small data-i18n="design.qSub">越低越宽</small></div>
             </div>
             <div class="empty-design" id="emptyDesign">
               <div class="empty-visual"><div class="pulse-ring"></div><svg><use href="#i-design"/></svg></div>
-              <h3>输入参数，开始一次匹配设计</h3>
-              <p>软件会同时给出解析解与完整网络节点法复核结果，并在 Smith 圆图上逐步演示。</p>
-              <button class="btn primary" id="btnDesignEmpty">使用 2.4 GHz / 20+j5 Ω 演示</button>
+              <h3 data-i18n="design.empty">输入参数，开始一次匹配设计</h3>
+              <p data-i18n="design.emptySub">软件会同时给出解析解与完整网络节点法复核结果，并在 Smith 圆图上逐步演示。</p>
+              <button class="btn primary" id="btnDesignEmpty" data-i18n="design.demo">使用 2.4 GHz / 20+j5 Ω 演示</button>
             </div>
             <div id="designResult" class="hidden">
               <div class="viz-grid">
                 <div class="panel chart-panel">
                   <div class="panel-head">
-                    <div><h2>Smith 圆图</h2><p id="smithSub">反射系数平面 · 归一化到 50Ω</p></div>
+                    <div><h2>Smith Chart</h2><p id="smithSub" data-i18n="design.smithSub">反射系数平面 · 归一化到 50Ω</p></div>
                     <div class="chart-controls">
-                      <button class="icon-btn sm" id="btnPlay" title="播放"><svg><use href="#i-play"/></svg></button>
-                      <button class="icon-btn sm" id="btnResetChart" title="重置"><svg><use href="#i-reset"/></svg></button>
-                      <input type="range" id="speedRange" min="1" max="100" value="45" title="动画速度">
+                      <button class="icon-btn sm" id="btnPlay" title="Play"><svg><use href="#i-play"/></svg></button>
+                      <button class="icon-btn sm" id="btnResetChart" title="Reset"><svg><use href="#i-reset"/></svg></button>
+                      <input type="range" id="speedRange" min="1" max="100" value="45" title="Speed">
                     </div>
                   </div>
                   <div class="canvas-wrap"><canvas id="smithCanvas"></canvas><div class="smith-tooltip" id="smithTooltip"></div></div>
                   <div class="legend" id="smithLegend"></div>
                 </div>
                 <div class="panel steps-panel">
-                  <div class="panel-head"><h2>匹配步骤</h2><span class="tag" id="stepCount">0 步</span></div>
+                  <div class="panel-head"><h2 data-i18n="design.steps">匹配步骤</h2><span class="tag" id="stepCount">0</span></div>
                   <div class="step-list" id="stepList"></div>
                   <div class="formula-box" id="formulaBox"></div>
                 </div>
               </div>
               <div class="panel topology-panel">
-                <div class="panel-head"><h2>电路拓扑与元件</h2><span class="tag" id="topoName">—</span></div>
-                <div class="topology-flex">
-                  <div class="topo-diagram" id="topoDiagram"></div>
-                  <div class="component-grid" id="componentGrid"></div>
-                </div>
+                <div class="panel-head"><h2 data-i18n="design.topology">电路拓扑与元件</h2><span class="tag" id="topoName">—</span></div>
+                <div class="topology-flex"><div class="topo-diagram" id="topoDiagram"></div><div class="component-grid" id="componentGrid"></div></div>
               </div>
               <div class="viz-grid two">
-                <div class="panel"><div class="panel-head"><h2>VSWR 带宽</h2><span class="tag" id="bwTag">—</span></div><canvas id="bwCanvas" class="chart-canvas"></canvas><div class="chart-note" id="bwNote"></div></div>
-                <div class="panel"><div class="panel-head"><h2>±5% 容差灵敏度</h2><span class="tag">最差 VSWR</span></div><canvas id="sensCanvas" class="chart-canvas"></canvas><div class="chart-note" id="sensNote"></div></div>
+                <div class="panel"><div class="panel-head"><h2 data-i18n="design.bwChart">VSWR 带宽</h2><span class="tag" id="bwTag">—</span></div><canvas id="bwCanvas" class="chart-canvas"></canvas><div class="chart-note" id="bwNote"></div></div>
+                <div class="panel"><div class="panel-head"><h2 data-i18n="design.sens">±5% 容差灵敏度</h2><span class="tag" data-i18n="design.worst">最差 VSWR</span></div><canvas id="sensCanvas" class="chart-canvas"></canvas><div class="chart-note" id="sensNote"></div></div>
               </div>
               <div class="panel warning-panel" id="warningPanel">
-                <div class="panel-head"><h2>工程提示</h2><span class="tag amber" id="warnCount">0</span></div>
+                <div class="panel-head"><h2 data-i18n="design.warnings">工程提示</h2><span class="tag amber" id="warnCount">0</span></div>
                 <ul id="warningList" class="warning-list"></ul>
               </div>
               <div class="panel" id="alternativesPanel">
-                <div class="panel-head"><h2>可选拓扑对比</h2><span class="tag">自动推荐</span></div>
+                <div class="panel-head"><h2 data-i18n="design.alts">可选拓扑对比</h2><span class="tag" data-i18n="design.autoRecommend">自动推荐</span></div>
                 <div class="alt-grid" id="altGrid"></div>
               </div>
             </div>
@@ -284,46 +286,47 @@
       <section class="view" id="view-analysis">
         <div class="analysis-layout">
           <aside class="form-panel slim">
-            <div class="form-head"><h2>扫描设置</h2><span class="tag">正向</span></div>
-            <label class="field"><span>拓扑</span><select id="anTopology" class="select">
+            <div class="form-head"><h2 data-i18n="analysis.title">扫描设置</h2><span class="tag" data-i18n="analysis.forward">正向</span></div>
+            <label class="field"><span data-i18n="analysis.topology">拓扑</span><select id="anTopology" class="select">
               <option value="l_right">L型（右）</option><option value="l_left">L型（左）</option>
               <option value="t">T型</option><option value="pi1">π型Ⅰ</option><option value="pi2">π型Ⅱ</option>
             </select></label>
             <div class="field-grid">
-              <label class="field"><span>频率 <em>MHz</em></span><input id="anFreq" type="number" value="2400" step="1"></label>
-              <label class="field"><span>Z0 <em>Ω</em></span><input id="anZ0" type="number" value="50" step="1"></label>
-              <label class="field"><span>电感 L <em>µH</em></span><input id="anL" type="number" value="1.94" step="0.1"></label>
-              <label class="field"><span>扫描步数</span><input id="anSteps" type="number" value="45" min="6" max="80" step="1"></label>
-              <label class="field"><span>R<sub>L</sub> <em>Ω</em></span><input id="anR" type="number" value="20" step="0.1"></label>
-              <label class="field"><span>X<sub>L</sub> <em>Ω</em></span><input id="anX" type="number" value="5" step="0.1"></label>
+              <label class="field"><span data-i18n="analysis.freq">频率 <em>MHz</em></span><input id="anFreq" type="number" value="2400" step="1"></label>
+              <label class="field"><span data-i18n="analysis.z0">Z0 <em>Ω</em></span><input id="anZ0" type="number" value="50" step="1"></label>
+              <label class="field"><span data-i18n="analysis.l">电感 L <em>µH</em></span><input id="anL" type="number" value="1.94" step="0.1"></label>
+              <label class="field"><span data-i18n="analysis.steps">扫描步数</span><input id="anSteps" type="number" value="45" min="6" max="80" step="1"></label>
+              <label class="field"><span data-i18n="analysis.rl">R<sub>L</sub> <em>Ω</em></span><input id="anR" type="number" value="20" step="0.1"></label>
+              <label class="field"><span data-i18n="analysis.xl">X<sub>L</sub> <em>Ω</em></span><input id="anX" type="number" value="5" step="0.1"></label>
             </div>
-            <div class="section-label"><span>可调电容范围 pF</span><i></i></div>
+            <div class="section-label"><span data-i18n="analysis.ranges">可调电容范围 pF</span><i></i></div>
             <div class="range-row"><label>C1</label><input id="anC1min" type="number" value="0.5"><span>–</span><input id="anC1max" type="number" value="10"></div>
             <div class="range-row"><label>C2</label><input id="anC2min" type="number" value="0.5"><span>–</span><input id="anC2max" type="number" value="10"></div>
             <div class="range-row" id="anC3row"><label>C3</label><input id="anC3min" type="number" value="0.2"><span>–</span><input id="anC3max" type="number" value="10"></div>
-            <button class="btn primary block" id="btnRunScan">运行扫描</button>
-            <div class="form-note">扫描点以灰色显示在圆图上；颜色越亮表示越接近圆心。</div>
+            <button class="btn primary block" id="btnRunScan" data-i18n="analysis.run">运行扫描</button>
+            <div class="form-note" data-i18n="analysis.note">灰色密度云表示可匹配区域；颜色越深表示点越密集，青色表示靠近圆心。</div>
+            <div class="scan-error" id="scanError"></div>
           </aside>
           <div class="analysis-main">
             <div class="kpi-row" id="scanKpis">
-              <div class="kpi-card"><span>R 范围</span><b>—</b><small>Ω</small></div>
-              <div class="kpi-card"><span>X 范围</span><b>—</b><small>Ω</small></div>
-              <div class="kpi-card"><span>有效点</span><b>—</b><small>个</small></div>
-              <div class="kpi-card"><span>覆盖密度</span><b>—</b><small>相对图形</small></div>
+              <div class="kpi-card"><span>R</span><b>—</b><small>Ω</small></div>
+              <div class="kpi-card"><span>X</span><b>—</b><small>Ω</small></div>
+              <div class="kpi-card"><span data-i18n="analysis.valid">有效点</span><b>—</b><small data-i18n="analysis.points">个</small></div>
+              <div class="kpi-card"><span data-i18n="analysis.sampled">采样点</span><b>—</b><small data-i18n="analysis.chart">圆图</small></div>
             </div>
             <div class="viz-grid">
               <div class="panel chart-panel">
-                <div class="panel-head"><h2>匹配范围圆图</h2><span class="tag cyan" id="scanTopoTag">L·右</span></div>
+                <div class="panel-head"><h2 data-i18n="analysis.chartTitle">匹配范围圆图</h2><span class="tag cyan" id="scanTopoTag">L·右</span></div>
                 <div class="canvas-wrap"><canvas id="scanCanvas"></canvas><div class="smith-tooltip" id="scanTooltip"></div></div>
-                <div class="legend"><span><i class="legend-dot" style="background:#64748b"></i>扫描点</span><span><i class="legend-dot" style="background:#22d3ee"></i>高密度区域</span><span><i class="legend-dot" style="background:#f59e0b"></i>当前负载</span></div>
+                <div class="legend"><span><i class="legend-dot" style="background:#64748b"></i><span data-i18n="analysis.legendScan">扫描密度</span></span><span><i class="legend-dot" style="background:#22d3ee"></i><span data-i18n="analysis.legendCenter">靠近圆心</span></span><span><i class="legend-dot" style="background:#f59e0b"></i><span data-i18n="analysis.legendLoad">当前负载</span></span></div>
               </div>
               <div class="panel">
-                <div class="panel-head"><h2>拓扑对比</h2><button class="btn tiny ghost" id="btnCompare">重新比较</button></div>
-                <div class="compare-list" id="compareList"><div class="empty-mini">点击「重新比较」评估五种拓扑。</div></div>
+                <div class="panel-head"><h2 data-i18n="analysis.compare">拓扑对比</h2><button class="btn tiny ghost" id="btnCompare" data-i18n="analysis.recompare">重新比较</button></div>
+                <div class="compare-list" id="compareList"><div class="empty-mini" data-i18n="analysis.compareEmpty">点击「重新比较」评估五种拓扑。</div></div>
               </div>
             </div>
             <div class="panel">
-              <div class="panel-head"><h2>扫描结论</h2><span class="tag">自动生成</span></div>
+              <div class="panel-head"><h2 data-i18n="analysis.summary">扫描结论</h2><span class="tag" data-i18n="analysis.auto">自动生成</span></div>
               <div class="scan-summary" id="scanSummary">尚未运行扫描。</div>
             </div>
           </div>
@@ -334,61 +337,137 @@
       <section class="view" id="view-stress">
         <div class="stress-layout">
           <aside class="form-panel slim">
-            <div class="form-head"><h2>耐压参数</h2><span class="tag">节点法</span></div>
-            <label class="field"><span>拓扑</span><select id="stTopology" class="select">
+            <div class="form-head"><h2 data-i18n="stress.title">耐压参数</h2><span class="tag" data-i18n="stress.method">节点法</span></div>
+            <label class="field"><span data-i18n="stress.topology">拓扑</span><select id="stTopology" class="select">
               <option value="l_right">L型（右）</option><option value="l_left">L型（左）</option>
               <option value="t">T型</option><option value="pi1">π型Ⅰ</option><option value="pi2">π型Ⅱ</option>
             </select></label>
             <div class="field-grid">
-              <label class="field"><span>频率 <em>MHz</em></span><input id="stFreq" type="number" value="2400"></label>
-              <label class="field"><span>输入功率 <em>W</em></span><input id="stPower" type="number" value="10" min="0.001"></label>
-              <label class="field"><span>R<sub>L</sub> <em>Ω</em></span><input id="stR" type="number" value="20"></label>
-              <label class="field"><span>X<sub>L</sub> <em>Ω</em></span><input id="stX" type="number" value="5"></label>
-              <label class="field"><span>L <em>µH</em></span><input id="stL" type="number" value="1.94" step="0.1"></label>
-              <label class="field"><span>C1 <em>pF</em></span><input id="stC1" type="number" value="1.62" step="0.1"></label>
-              <label class="field"><span>C2 <em>pF</em></span><input id="stC2" type="number" value="6.8" step="0.1"></label>
-              <label class="field" id="stC3Field"><span>C3 <em>pF</em></span><input id="stC3" type="number" value="0" step="0.1"></label>
-              <label class="field"><span>额定电压 <em>V</em></span><input id="stRated" type="number" value="0" step="1"></label>
+              <label class="field"><span data-i18n="stress.freq">频率 <em>MHz</em></span><input id="stFreq" type="number" value="2400"></label>
+              <label class="field"><span data-i18n="stress.power">输入功率 <em>W</em></span><input id="stPower" type="number" value="10" min="0.001"></label>
+              <label class="field"><span data-i18n="stress.rl">R<sub>L</sub> <em>Ω</em></span><input id="stR" type="number" value="20"></label>
+              <label class="field"><span data-i18n="stress.xl">X<sub>L</sub> <em>Ω</em></span><input id="stX" type="number" value="5"></label>
+              <label class="field"><span data-i18n="stress.l">L <em>µH</em></span><input id="stL" type="number" value="1.94" step="0.1"></label>
+              <label class="field"><span data-i18n="stress.c1">C1 <em>pF</em></span><input id="stC1" type="number" value="1.62" step="0.1"></label>
+              <label class="field"><span data-i18n="stress.c2">C2 <em>pF</em></span><input id="stC2" type="number" value="6.8" step="0.1"></label>
+              <label class="field" id="stC3Field"><span data-i18n="stress.c3">C3 <em>pF</em></span><input id="stC3" type="number" value="0" step="0.1"></label>
+              <label class="field"><span data-i18n="stress.rated">额定电压 <em>V</em></span><input id="stRated" type="number" value="0" step="1"></label>
             </div>
-            <button class="btn primary block" id="btnStress">开始耐压分析</button>
-            <button class="btn ghost block" id="btnStressFromDesign">从当前设计填入</button>
-            <div class="form-note">峰值电压包含源阻抗 50Ω 的负载效应；额定电压用于计算安全系数。</div>
+            <button class="btn primary block" id="btnStress" data-i18n="stress.run">开始耐压分析</button>
+            <button class="btn ghost block" id="btnStressFromDesign" data-i18n="stress.fromDesign">从当前设计填入</button>
+            <div class="form-note" data-i18n="stress.note">峰值电压包含源阻抗 50Ω 的负载效应；额定电压用于计算安全系数。</div>
           </aside>
           <div class="stress-main">
             <div class="kpi-row" id="stressKpis">
-              <div class="kpi-card"><span>源峰值电压</span><b>—</b><small>V</small></div>
-              <div class="kpi-card"><span>负载峰值电压</span><b>—</b><small>V</small></div>
-              <div class="kpi-card"><span>最大元件电压</span><b>—</b><small>V</small></div>
-              <div class="kpi-card"><span>最小安全系数</span><b>—</b><small>额定 / 峰值</small></div>
+              <div class="kpi-card"><span data-i18n="stress.sourceV">源峰值电压</span><b>—</b><small>V</small></div>
+              <div class="kpi-card"><span data-i18n="stress.loadV">负载峰值电压</span><b>—</b><small>V</small></div>
+              <div class="kpi-card"><span data-i18n="stress.maxV">最大元件电压</span><b>—</b><small>V peak</small></div>
+              <div class="kpi-card"><span data-i18n="stress.sf">最小安全系数</span><b>—</b><small data-i18n="stress.sfSub">额定 / 峰值</small></div>
             </div>
             <div class="panel">
-              <div class="panel-head"><h2>元件应力</h2><span class="tag amber" id="stressTag">—</span></div>
+              <div class="panel-head"><h2 data-i18n="stress.elements">元件应力</h2><span class="tag amber" id="stressTag">—</span></div>
               <canvas id="stressCanvas" class="chart-canvas tall"></canvas>
-              <div class="table-wrap"><table class="data-table" id="stressTable"><thead><tr><th>元件</th><th>峰值电压</th><th>RMS 电压</th><th>峰值电流</th><th>RMS 电流</th><th>安全系数</th></tr></thead><tbody></tbody></table></div>
+              <div class="table-wrap"><table class="data-table" id="stressTable"><thead><tr><th data-i18n="stress.thElement">元件</th><th data-i18n="stress.thVp">峰值电压</th><th data-i18n="stress.thVrms">RMS 电压</th><th data-i18n="stress.thIp">峰值电流</th><th data-i18n="stress.thIrms">RMS 电流</th><th data-i18n="stress.thSf">安全系数</th></tr></thead><tbody></tbody></table></div>
             </div>
-            <div class="panel"><div class="panel-head"><h2>工程建议</h2></div><ul class="warning-list" id="stressAdvice"><li>完成一次计算后显示建议。</li></ul></div>
+            <div class="panel"><div class="panel-head"><h2 data-i18n="stress.advice">工程建议</h2></div><ul class="warning-list" id="stressAdvice"><li data-i18n="stress.adviceEmpty">完成一次计算后显示建议。</li></ul></div>
           </div>
         </div>
       </section>
 
-      <!-- ================= HELP ================= -->
-      <section class="view" id="view-help">
-        <div class="help-layout">
-          <aside class="form-panel slim help-side">
-            <div class="form-head"><h2>帮助文档</h2><span class="tag">内置</span></div>
-            <input id="helpSearch" class="help-search" type="text" placeholder="搜索文档标题 / 关键词…">
-            <div id="helpList" class="help-list"></div>
-            <div class="form-note">文档随安装程序安装到本机；安装目录 <code>docs</code> 下也有 PDF，可离线打印。</div>
+      <!-- ================= LIBRARY ================= -->
+      <section class="view" id="view-library">
+        <div class="library-layout">
+          <aside class="library-side form-panel slim">
+            <div class="form-head"><h2 data-i18n="library.title">教材库</h2><span class="tag" id="libraryCount">0</span></div>
+            <div class="library-actions">
+              <button class="btn tiny" id="btnAddBook"><svg><use href="#i-plus"/></svg><span data-i18n="library.add">添加教材</span></button>
+              <button class="btn tiny ghost" id="btnReindex" data-i18n="library.reindex">重建索引</button>
+              <input type="file" id="bookInput" accept=".pdf,.txt,.md,.markdown,.tex,.rst" multiple hidden>
+            </div>
+            <div class="library-status" id="libraryIndexStatus">读取中…</div>
+            <input id="libraryBookFilter" class="help-search" type="text" data-i18n-ph="library.filter" placeholder="按书名过滤…">
+            <div id="libraryDocList" class="library-doc-list"></div>
+            <div class="form-note" data-i18n="library.note">教材不随软件上传；可放入 TextBook/ 或 data/library/books/，也可直接添加。</div>
           </aside>
-          <div class="help-main panel">
-            <div class="panel-head">
-              <div><h2 id="helpTitle">用户手册</h2><p id="helpDesc">安装、界面、设计、MCP 与常见问题</p></div>
-              <div class="chart-controls">
-                <button class="btn tiny ghost" id="helpOpen">新标签打开</button>
-                <button class="btn tiny ghost" id="helpPrint">打印 / PDF</button>
+          <div class="library-main">
+            <div class="library-searchbar panel">
+              <div class="library-search-row">
+                <svg class="search-icon"><use href="#i-search"/></svg>
+                <input id="libraryQuery" type="text" data-i18n-ph="library.searchPh" placeholder="搜索教材全文：中文、英文、公式片段…">
+                <label class="check-inline"><input type="checkbox" id="libraryFuzzy" checked> <span data-i18n="library.fuzzy">模糊</span></label>
+                <button class="btn tiny" id="btnLibraryAi" data-i18n="library.ai">AI 语义搜索</button>
+                <button class="btn tiny ghost" id="btnLibrarySearch" data-i18n="library.search">搜索</button>
+              </div>
+              <div class="library-search-meta" id="librarySearchMeta"></div>
+            </div>
+            <div class="library-body">
+              <div class="library-results" id="libraryResults">
+                <div class="empty-mini" data-i18n="library.resultsEmpty">输入关键词开始检索；结果会显示书名、页码与命中片段。</div>
+              </div>
+              <div class="library-viewer panel" id="libraryViewer">
+                <div class="library-viewer-head">
+                  <div><h2 id="libraryDocTitle" data-i18n="library.viewer">教材阅读器</h2><p id="libraryDocMeta"></p></div>
+                  <div class="library-tools">
+                    <button class="icon-btn sm" id="libPrev" title="Previous"><svg style="transform:rotate(180deg)"><use href="#i-chevron"/></svg></button>
+                    <input id="libPageInput" class="page-input" type="number" min="1" value="1">
+                    <span id="libPageTotal" class="muted">/ 0</span>
+                    <button class="icon-btn sm" id="libNext" title="Next"><svg><use href="#i-chevron"/></svg></button>
+                    <button class="icon-btn sm" id="libZoomOut" title="Zoom out"><svg><use href="#i-minus"/></svg></button>
+                    <span id="libZoomLabel" class="zoom-label">120%</span>
+                    <button class="icon-btn sm" id="libZoomIn" title="Zoom in"><svg><use href="#i-plus"/></svg></button>
+                    <button class="btn tiny ghost" id="libOcr"><svg><use href="#i-ocr"/></svg><span data-i18n="library.ocr">OCR 本页</span></button>
+                    <button class="btn tiny ghost" id="libTranslate"><svg><use href="#i-translate"/></svg><span data-i18n="library.translate">翻译</span></button>
+                    <button class="btn tiny" id="libAsk"><svg><use href="#i-spark"/></svg><span data-i18n="library.ask">问此页</span></button>
+                  </div>
+                </div>
+                <div class="pdf-stage" id="pdfStage">
+                  <div class="pdf-empty" id="pdfEmpty" data-i18n="library.pdfEmpty">选择一本教材或搜索命中页后，这里显示页面。</div>
+                  <div class="pdf-canvas-wrap" id="pdfCanvasWrap">
+                    <img id="libraryPage" alt="textbook page" class="hidden">
+                    <div id="libraryHighlights" class="pdf-highlights"></div>
+                  </div>
+                  <div id="libraryLoading" class="pdf-loading hidden" data-i18n="library.loading">正在渲染页面…</div>
+                </div>
+                <div class="library-text-grid">
+                  <div class="library-text-card"><h3 data-i18n="library.original">原文 / OCR</h3><pre id="libraryText"></pre></div>
+                  <div class="library-text-card"><h3 data-i18n="library.translation">学术翻译</h3><pre id="libraryTranslation"></pre></div>
+                </div>
               </div>
             </div>
-            <iframe id="helpFrame" class="help-frame" title="帮助文档"></iframe>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= DOCS ================= -->
+      <section class="view" id="view-docs">
+        <div class="docs-layout">
+          <aside class="docs-side form-panel slim">
+            <div class="form-head"><h2 data-i18n="docs.title">文档中心</h2><span class="tag" id="docsCount">4</span></div>
+            <div class="docs-search-row">
+              <svg class="search-icon"><use href="#i-search"/></svg>
+              <input id="docsQuery" type="text" data-i18n-ph="docs.searchPh" placeholder="搜索所有文档的每一个字…">
+            </div>
+            <div class="docs-search-actions">
+              <button class="btn tiny" id="btnDocsSearch" data-i18n="docs.search">搜索</button>
+              <button class="btn tiny ghost" id="btnDocsAi" data-i18n="docs.aiSearch">AI 模糊搜索</button>
+            </div>
+            <div class="docs-search-meta" id="docsSearchMeta"></div>
+            <div id="docsResults" class="docs-results"></div>
+            <div class="section-label"><span data-i18n="docs.categories">文档分类</span><i></i></div>
+            <div id="docsCategoryList" class="docs-category-list"></div>
+          </aside>
+          <div class="docs-main panel">
+            <div class="docs-head">
+              <div><h2 id="docsTitle" data-i18n="docs.title">文档中心</h2><p id="docsDesc"></p></div>
+              <div class="docs-nav">
+                <span id="docsMatchCount" class="match-count">0 / 0</span>
+                <button class="icon-btn sm" id="docsPrev" title="Previous match"><svg style="transform:rotate(180deg)"><use href="#i-chevron"/></svg></button>
+                <button class="icon-btn sm" id="docsNext" title="Next match"><svg><use href="#i-chevron"/></svg></button>
+                <button class="btn tiny" id="docsAsk" data-i18n="docs.ask">问 AI</button>
+              </div>
+            </div>
+            <div id="docsHighlightInfo" class="docs-highlight-info"></div>
+            <article id="docsContent" class="docs-content md"></article>
           </div>
         </div>
       </section>
@@ -398,56 +477,56 @@
         <div class="about-wrap">
           <div class="about-hero">
             <div class="about-mark"><svg><use href="#i-logo"/></svg></div>
-            <div><h2>智配芯生 · ImpedanceMCP</h2><p>微波阻抗匹配智能计算与仿真软件 · v4.3.0</p></div>
-            <span class="tag cyan">赛道一 · AI 智能体</span>
+            <div><h2>Impedance Matching AI</h2><p data-i18n="about.tagline">微波阻抗匹配智能计算、仿真与教材检索 · v4.3.0</p></div>
+            <span class="tag cyan" data-i18n="about.independent">独立开源项目</span>
           </div>
           <div class="about-grid">
             <div class="panel">
-              <h3>我们做了什么</h3>
-              <p>在原有 MATLAB App Designer 软件的基础上，保留并封装经典 <code>Impedance_Matching.exe</code> 计算内核，新增 Python / MATLAB R2025b 双计算引擎、MCP 标准接口、多模型工具调用智能体（OpenAI 兼容 / Anthropic）与现代化可视化界面。</p>
+              <h3 data-i18n="about.what">项目定位</h3>
+              <p data-i18n="about.whatText">一个可独立运行、也可被 MCP 客户端调用的微波工程工具。它把 Smith 圆图、L/T/π 匹配网络、节点法复核、教材全文检索、OCR、学术翻译与大模型工具调用放进同一个桌面应用。</p>
               <div class="feature-grid">
-                <div><b>01</b><span>五种拓扑解析设计 + 节点法复核</span></div>
-                <div><b>02</b><span>Smith 圆图逐步动画与匹配范围扫描</span></div>
-                <div><b>03</b><span>VSWR 带宽、±5% 容差、耐压分析</span></div>
-                <div><b>04</b><span>MCP 服务，可被 ZCode / 任意 Agent 调用</span></div>
-                <div><b>05</b><span>多模型对话、附件解析、工具调用</span></div>
-                <div><b>06</b><span>一键导出 HTML / Markdown 报告</span></div>
+                <div><b>01</b><span data-i18n="about.f1">五种拓扑解析设计 + 节点法复核</span></div>
+                <div><b>02</b><span data-i18n="about.f2">Smith 圆图动画、扫描密度与边界</span></div>
+                <div><b>03</b><span data-i18n="about.f3">教材全文 / OCR / 引用 / 学术翻译</span></div>
+                <div><b>04</b><span data-i18n="about.f4">四类文档中心与全文检索</span></div>
+                <div><b>05</b><span data-i18n="about.f5">任意文件、剪贴板与视觉模型</span></div>
+                <div><b>06</b><span data-i18n="about.f6">20 个 MCP 工具，stdio / HTTP / SSE</span></div>
               </div>
             </div>
             <div class="panel team-panel">
-              <h3>开发团队</h3>
+              <h3 data-i18n="about.team">开发者</h3>
               <div class="team-list">
-                <div class="team-member"><div class="avatar">卢</div><div><b>卢瑞林</b><small>项目负责人 · 算法与 MCP 架构</small></div></div>
-                <div class="team-member"><div class="avatar">卢</div><div><b>卢柯吉</b><small>MATLAB 计算内核与仿真验证</small></div></div>
-                <div class="team-member"><div class="avatar">林</div><div><b>林芷伊</b><small>交互设计、可视化与文档</small></div></div>
-                <div class="team-member"><div class="avatar">张</div><div><b>张昀蕾</b><small>测试、演示与用户研究</small></div></div>
+                <div class="team-member"><div class="avatar">卢</div><div><b>卢瑞林</b><small data-i18n="about.role1">项目负责人 · 计算内核与智能体架构</small></div></div>
+                <div class="team-member"><div class="avatar">卢</div><div><b>卢柯吉</b><small data-i18n="about.role2">数值算法与仿真验证</small></div></div>
+                <div class="team-member"><div class="avatar">林</div><div><b>林芷伊</b><small data-i18n="about.role3">交互设计、可视化与文档</small></div></div>
+                <div class="team-member"><div class="avatar">张</div><div><b>张昀蕾</b><small data-i18n="about.role4">测试、教材整理与用户研究</small></div></div>
               </div>
-              <p class="team-note">上海交通大学集成电路学院（信息与电子工程学院）<br>“智绘芯生，AI 赋能” AI 教与学活动周</p>
+              <p class="team-note">Shanghai Jiao Tong University<br><span data-i18n="about.license">MIT License · 开源可复用</span></p>
             </div>
           </div>
           <div class="panel">
-            <h3>系统架构</h3>
+            <h3 data-i18n="about.arch">系统架构</h3>
             <div class="arch">
-              <div class="arch-layer"><span>表现层</span><div>原生 WebView2 窗口 · Smith 圆图 · 对话 · 报告</div></div>
+              <div class="arch-layer"><span data-i18n="about.layerUI">表现层</span><div data-i18n="about.layerUIText">WebView2 窗口 · Smith 圆图 · 教材阅读器 · 文档中心</div></div>
               <div class="arch-arrow">↓</div>
-              <div class="arch-layer"><span>智能体层</span><div>多模型工具调用 · 附件解析 · 知识库检索</div></div>
+              <div class="arch-layer"><span data-i18n="about.layerAgent">智能体层</span><div data-i18n="about.layerAgentText">多模型工具调用 · 视觉输入 · 教材引用 · 用量统计</div></div>
               <div class="arch-arrow">↓</div>
-              <div class="arch-layer"><span>协议层</span><div>MCP stdio / HTTP · 15 个工具 · 3 个资源</div></div>
+              <div class="arch-layer"><span data-i18n="about.layerMCP">协议层</span><div data-i18n="about.layerMCPText">MCP stdio / Streamable HTTP / legacy SSE · 20 个工具</div></div>
               <div class="arch-arrow">↓</div>
-              <div class="arch-layer"><span>计算层</span><div>Python 引擎 · MATLAB R2025b 批处理 · 原版 exe 外壳</div></div>
+              <div class="arch-layer"><span data-i18n="about.layerCore">计算与数据层</span><div data-i18n="about.layerCoreText">Python 解析/节点法内核 · SQLite 教材索引 · RapidOCR · 文档 AST</div></div>
             </div>
           </div>
           <div class="panel">
-            <h3>MCP 接入</h3>
-            <p>在 ZCode / Claude Desktop / 任意 MCP 客户端中加入以下配置，即可让智能体调用匹配计算工具：</p>
-            <pre class="code-block" id="aboutMcpCode">加载中…</pre>
-            <button class="btn tiny" id="btnCopyMcpAbout"><svg><use href="#i-copy"/></svg> 复制配置</button>
+            <h3 data-i18n="about.mcp">MCP 接入</h3>
+            <p data-i18n="about.mcpText">在 ZCode / Claude Desktop / 任意 MCP 客户端中加入以下配置，即可调用匹配计算、教材检索与文档工具：</p>
+            <pre class="code-block" id="aboutMcpCode">Loading…</pre>
+            <button class="btn tiny" id="btnCopyMcpAbout"><svg><use href="#i-copy"/></svg> <span data-i18n="mcp.copy">复制 MCP 配置</span></button>
           </div>
           <div class="about-foot">
-            <span>v4.3.0 · 更新日期 2026-10-26</span>
-            <span>开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾</span>
-            <span>联系：<a href="mailto:radarlurui@gmail.com">radarlurui@gmail.com</a> · <a href="mailto:Lu_Skywalker2915@sjtu.edu.cn">Lu_Skywalker2915@sjtu.edu.cn</a></span>
-            <a href="https://github.com/RuilinLu/Impedance_Matching_Calculation" target="_blank" rel="noreferrer">GitHub 仓库 ↗</a>
+            <span>v4.3.0 · 2026-10-27</span>
+            <span data-i18n="about.devs">开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾</span>
+            <span><a href="mailto:radarlurui@gmail.com">radarlurui@gmail.com</a></span>
+            <a href="https://github.com/RuilinLu/Impedance_Matching_Calculation" target="_blank" rel="noreferrer">GitHub ↗</a>
           </div>
         </div>
       </section>
@@ -456,61 +535,159 @@
   </main>
 </div>
 
+<!-- ================= FLOATING ASSISTANT ================= -->
+<aside class="quick-assistant collapsed" id="quickAssistant">
+  <button class="qa-toggle" id="qaToggle" title="AI Assistant"><svg><use href="#i-spark"/></svg><span>AI</span></button>
+  <div class="qa-panel">
+    <div class="qa-head">
+      <div><b data-i18n="qa.title">AI 助手</b><small id="qaContext">当前界面</small></div>
+      <button class="icon-btn sm" id="qaCollapse"><svg><use href="#i-close"/></svg></button>
+    </div>
+    <div class="qa-messages" id="qaMessages"></div>
+    <div class="qa-composer">
+      <textarea id="qaInput" rows="2" data-i18n-ph="qa.placeholder" placeholder="边看边问；可粘贴截图或文件…"></textarea>
+      <button class="send-btn" id="qaSend" title="Send"><svg><use href="#i-send"/></svg></button>
+    </div>
+    <div class="qa-stats" id="qaStats"></div>
+  </div>
+</aside>
+
 <!-- ================= SETTINGS MODAL ================= -->
 <div class="modal-backdrop hidden" id="settingsModal">
-  <div class="modal">
+  <div class="modal wide">
     <div class="modal-head">
-      <div><h2>设置</h2><p>模型服务 · 计算引擎 · MCP</p></div>
+      <div><h2 data-i18n="settings.title">设置</h2><p data-i18n="settings.sub">模型服务 · 模型详情 · 目录更新 · 用量 · MCP</p></div>
       <button class="icon-btn" id="btnCloseSettings"><svg><use href="#i-close"/></svg></button>
     </div>
-    <div class="modal-body">
-      <section class="settings-section">
-        <h3>模型服务</h3>
+    <div class="settings-tabs" id="settingsTabs">
+      <button class="settings-tab active" data-tab="service" data-i18n="settings.tabService">模型服务</button>
+      <button class="settings-tab" data-tab="profile" data-i18n="settings.tabProfile">模型详情</button>
+      <button class="settings-tab" data-tab="catalog" data-i18n="settings.tabCatalog">目录更新</button>
+      <button class="settings-tab" data-tab="usage" data-i18n="settings.tabUsage">用量统计</button>
+      <button class="settings-tab" data-tab="mcp" data-i18n="settings.tabMcp">MCP</button>
+      <button class="settings-tab" data-tab="ui" data-i18n="settings.tabUi">界面</button>
+    </div>
+    <div class="modal-body settings-body">
+      <section class="settings-section settings-pane active" data-pane="service">
         <div class="field-grid two-col">
-          <label class="field"><span>服务商</span><select id="setProvider" class="select"><option value="">请选择模型服务商</option></select></label>
-          <label class="field"><span>模型 ID</span><select id="setModel" class="select"><option value="">请选择模型</option></select></label>
+          <label class="field"><span data-i18n="settings.provider">服务商</span><select id="setProvider" class="select"><option value="">请选择模型服务商</option></select></label>
+          <label class="field"><span data-i18n="settings.protocol">协议</span><select id="setProtocol" class="select">
+            <option value="openai">OpenAI 兼容</option><option value="anthropic">Anthropic Messages</option><option value="custom">完全自定义 URL</option>
+          </select></label>
         </div>
-        <div class="provider-note" id="providerNote">选择服务商后会自动填入 Base URL，并列出该服务商可用模型。目录来自开源项目 models.dev。</div>
-        <label class="field"><span>Base URL</span><input id="setBaseUrl" type="text" placeholder="选择服务商后自动填入，或手动填写完整 Base URL"></label>
-        <label class="field"><span>自定义模型 ID <em>可选</em></span><input id="setModelCustom" type="text" placeholder="留空使用上方模型；可填 deepseek-flash 等新模型"></label>
-        <label class="field"><span>API Key <em>仅保存在本机 data/config.json</em></span><input id="setApiKey" type="password" placeholder="sk-…"></label>
+        <div class="provider-note" id="providerNote"></div>
         <div class="field-grid two-col">
-          <label class="field"><span>温度</span><input id="setTemp" type="number" min="0" max="2" step="0.05" value="0.25"></label>
-          <label class="field"><span>最大输出 tokens</span><input id="setMaxTokens" type="number" min="256" max="8192" step="128" value="2600"></label>
+          <label class="field"><span>Base URL (OpenAI)</span><input id="setBaseUrlOpenai" type="text" placeholder="https://api.example.com/v1"></label>
+          <label class="field"><span>Base URL (Anthropic)</span><input id="setBaseUrlAnthropic" type="text" placeholder="https://api.example.com/anthropic"></label>
         </div>
-        <div class="modal-actions">
-          <button class="btn ghost" id="btnTestLlm">测试连接</button>
-          <span class="inline-status" id="llmTestResult"></span>
+        <label class="field"><span data-i18n="settings.baseUrl">当前协议 Base URL</span><input id="setBaseUrl" type="text" placeholder="选择服务商后自动填入"></label>
+        <div class="field-grid two-col">
+          <label class="field"><span data-i18n="settings.model">模型</span><select id="setModel" class="select"><option value="">请选择模型</option></select></label>
+          <label class="field"><span data-i18n="settings.customModel">自定义模型 ID</span><input id="setModelCustom" type="text" placeholder="留空使用上方模型"></label>
+        </div>
+        <label class="field"><span>API Key <em data-i18n="settings.keyLocal">仅保存在本机</em></span><input id="setApiKey" type="password" placeholder="sk-…"></label>
+        <div class="field-grid three-col">
+          <label class="field"><span data-i18n="settings.temp">温度</span><input id="setTemp" type="number" min="0" max="2" step="0.05" value="0.25"></label>
+          <label class="field"><span data-i18n="settings.maxTokens">最大输出 tokens</span><input id="setMaxTokens" type="number" min="64" max="400000" step="128" value="4096"></label>
+          <label class="field"><span data-i18n="settings.reasoning">思考强度</span><select id="setReasoning" class="select">
+            <option value="">默认/关闭</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+          </select></label>
+        </div>
+        <label class="field"><span data-i18n="settings.thinkingBudget">Anthropic 思考预算 tokens</span><input id="setThinkingBudget" type="number" min="0" max="200000" step="256" value="0"></label>
+        <div class="modal-actions"><button class="btn ghost" id="btnTestLlm" data-i18n="settings.test">测试连接</button><span class="inline-status" id="llmTestResult"></span></div>
+      </section>
+
+      <section class="settings-section settings-pane" data-pane="profile">
+        <div class="profile-head">
+          <div><b id="profileName">—</b><small id="profileNote"></small></div>
+          <button class="btn tiny ghost" id="btnProfileReset" data-i18n="settings.profileReset">恢复目录默认</button>
+        </div>
+        <div class="field-grid three-col">
+          <label class="field"><span data-i18n="settings.context">上下文长度</span><input id="mpContext" type="number" min="0" step="1024"></label>
+          <label class="field"><span data-i18n="settings.maxOutput">最大输出</span><input id="mpMaxOutput" type="number" min="0" step="1024"></label>
+          <label class="field"><span data-i18n="settings.concurrency">并发限制</span><input id="mpConcurrency" type="number" min="0" step="1"></label>
+        </div>
+        <div class="capability-grid">
+          <label><input type="checkbox" id="mpVision"> <span data-i18n="settings.vision">图像理解</span></label>
+          <label><input type="checkbox" id="mpAudio"> <span data-i18n="settings.audio">音频输入</span></label>
+          <label><input type="checkbox" id="mpTools"> <span data-i18n="settings.toolCall">Tool Calls</span></label>
+          <label><input type="checkbox" id="mpJson"> <span data-i18n="settings.json">JSON Output</span></label>
+          <label><input type="checkbox" id="mpReasoning"> <span data-i18n="settings.reasoningCap">Reasoning</span></label>
+          <label><input type="checkbox" id="mpResponses"> <span>Responses API</span></label>
+          <label><input type="checkbox" id="mpAnthropic"> <span>Anthropic API</span></label>
+          <label><input type="checkbox" id="mpFim"> <span>FIM</span></label>
+        </div>
+        <div class="section-label"><span data-i18n="settings.pricing">价格（每 100 万 tokens）</span><i></i></div>
+        <div class="field-grid three-col">
+          <label class="field"><span data-i18n="settings.currency">币种</span><select id="mpCurrency" class="select"><option value="CNY">CNY</option><option value="USD">USD</option></select></label>
+          <label class="field"><span data-i18n="settings.cacheHit">缓存命中输入</span><input id="mpCacheHit" type="number" min="0" step="0.001"></label>
+          <label class="field"><span data-i18n="settings.cacheMiss">缓存未命中输入</span><input id="mpCacheMiss" type="number" min="0" step="0.001"></label>
+        </div>
+        <div class="field-grid three-col">
+          <label class="field"><span data-i18n="settings.outputPrice">输出价格</span><input id="mpOutput" type="number" min="0" step="0.001"></label>
+          <label class="field"><span data-i18n="settings.release">版本日期</span><input id="mpRelease" type="text" placeholder="2026-08-13"></label>
+          <label class="field"><span data-i18n="settings.notes">限制说明</span><input id="mpNotes" type="text" placeholder="例如：FIM 仅非思考模式"></label>
+        </div>
+        <div class="section-label"><span data-i18n="settings.peak">峰时价格</span><i></i></div>
+        <div class="field-grid three-col">
+          <label class="field"><span data-i18n="settings.cacheHit">缓存命中输入</span><input id="mpPeakHit" type="number" min="0" step="0.001"></label>
+          <label class="field"><span data-i18n="settings.cacheMiss">缓存未命中输入</span><input id="mpPeakMiss" type="number" min="0" step="0.001"></label>
+          <label class="field"><span data-i18n="settings.outputPrice">输出价格</span><input id="mpPeakOutput" type="number" min="0" step="0.001"></label>
+        </div>
+        <div class="section-label"><span data-i18n="settings.offPeak">谷时价格</span><i></i></div>
+        <div class="field-grid three-col">
+          <label class="field"><span data-i18n="settings.cacheHit">缓存命中输入</span><input id="mpOffHit" type="number" min="0" step="0.001"></label>
+          <label class="field"><span data-i18n="settings.cacheMiss">缓存未命中输入</span><input id="mpOffMiss" type="number" min="0" step="0.001"></label>
+          <label class="field"><span data-i18n="settings.outputPrice">输出价格</span><input id="mpOffOutput" type="number" min="0" step="0.001"></label>
         </div>
       </section>
-      <section class="settings-section">
-        <h3>计算引擎</h3>
-        <div class="engine-options">
-          <label class="radio-card"><input type="radio" name="engine" value="python" checked><div><b>Python 内核</b><small>毫秒级，默认；公式与 MATLAB 逐项一致并做节点法复核</small></div></label>
-          <label class="radio-card"><input type="radio" name="engine" value="matlab"><div><b>MATLAB R2025b</b><small>通过 -batch 调用已安装的 MATLAB 进行交叉复核</small></div></label>
+
+      <section class="settings-section settings-pane" data-pane="catalog">
+        <div class="catalog-status" id="catalogStatus">—</div>
+        <div class="catalog-actions">
+          <button class="btn tiny" id="btnCatalogModelsDev" data-i18n="settings.updateModelsDev">从官方目录更新</button>
+          <button class="btn tiny ghost" id="btnCatalogProvider" data-i18n="settings.updateProvider">读取当前厂商 /models</button>
+          <button class="btn tiny ghost" id="btnCatalogAnnounce" data-i18n="settings.readAnnounce">读取官方公告</button>
+          <button class="btn tiny ghost" id="btnCatalogAI" data-i18n="settings.aiUpdate">用 AI 校对更新</button>
+          <button class="btn tiny ghost" id="btnCatalogRollback" data-i18n="settings.rollback">回滚目录</button>
+          <button class="btn tiny ghost" id="btnCatalogReset" data-i18n="settings.resetCatalog">恢复内置目录</button>
         </div>
-        <div class="engine-status" id="engineStatus">检测中…</div>
-        <div class="modal-actions">
-          <button class="btn ghost" id="btnOpenMatlab">打开原版 Impedance_Matching.exe</button>
-          <button class="btn ghost" id="btnRecheck">重新检测</button>
-        </div>
+        <div class="catalog-warning" data-i18n="settings.catalogWarning">一键更新可能因厂商页面改版而失败；AI 校对可能出错，请逐项核对。每次更新前会自动备份，可回滚。</div>
+        <pre class="code-block small catalog-log" id="catalogLog"></pre>
       </section>
-      <section class="settings-section">
-        <h3>ZCode MCP 配置</h3>
-        <p class="muted">把这段加入 <code>~/.zcode/cli/config.json</code> 的 <code>mcp.servers</code>，重启 ZCode 即可看到 15 个工具。</p>
-        <pre class="code-block small" id="settingsMcpCode">加载中…</pre>
-        <button class="btn tiny" id="btnCopyMcpSettings"><svg><use href="#i-copy"/></svg> 复制配置</button>
+
+      <section class="settings-section settings-pane" data-pane="usage">
+        <div class="usage-cards" id="usageCards"></div>
+        <div class="table-wrap"><table class="data-table"><thead><tr><th data-i18n="settings.uTime">时间</th><th data-i18n="settings.uModel">模型</th><th data-i18n="settings.uPrompt">输入</th><th data-i18n="settings.uCompletion">输出</th><th data-i18n="settings.uCache">缓存命中</th><th data-i18n="settings.uCost">费用</th></tr></thead><tbody id="usageTable"></tbody></table></div>
+        <div class="modal-actions"><span class="muted" id="usagePath"></span><button class="btn tiny ghost" id="btnUsageClear" data-i18n="settings.clearUsage">清空日志</button></div>
+      </section>
+
+      <section class="settings-section settings-pane" data-pane="mcp">
+        <p class="muted" data-i18n="settings.mcpText">把这段加入 MCP 客户端的 servers 配置，重启客户端即可看到 20 个工具。</p>
+        <pre class="code-block small" id="settingsMcpCode">Loading…</pre>
+        <button class="btn tiny" id="btnCopyMcpSettings"><svg><use href="#i-copy"/></svg> <span data-i18n="mcp.copy">复制 MCP 配置</span></button>
+      </section>
+
+      <section class="settings-section settings-pane" data-pane="ui">
+        <label class="field"><span data-i18n="settings.language">界面语言</span><select id="setLang" class="select"><option value="zh">中文</option><option value="en">English</option></select></label>
+        <label class="toggle-row"><span><b data-i18n="settings.autoIndex">启动时自动索引教材</b><small data-i18n="settings.autoIndexSub">扫描 TextBook/ 与 data/library/books/</small></span><input type="checkbox" id="setAutoIndex" checked></label>
+        <label class="field"><span data-i18n="settings.ocrFirst">每本扫描书自动 OCR 前几页</span><input id="setOcrFirst" type="number" min="0" max="20" step="1" value="2"></label>
+        <label class="toggle-row"><span><b data-i18n="settings.autoPeak">按峰谷时段自动计价</b><small data-i18n="settings.autoPeakSub">使用厂商的谷时窗口</small></span><input type="checkbox" id="setAutoPeak" checked></label>
       </section>
     </div>
     <div class="modal-foot">
       <span class="muted" id="saveHint"></span>
-      <div><button class="btn ghost" id="btnCancelSettings">取消</button><button class="btn primary" id="btnSaveSettings">保存设置</button></div>
+      <div><button class="btn ghost" id="btnCancelSettings" data-i18n="settings.cancel">取消</button><button class="btn primary" id="btnSaveSettings" data-i18n="settings.save">保存设置</button></div>
     </div>
   </div>
 </div>
 
 <div class="toast-wrap" id="toastWrap"></div>
+<script src="/i18n.js"></script>
 <script src="/smith.js"></script>
 <script src="/app.js"></script>
+<script src="/library.js"></script>
+<script src="/docs.js"></script>
+<script src="/assistant.js"></script>
 </body>
 </html>

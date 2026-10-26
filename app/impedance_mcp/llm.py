@@ -1,12 +1,13 @@
-"""OpenAI-compatible / Anthropic client for multiple model providers.
+"""OpenAI-compatible / Anthropic Messages client for multiple providers.
 
-The application never selects a vendor by default.  The user chooses a provider
-from the built-in models.dev catalog, enters a Base URL/model/API key, and the
-settings are stored locally.  Only public http(s) endpoints are accepted.
+The application never selects a vendor by default.  The user chooses a provider,
+protocol, model and API key.  Only public http(s) endpoints are accepted.
+Vision content, tool calls and cache-aware usage accounting are supported.
 """
 
 from __future__ import annotations
 
+import base64
 import ipaddress
 import json
 import re
@@ -16,7 +17,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 _VERIFIED_HOSTS: Dict[str, bool] = {}
 
@@ -62,21 +63,23 @@ def normalize_base(base_url: str, api_style: str = "openai", chat_path: str = ""
     """Return a complete chat-completions URL.
 
     api_style:
-      openai   -> append the provider's chat path (or /chat/completions)
-      anthropic-> append /messages
-      as_is    -> use the URL exactly as entered (Azure, custom gateways)
+      openai    -> append the provider's chat path (or /chat/completions)
+      anthropic -> append /messages
+      as_is     -> use the URL exactly as entered (Azure, custom gateways)
     """
     url = (base_url or "").strip().rstrip("/")
     if not url:
         raise LLMError("请选择模型服务商并填写 Base URL")
     parsed = _validate_url(url)
     style = (api_style or "openai").lower()
-    if style == "as_is":
+    if style in ("custom", "as_is"):
         return url
     if style == "anthropic":
         if url.endswith("/messages"):
             return url
         if url.endswith("/v1"):
+            return url + "/messages"
+        if re.search(r"/v\d+$", url):
             return url + "/messages"
         return url + "/v1/messages"
     if url.endswith("/chat/completions"):
@@ -86,13 +89,15 @@ def normalize_base(base_url: str, api_style: str = "openai", chat_path: str = ""
     path = parsed.path.lower()
     if re.search(r"/v\d+(?:/|$)", path) or path.endswith("/openai") or "compatible-mode" in path:
         return url + "/chat/completions"
+    if path.endswith("/v1beta/openai"):
+        return url + "/chat/completions"
     return url + "/v1/chat/completions"
 
 
 def models_url(cfg: Dict[str, Any]) -> str:
     llm = cfg.get("llm", {})
-    style = (llm.get("api_style") or "openai").lower()
-    if style == "as_is":
+    style = (llm.get("protocol") or llm.get("api_style") or "openai").lower()
+    if style in ("custom", "as_is"):
         return ""
     chat = normalize_base(llm.get("base_url", ""), style, llm.get("chat_path", ""))
     if chat.endswith("/messages"):
@@ -111,14 +116,14 @@ def _headers(api_key: str, cfg: Dict[str, Any]) -> Dict[str, str]:
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "User-Agent": "ImpedanceMCP/4.1 (+SJTU)",
+        "User-Agent": "ImpedanceMatchingAI/4.3",
         header: f"{prefix}{api_key}",
     }
     extra = llm.get("extra_headers") or {}
     if isinstance(extra, dict):
-        for k, v in extra.items():
-            headers[str(k)] = str(v)
-    if (llm.get("api_style") or "").lower() == "anthropic":
+        for key, value in extra.items():
+            headers[str(key)] = str(value)
+    if (llm.get("protocol") or llm.get("api_style") or "").lower() == "anthropic":
         headers.setdefault("anthropic-version", "2023-06-01")
     return headers
 
@@ -136,7 +141,8 @@ def _open_json(url: str, body: Optional[Dict[str, Any]], headers: Dict[str, str]
     except urllib.error.HTTPError as exc:
         raw = exc.read().decode("utf-8", errors="replace")
         try:
-            detail = json.loads(raw).get("error", {})
+            payload = json.loads(raw)
+            detail = payload.get("error", payload)
             msg = detail.get("message") if isinstance(detail, dict) else str(detail)
         except Exception:
             msg = raw[:500]
@@ -160,18 +166,134 @@ def _open_json(url: str, body: Optional[Dict[str, Any]], headers: Dict[str, str]
         raise LLMError("模型服务响应超时。", hint="请稍后重试或缩短问题。") from exc
 
 
+def _profile(cfg: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        from . import providers
+        return providers.profile(cfg)
+    except Exception:
+        return {}
+
+
+def _output_limit(cfg: Dict[str, Any]) -> int:
+    llm = cfg.get("llm", {})
+    configured = int(llm.get("max_tokens", 4096) or 4096)
+    profile = _profile(cfg)
+    maximum = int(profile.get("max_output", 0) or 0)
+    if maximum > 0:
+        return max(64, min(configured, maximum))
+    return max(64, configured)
+
+
+def _plain_text(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                parts.append(str(block.get("text", "")))
+        return "\n".join(parts)
+    return str(content or "")
+
+
+def _anthropic_content(content: Any) -> List[Dict[str, Any]]:
+    if isinstance(content, str):
+        return [{"type": "text", "text": content}]
+    if not isinstance(content, list):
+        return [{"type": "text", "text": str(content or "")}]
+    blocks: List[Dict[str, Any]] = []
+    for block in content:
+        if not isinstance(block, dict):
+            continue
+        kind = block.get("type")
+        if kind == "text":
+            blocks.append({"type": "text", "text": str(block.get("text", ""))})
+        elif kind == "image":
+            blocks.append(block)
+        elif kind == "image_url":
+            url = ((block.get("image_url") or {}) if isinstance(block.get("image_url"), dict)
+                   else {"url": block.get("image_url")})
+            data_url = str(url.get("url", ""))
+            match = re.match(r"data:([^;]+);base64,(.*)", data_url, re.S)
+            if match:
+                blocks.append({
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": match.group(1),
+                               "data": match.group(2)},
+                })
+    return blocks or [{"type": "text", "text": ""}]
+
+
+def _anthropic_messages(messages: List[Dict[str, Any]]) -> Tuple[List[str], List[Dict[str, Any]]]:
+    system_parts: List[str] = []
+    out: List[Dict[str, Any]] = []
+    pending_tools: List[Dict[str, Any]] = []
+    for message in messages:
+        role = message.get("role")
+        content = message.get("content")
+        if role == "system":
+            if content:
+                system_parts.append(_plain_text(content))
+            continue
+        if role == "tool":
+            pending_tools.append({
+                "type": "tool_result",
+                "tool_use_id": message.get("tool_call_id") or "",
+                "content": _plain_text(content),
+            })
+            continue
+        if pending_tools:
+            out.append({"role": "user", "content": pending_tools})
+            pending_tools = []
+        if role == "assistant":
+            blocks: List[Dict[str, Any]] = []
+            if content:
+                blocks.append({"type": "text", "text": _plain_text(content)})
+            for call in message.get("tool_calls") or []:
+                fn = call.get("function") or {}
+                raw_args = fn.get("arguments") or "{}"
+                try:
+                    parsed = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
+                except Exception:
+                    parsed = {}
+                blocks.append({
+                    "type": "tool_use",
+                    "id": call.get("id") or "tool_call",
+                    "name": fn.get("name") or "unknown",
+                    "input": parsed if isinstance(parsed, dict) else {},
+                })
+            if blocks:
+                out.append({"role": "assistant", "content": blocks})
+        elif role == "user":
+            out.append({"role": "user", "content": _anthropic_content(content)})
+    if pending_tools:
+        out.append({"role": "user", "content": pending_tools})
+    return system_parts, out
+
+
 def _chat_openai(cfg: Dict[str, Any], messages: List[Dict[str, Any]],
                  tools: Optional[List[Dict[str, Any]]], timeout: int) -> Dict[str, Any]:
     llm = cfg.get("llm", {})
-    url = normalize_base(llm.get("base_url", ""), llm.get("api_style", "openai"),
-                         llm.get("chat_path", ""))
+    style = (llm.get("protocol") or llm.get("api_style") or "openai").lower()
+    url = normalize_base(llm.get("base_url", ""), style, llm.get("chat_path", ""))
     payload: Dict[str, Any] = {
         "model": llm.get("model", ""),
         "messages": messages,
         "temperature": float(llm.get("temperature", 0.25)),
-        "max_tokens": int(llm.get("max_tokens", 2600)),
+        "max_tokens": _output_limit(cfg),
         "stream": False,
     }
+    model_id = str(llm.get("model") or "")
+    if re.match(r"^o[1-9]", model_id):
+        payload.pop("temperature", None)
+        payload["max_completion_tokens"] = payload.pop("max_tokens")
+    effort = str(llm.get("reasoning_effort") or "").strip()
+    if effort:
+        payload["reasoning_effort"] = effort
+    extra_body = llm.get("extra_body")
+    if isinstance(extra_body, dict):
+        for key, value in extra_body.items():
+            payload[str(key)] = value
     if tools:
         payload["tools"] = tools
         payload["tool_choice"] = "auto"
@@ -200,54 +322,8 @@ def _chat_openai(cfg: Dict[str, Any], messages: List[Dict[str, Any]],
         "usage": data.get("usage") or {},
         "model": data.get("model") or llm.get("model"),
         "raw_message": msg,
+        "protocol": "openai",
     }
-
-
-def _anthropic_messages(messages: List[Dict[str, Any]]) -> tuple:
-    system_parts: List[str] = []
-    out: List[Dict[str, Any]] = []
-    pending_tools: List[Dict[str, Any]] = []
-    for m in messages:
-        role = m.get("role")
-        content = m.get("content")
-        if role == "system":
-            if content:
-                system_parts.append(str(content))
-            continue
-        if role == "tool":
-            pending_tools.append({
-                "type": "tool_result",
-                "tool_use_id": m.get("tool_call_id") or "",
-                "content": str(content or ""),
-            })
-            continue
-        if pending_tools:
-            out.append({"role": "user", "content": pending_tools})
-            pending_tools = []
-        if role == "assistant":
-            blocks: List[Dict[str, Any]] = []
-            if content:
-                blocks.append({"type": "text", "text": str(content)})
-            for tc in m.get("tool_calls") or []:
-                fn = tc.get("function") or {}
-                raw_args = fn.get("arguments") or "{}"
-                try:
-                    parsed = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
-                except Exception:
-                    parsed = {}
-                blocks.append({
-                    "type": "tool_use",
-                    "id": tc.get("id") or "tool_call",
-                    "name": fn.get("name") or "unknown",
-                    "input": parsed if isinstance(parsed, dict) else {},
-                })
-            if blocks:
-                out.append({"role": "assistant", "content": blocks})
-        elif role == "user":
-            out.append({"role": "user", "content": [{"type": "text", "text": str(content or "")}]})
-    if pending_tools:
-        out.append({"role": "user", "content": pending_tools})
-    return system_parts, out
 
 
 def _chat_anthropic(cfg: Dict[str, Any], messages: List[Dict[str, Any]],
@@ -257,20 +333,25 @@ def _chat_anthropic(cfg: Dict[str, Any], messages: List[Dict[str, Any]],
     system_parts, converted = _anthropic_messages(messages)
     payload: Dict[str, Any] = {
         "model": llm.get("model", ""),
-        "max_tokens": int(llm.get("max_tokens", 2600)),
+        "max_tokens": _output_limit(cfg),
         "messages": converted,
         "temperature": float(llm.get("temperature", 0.25)),
     }
+    thinking_budget = int(llm.get("thinking_budget", 0) or 0)
+    if thinking_budget > 0:
+        thinking_budget = min(thinking_budget, max(1024, payload["max_tokens"] - 1024))
+        payload["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
+        payload.pop("temperature", None)
     if system_parts:
         payload["system"] = "\n\n".join(system_parts)
     if tools:
         payload["tools"] = [
             {
-                "name": t.get("function", {}).get("name", ""),
-                "description": t.get("function", {}).get("description", ""),
-                "input_schema": t.get("function", {}).get("parameters", {"type": "object"}),
+                "name": tool.get("function", {}).get("name", ""),
+                "description": tool.get("function", {}).get("description", ""),
+                "input_schema": tool.get("function", {}).get("parameters", {"type": "object"}),
             }
-            for t in tools
+            for tool in tools
         ]
     headers = _headers(llm.get("api_key", ""), cfg)
     data = None
@@ -312,13 +393,10 @@ def _chat_anthropic(cfg: Dict[str, Any], messages: List[Dict[str, Any]],
         "reasoning": "",
         "tool_calls": tool_calls,
         "finish_reason": finish,
-        "usage": {
-            "prompt_tokens": int(usage.get("input_tokens", 0) or 0),
-            "completion_tokens": int(usage.get("output_tokens", 0) or 0),
-            "total_tokens": int(usage.get("input_tokens", 0) or 0) + int(usage.get("output_tokens", 0) or 0),
-        },
+        "usage": usage,
         "model": data.get("model") or llm.get("model"),
         "raw_message": data,
+        "protocol": "anthropic",
     }
 
 
@@ -340,10 +418,14 @@ def chat(
     if not key:
         raise LLMError("尚未填写 API Key。",
                        hint="在设置中填写你从服务商控制台获取的 Key；本软件不会内置任何厂商密钥。")
-    style = (llm.get("api_style") or "openai").lower()
+    style = (llm.get("protocol") or llm.get("api_style") or "openai").lower()
     if style == "anthropic":
         return _chat_anthropic(cfg, messages, tools, timeout)
     return _chat_openai(cfg, messages, tools, timeout)
+
+
+def vision_supported(cfg: Dict[str, Any]) -> bool:
+    return bool(_profile(cfg).get("vision"))
 
 
 def test_connection(cfg: Dict[str, Any], timeout: int = 60) -> Dict[str, Any]:
@@ -352,12 +434,15 @@ def test_connection(cfg: Dict[str, Any], timeout: int = 60) -> Dict[str, Any]:
         {"role": "system", "content": "你是微波工程助手，只回复两个字。"},
         {"role": "user", "content": "请回复：在线"},
     ], timeout=timeout)
+    from . import usage
+    stats = usage.compute_cost(_profile(cfg), resp.get("usage") or {})
     return {
         "ok": True,
         "latency_s": round(time.time() - started, 2),
         "model": resp.get("model"),
         "reply": (resp.get("content") or "")[:80],
         "usage": resp.get("usage"),
+        "cost": stats,
         "summary": f"模型连接成功（{resp.get('model')}，{time.time() - started:.1f}s）。",
     }
 

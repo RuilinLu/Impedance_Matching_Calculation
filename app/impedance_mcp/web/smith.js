@@ -231,20 +231,72 @@
     _drawScan(ctx, geom) {
       const pts = this.data.scanPoints || [];
       if (!pts.length) return;
-      const max = Math.min(pts.length, 5000);
-      for (let i = 0; i < max; i++) {
-        const p = pts[i];
-        const g = p.g || p;
+      const { cx, cy, r } = geom;
+      const grid = Math.max(48, Math.min(96, Math.round(r / 4)));
+      const counts = new Float64Array(grid * grid);
+      const samples = [];
+      let max = 0;
+      for (const item of pts) {
+        const g = item.g || item;
         if (!isFinite(g.re) || !isFinite(g.im)) continue;
         const mag = Math.hypot(g.re, g.im);
         if (mag > 1.02) continue;
-        const px = geom.cx + geom.r * g.re;
-        const py = geom.cy - geom.r * g.im;
-        const a = 0.10 + 0.42 * (1 - Math.min(1, mag));
+        const ix = Math.min(grid - 1, Math.max(0, Math.floor((g.re + 1) * 0.5 * grid)));
+        const iy = Math.min(grid - 1, Math.max(0, Math.floor((1 - g.im) * 0.5 * grid)));
+        const index = iy * grid + ix;
+        counts[index] += 1;
+        if (counts[index] > max) max = counts[index];
+        samples.push({ g, mag });
+      }
+      if (!samples.length || max <= 0) return;
+
+      // Grey density cloud: darker cells mean more matchable loads.
+      const cell = (2 * r) / grid;
+      for (let iy = 0; iy < grid; iy++) {
+        for (let ix = 0; ix < grid; ix++) {
+          const value = counts[iy * grid + ix];
+          if (!value) continue;
+          const ratio = Math.pow(value / max, 0.62);
+          const alpha = 0.035 + 0.52 * ratio;
+          const gx = -1 + (ix + 0.5) * (2 / grid);
+          const gy = 1 - (iy + 0.5) * (2 / grid);
+          const px = cx + r * gx - cell / 2;
+          const py = cy - r * gy - cell / 2;
+          ctx.fillStyle = `rgba(100, 116, 139, ${alpha.toFixed(3)})`;
+          ctx.fillRect(px, py, cell + 0.6, cell + 0.6);
+        }
+      }
+
+      // Boundary envelope of the scanned region.
+      const hull = convexHull(samples.map((sample) => ({ x: sample.g.re, y: sample.g.im })));
+      if (hull.length > 2) {
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(px, py, 1.1 + 0.8 * (1 - Math.min(1, mag)), 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(34, 211, 238, ${a.toFixed(3)})`;
+        hull.forEach((point, index) => {
+          const px = cx + r * point.x;
+          const py = cy - r * point.y;
+          if (index === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        });
+        ctx.closePath();
+        ctx.strokeStyle = "rgba(148, 163, 184, .62)";
+        ctx.lineWidth = 1.1;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Cyan highlights for points near the centre (low reflection).
+      let drawn = 0;
+      for (const sample of samples) {
+        if (sample.mag > 0.34 || drawn > 1800) continue;
+        const px = cx + r * sample.g.re;
+        const py = cy - r * sample.g.im;
+        const alpha = 0.18 + 0.55 * (1 - sample.mag / 0.34);
+        ctx.beginPath();
+        ctx.arc(px, py, 1.2 + 1.0 * (1 - sample.mag / 0.34), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(34, 211, 238, ${alpha.toFixed(3)})`;
         ctx.fill();
+        drawn += 1;
       }
     }
 
@@ -451,6 +503,26 @@
     _notify() {
       if (this.onStateChange) this.onStateChange(this.playing, this.progress);
     }
+  }
+
+  function convexHull(points) {
+    if (!points || points.length < 3) return points || [];
+    const sorted = points.slice().sort((a, b) => (a.x === b.x ? a.y - b.y : a.x - b.x));
+    const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const lower = [];
+    for (const point of sorted) {
+      while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0) lower.pop();
+      lower.push(point);
+    }
+    const upper = [];
+    for (let index = sorted.length - 1; index >= 0; index--) {
+      const point = sorted[index];
+      while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0) upper.pop();
+      upper.push(point);
+    }
+    lower.pop();
+    upper.pop();
+    return lower.concat(upper);
   }
 
   /* ------------------------------------------------------------------ */

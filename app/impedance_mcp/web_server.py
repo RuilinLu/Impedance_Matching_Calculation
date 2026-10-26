@@ -1,45 +1,27 @@
-"""Local web application server for the ImpedanceMCP desktop shell."""
+"""Local HTTP API and static server for the desktop shell."""
 
 from __future__ import annotations
 
 import json
 import mimetypes
-import os
-import sys
 import threading
 import traceback
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
-from . import agent, attachments, config, engine, knowledge, llm, matlab_bridge, providers, reports, tools
+from . import (agent, attachments, code_docs, config, docs_hub, engine, knowledge,
+               library, llm, providers, reports, tools, usage)
 
-MAX_BODY = 42 * 1024 * 1024  # base64 uploads
-
-HELP_FILES = {
-    "用户手册.html", "用户手册.pdf",
-    "MCP兼容性说明.html", "MCP兼容性说明.pdf",
-    "技术白皮书.html", "技术白皮书.pdf",
-    "计算正确性审计.html", "计算正确性审计.pdf",
-    "软件架构说明.html", "软件架构说明.pdf",
-    "比赛说明文档.html", "比赛说明文档.pdf",
-    "安装与杀毒软件说明.html", "安装与杀毒软件说明.pdf",
-}
+MAX_BODY = 160 * 1024 * 1024  # base64 textbook uploads
+JSON_LIMIT = 64 * 1024 * 1024
 
 
 def _inline_disposition(name: str) -> str:
-    """Build an ASCII-only Content-Disposition; RFC 5987 carries the CJK name."""
     suffix = Path(name).suffix or ".html"
     quoted = urllib.parse.quote(name, safe="")
-    return f"inline; filename=\"document{suffix}\"; filename*=UTF-8''{quoted}"
-
-
-def _write_stderr(text: str) -> None:
-    try:
-        sys.stderr.write(text)
-    except Exception:
-        pass
+    return f'inline; filename="document{suffix}"; filename*=UTF-8\'\'{quoted}'
 
 
 def _json_bytes(payload: Any) -> bytes:
@@ -47,7 +29,7 @@ def _json_bytes(payload: Any) -> bytes:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "ImpedanceMCP/" + config.VERSION
+    server_version = "ImpedanceMatchingAI/" + config.VERSION
     protocol_version = "HTTP/1.1"
 
     # -- helpers ----------------------------------------------------------
@@ -59,8 +41,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Cache-Control", "no-store")
-        for k, v in (extra or {}).items():
-            self.send_header(k, v)
+        for key, value in (extra or {}).items():
+            self.send_header(key, value)
         self.end_headers()
         if self.command != "HEAD":
             self.wfile.write(body)
@@ -81,7 +63,7 @@ class Handler(BaseHTTPRequestHandler):
         if length <= 0:
             return {}
         if length > MAX_BODY:
-            raise ValueError("请求体过大（上限 42 MB）")
+            raise ValueError(f"请求体过大（上限 {MAX_BODY // 1024 // 1024} MB）")
         raw = self.rfile.read(length)
         try:
             data = json.loads(raw.decode("utf-8"))
@@ -92,7 +74,16 @@ class Handler(BaseHTTPRequestHandler):
         return data
 
     def log_message(self, fmt: str, *args: Any) -> None:  # noqa: A003
-        _write_stderr("[web] " + (fmt % args) + "\n")
+        try:
+            import sys
+            sys.stderr.write("[web] " + (fmt % args) + "\n")
+        except Exception:
+            pass
+
+    def _query(self) -> Dict[str, str]:
+        parsed = urllib.parse.urlparse(self.path)
+        return {key: values[0] for key, values in
+                urllib.parse.parse_qs(parsed.query).items()}
 
     # -- routing ----------------------------------------------------------
     def do_GET(self) -> None:  # noqa: N802
@@ -100,43 +91,115 @@ class Handler(BaseHTTPRequestHandler):
         path = parsed.path
         try:
             if path == "/api/status":
-                st = config.status()
-                st["web_url"] = f"http://{self.headers.get('Host', '127.0.0.1')}"
-                st["mcp"]["running"] = True
-                return self._json(st)
+                state = config.status()
+                state["web_url"] = f"http://{self.headers.get('Host', '127.0.0.1')}"
+                state["mcp"]["running"] = True
+                try:
+                    state["library"] = library.status()
+                except Exception:
+                    state["library"] = {}
+                return self._json(state)
             if path == "/api/config":
                 return self._json({"ok": True, "config": config.public_config()})
             if path == "/api/catalog":
                 return self._json({"ok": True, **engine.catalog()})
             if path == "/api/providers":
                 data = providers.load()
+                data["summary"] = providers.update_summary()
                 return self._json({"ok": True, **data})
+            if path == "/api/providers/summary":
+                return self._json(providers.update_summary())
             if path == "/api/presets":
                 return self._json(tools.list_presets({}))
             if path == "/api/mcp/config":
                 return self._json({"ok": True, "servers": config.mcp_client_config(),
-                                   "snippet": json.dumps({"mcp": {"servers": config.mcp_client_config()}},
-                                                         ensure_ascii=False, indent=2)})
+                                   "snippet": json.dumps(
+                                       {"mcp": {"servers": config.mcp_client_config()}},
+                                       ensure_ascii=False, indent=2)})
             if path == "/api/knowledge":
-                q = urllib.parse.parse_qs(parsed.query).get("q", [""])[0]
-                return self._json(knowledge.search(q))
+                return self._json(knowledge.search(self._query().get("q", "")))
             if path == "/api/health":
                 return self._json({"ok": True, "version": config.VERSION})
-            if path.startswith("/help/"):
-                return self._serve_help(urllib.parse.unquote(path[len("/help/"):]))
+            if path == "/api/docs/list":
+                return self._json(docs_hub.list_docs(self._query().get("lang", "zh")))
+            if path == "/api/docs/get":
+                return self._json(docs_hub.get_doc(
+                    self._query().get("category", "features"),
+                    self._query().get("lang", "zh")))
+            if path == "/api/docs/search":
+                query = self._query()
+                return self._json(docs_hub.search_docs(
+                    query.get("q", ""), category=query.get("category") or None,
+                    lang=query.get("lang", "zh"),
+                    fuzzy=query.get("fuzzy", "1") not in ("0", "false"),
+                    limit=int(query.get("limit", "60") or 60)))
+            if path == "/api/library/status":
+                state = library.status()
+                if (state.get("docs", 0) == 0 and not state.get("running")
+                        and config.load_config().get("library", {}).get("auto_index", True)):
+                    state["started"] = True
+                    library.start_index()
+                return self._json(state)
+            if path == "/api/library/docs":
+                return self._json({"ok": True, "documents": library.doc_list()})
+            if path == "/api/library/doc":
+                return self._json(library.doc_info(int(self._query().get("id", "0") or 0)))
+            if path == "/api/library/toc":
+                info = library.doc_info(int(self._query().get("id", "0") or 0))
+                return self._json({"ok": info.get("ok"), "toc": info.get("toc", []),
+                                   "title": info.get("title", "")})
+            if path == "/api/library/page":
+                query = self._query()
+                data = library.render_page(
+                    int(query.get("doc", "0") or 0),
+                    int(query.get("page", "1") or 1),
+                    float(query.get("zoom", "1") or 1))
+                return self._send(200, data, "image/png")
+            if path == "/api/library/crop":
+                query = self._query()
+                rects = []
+                try:
+                    raw_rects = json.loads(query.get("rects", "[]"))
+                    for rect in raw_rects[:40]:
+                        if isinstance(rect, list) and len(rect) == 4:
+                            rects.append([max(0.0, min(1.0, float(x))) for x in rect])
+                except Exception:
+                    rects = []
+                data = library.crop_page(
+                    int(query.get("doc", "0") or 0),
+                    int(query.get("page", "1") or 1),
+                    rects, dpi=int(query.get("dpi", "220") or 220))
+                return self._send(200, data, "image/png")
+            if path == "/api/library/page_info":
+                query = self._query()
+                return self._json(library.page_info(
+                    int(query.get("doc", "0") or 0),
+                    int(query.get("page", "1") or 1),
+                    query.get("lang", "zh")))
+            if path == "/api/library/search":
+                query = self._query()
+                return self._json(library.search(
+                    query.get("q", ""),
+                    doc_id=int(query["doc_id"]) if query.get("doc_id") else None,
+                    limit=int(query.get("limit", "24") or 24),
+                    fuzzy=query.get("fuzzy", "1") not in ("0", "false")))
+            if path == "/api/usage/summary":
+                return self._json(usage.summary())
             if path.startswith("/api/report/"):
                 return self._serve_report(path.split("/")[-1])
             if path in ("/", "/index.html"):
                 return self._serve_static("index.html")
-            if path.startswith("/assets/"):
-                return self._serve_static(path[len("/assets/"):])
             if path == "/favicon.ico":
                 return self._serve_static("favicon.svg")
             return self._serve_static(path.lstrip("/"))
         except BrokenPipeError:
             return
+        except ValueError as exc:
+            if path.startswith("/api/library/page") or path.startswith("/api/library/crop"):
+                return self._error(str(exc), status=404, code="not_found")
+            return self._error(str(exc), status=400, code="bad_request")
         except Exception as exc:  # noqa: BLE001
-            _write_stderr(traceback.format_exc())
+            traceback.print_exc()
             return self._error(str(exc), status=500, code="server_error")
 
     def do_HEAD(self) -> None:  # noqa: N802
@@ -146,48 +209,46 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
         try:
-            if path == "/api/chat":
-                return self._chat()
-            if path == "/api/config":
-                return self._save_config()
-            if path == "/api/config/test":
-                return self._test_llm()
-            if path == "/api/models":
-                return self._models()
-            if path == "/api/design":
-                return self._design()
-            if path == "/api/scan":
-                return self._scan()
-            if path == "/api/evaluate":
-                return self._evaluate()
-            if path == "/api/stress":
-                return self._stress()
-            if path == "/api/bandwidth":
-                return self._bandwidth()
-            if path == "/api/suggest":
-                return self._suggest()
-            if path == "/api/convert":
-                return self._convert()
-            if path == "/api/upload":
-                return self._upload()
-            if path == "/api/report":
-                return self._report()
-            if path == "/api/matlab/open":
-                return self._json(matlab_bridge.launch_classic_app())
-            if path == "/api/matlab/verify":
-                return self._matlab_verify()
-            if path == "/api/matlab/status":
-                return self._json(matlab_bridge.status())
+            routes = {
+                "/api/chat": self._chat,
+                "/api/config": self._save_config,
+                "/api/config/test": self._test_llm,
+                "/api/models": self._models,
+                "/api/design": self._design,
+                "/api/scan": self._scan,
+                "/api/evaluate": self._evaluate,
+                "/api/stress": self._stress,
+                "/api/bandwidth": self._bandwidth,
+                "/api/suggest": self._suggest,
+                "/api/convert": self._convert,
+                "/api/upload": self._upload,
+                "/api/upload-text": self._upload_text,
+                "/api/report": self._report,
+                "/api/docs/ai_search": self._docs_ai_search,
+                "/api/library/index": self._library_index,
+                "/api/library/ocr": self._library_ocr,
+                "/api/library/ocr_book": self._library_ocr_book,
+                "/api/library/translate": self._library_translate,
+                "/api/library/upload": self._library_upload,
+                "/api/library/ai_search": self._library_ai_search,
+                "/api/providers/update": self._providers_update,
+                "/api/providers/rollback": self._providers_rollback,
+                "/api/providers/reset": self._providers_reset,
+                "/api/usage/clear": self._usage_clear,
+            }
+            handler = routes.get(path)
+            if handler:
+                return handler()
             return self._error("未知接口", status=404, code="not_found")
         except BrokenPipeError:
             return
         except ValueError as exc:
             return self._error(str(exc), status=400, code="bad_request")
         except Exception as exc:  # noqa: BLE001
-            _write_stderr(traceback.format_exc())
+            traceback.print_exc()
             return self._error(str(exc), status=500, code="server_error")
 
-    # -- static -----------------------------------------------------------
+    # -- static / reports -------------------------------------------------
     def _serve_static(self, rel: str) -> None:
         rel = urllib.parse.unquote(rel)
         target = (config.WEB_DIR / rel).resolve()
@@ -200,31 +261,9 @@ class Handler(BaseHTTPRequestHandler):
         ctype = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
         if target.suffix == ".js":
             ctype = "text/javascript; charset=utf-8"
-        elif target.suffix in (".html", ".css", ".svg"):
+        elif target.suffix in (".html", ".css", ".svg", ".json"):
             ctype += "; charset=utf-8"
         self._send(200, target.read_bytes(), ctype)
-
-    def _serve_help(self, name: str) -> None:
-        safe = Path(name).name
-        if safe not in HELP_FILES:
-            return self._error("非法帮助文档", status=403, code="forbidden")
-        target = (config.HELP_DIR / safe).resolve()
-        if not target.is_file():
-            html = (
-                "<!doctype html><html lang='zh-CN'><meta charset='utf-8'>"
-                "<title>帮助文档未安装</title>"
-                "<body style='font-family:Microsoft YaHei;background:#0b1220;color:#e6eefc;"
-                "padding:40px;line-height:1.8'>"
-                "<h2>帮助文档未随当前版本安装</h2>"
-                "<p>如果你使用的是便携版 exe，请改用安装程序，或直接查看 GitHub 的 docs 目录。</p>"
-                "<p><a style='color:#22d3ee' href='https://github.com/RuilinLu/"
-                "Impedance_Matching_Calculation/tree/main/docs'>打开在线文档</a></p>"
-                "</body></html>"
-            )
-            return self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
-        ctype = "application/pdf" if target.suffix.lower() == ".pdf" else "text/html; charset=utf-8"
-        self._send(200, target.read_bytes(), ctype,
-                   {"Content-Disposition": _inline_disposition(safe)})
 
     def _serve_report(self, name: str) -> None:
         safe = Path(urllib.parse.unquote(name)).name
@@ -245,7 +284,7 @@ class Handler(BaseHTTPRequestHandler):
             base = llm_data.get("base_url")
             if base:
                 try:
-                    llm.normalize_base(base, llm_data.get("api_style", "openai"),
+                    llm.normalize_base(base, llm_data.get("protocol") or llm_data.get("api_style", "openai"),
                                        llm_data.get("chat_path", ""))
                 except llm.LLMError as exc:
                     return self._error(exc.message, exc.hint, 400, "invalid_base_url")
@@ -267,8 +306,7 @@ class Handler(BaseHTTPRequestHandler):
     def _test_llm(self) -> None:
         cfg = self._merged_config()
         try:
-            result = llm.test_connection(cfg)
-            return self._json(result)
+            return self._json(llm.test_connection(cfg))
         except llm.LLMError as exc:
             return self._error(exc.message, exc.hint, 400, "llm_error")
 
@@ -300,28 +338,28 @@ class Handler(BaseHTTPRequestHandler):
 
     def _scan(self) -> None:
         data = self._body()
-        r = engine.scan_matchable_range(
+        result = engine.scan_matchable_range(
             data["topology"], float(data["frequency_mhz"]),
             float(data.get("z0", 50.0)), float(data["L_uh"]),
             data.get("c1_range_pf"), data.get("c2_range_pf"), data.get("c3_range_pf"),
             int(data.get("steps", 45)),
         )
-        return self._json(r)
+        return self._json(result)
 
     def _evaluate(self) -> None:
         data = self._body()
-        r = engine.evaluate(
+        result = engine.evaluate(
             data["topology"], float(data["frequency_mhz"]),
             float(data["load_r"]), float(data.get("load_x", 0.0)),
             float(data["L_uh"]), float(data["C1_pF"]), float(data["C2_pF"]),
             float(data.get("C3_pF", 0.0)), float(data.get("z0", 50.0)),
             float(data.get("power_w", 1.0)),
         )
-        return self._json(r)
+        return self._json(result)
 
     def _stress(self) -> None:
         data = self._body()
-        r = engine.voltage_stress(
+        result = engine.voltage_stress(
             data["topology"], float(data["frequency_mhz"]),
             float(data["load_r"]), float(data.get("load_x", 0.0)),
             float(data["L_uh"]), float(data["C1_pF"]), float(data["C2_pF"]),
@@ -330,55 +368,68 @@ class Handler(BaseHTTPRequestHandler):
             None if data.get("rated_voltage") in (None, "", 0)
             else float(data["rated_voltage"]),
         )
-        return self._json(r)
+        return self._json(result)
 
     def _bandwidth(self) -> None:
         data = self._body()
         comps = {"L_uH": float(data["L_uh"]), "C1_pF": float(data["C1_pF"]),
                  "C2_pF": float(data["C2_pF"]), "C3_pF": float(data.get("C3_pF", 0.0))}
-        r = engine.bandwidth(
+        result = engine.bandwidth(
             data["topology"], float(data["frequency_mhz"]),
             complex(float(data["load_r"]), float(data.get("load_x", 0.0))),
             comps, float(data.get("z0", 50.0)),
             float(data.get("vswr_limit", 2.0)), float(data.get("span", 0.6)),
         )
-        r["ok"] = True
-        return self._json(r)
+        result["ok"] = True
+        return self._json(result)
 
     def _suggest(self) -> None:
         data = self._body()
-        r = engine.suggest_topologies(
+        result = engine.suggest_topologies(
             float(data["frequency_mhz"]),
             complex(float(data["load_r"]), float(data.get("load_x", 0.0))),
             float(data.get("z0", 50.0)),
         )
-        return self._json({"ok": True, "alternatives": r})
+        return self._json({"ok": True, "alternatives": result})
 
     def _convert(self) -> None:
         data = self._body()
         mode = str(data.get("mode", "z2y")).lower()
-        z = complex(float(data["real"]), float(data.get("imag", 0.0)))
+        value = complex(float(data["real"]), float(data.get("imag", 0.0)))
         if mode == "z2y":
-            y = engine.z_to_y(z)
-            return self._json({"ok": True, "mode": "z2y", "z": [z.real, z.imag],
-                               "y": [y.real, y.imag],
-                               "display": f"Y = {engine.fmt_complex(y)} S"})
-        z2 = engine.y_to_z(z)
-        return self._json({"ok": True, "mode": "y2z", "y": [z.real, z.imag],
-                           "z": [z2.real, z2.imag],
-                           "display": f"Z = {engine.fmt_complex(z2)} Ω"})
+            result = engine.z_to_y(value)
+            return self._json({"ok": True, "mode": "z2y",
+                               "z": [value.real, value.imag],
+                               "y": [result.real, result.imag],
+                               "display": f"Y = {engine.fmt_complex(result)} S"})
+        result = engine.y_to_z(value)
+        return self._json({"ok": True, "mode": "y2z",
+                           "y": [value.real, value.imag],
+                           "z": [result.real, result.imag],
+                           "display": f"Z = {engine.fmt_complex(result)} Ω"})
 
     def _upload(self) -> None:
         data = self._body()
-        name = str(data.get("name") or "upload")
+        name = str(data.get("name") or "attachment")
         content = data.get("content_base64") or data.get("content") or ""
         info = attachments.save_upload(name, content)
-        info.pop("text", None)  # the server keeps the text; the UI gets a preview
+        info.pop("text", None)
+        info.pop("images", None)
+        info.pop("path", None)
+        return self._json(info)
+
+    def _upload_text(self) -> None:
+        data = self._body()
+        info = attachments.save_text(str(data.get("text") or ""),
+                                     str(data.get("name") or ""))
+        info.pop("text", None)
+        info.pop("images", None)
+        info.pop("path", None)
         return self._json(info)
 
     def _report(self) -> None:
         data = self._body()
-        d = engine.design_network(
+        design = engine.design_network(
             data.get("topology", "auto"), float(data["frequency_mhz"]),
             float(data["load_r"]), float(data.get("load_x", 0.0)),
             float(data.get("z0", 50.0)),
@@ -386,8 +437,6 @@ class Handler(BaseHTTPRequestHandler):
             c3_pf=None if data.get("c3_pf") in (None, "", 0) else float(data["c3_pf"]),
             power_w=float(data.get("power_w", 1.0)),
         )
-        # If the client sends the exact solved C1/C2, use them verbatim so the
-        # report matches the screen instead of re-solving from a rounded L.
         if data.get("C1_pF") and data.get("C2_pF"):
             comps = {
                 "L_uH": float(data["L_uh"]),
@@ -398,45 +447,121 @@ class Handler(BaseHTTPRequestHandler):
             zl = complex(float(data["load_r"]), float(data.get("load_x", 0.0)))
             z0 = float(data.get("z0", 50.0))
             fm = float(data["frequency_mhz"])
-            ver = engine.analyze_network(d["topology"], fm, zl, comps, z0)
-            d["components"] = comps
-            d["verification"] = ver
-            d["input_impedance"] = ver["input_impedance"]
-            d["input_impedance_display"] = engine.fmt_complex(
-                complex(ver["input_impedance"]["re"], ver["input_impedance"]["im"]))
-            d["vswr"] = ver["vswr"]
-            d["s11_db"] = ver["s11_db"]
-            d["return_loss_db"] = ver["return_loss_db"]
-            d["steps"] = engine.build_steps(d["topology"], fm, zl, comps, z0)
-            d["bandwidth"] = engine.bandwidth(d["topology"], fm, zl, comps, z0)
-            d["sensitivity"] = engine.sensitivity(d["topology"], fm, zl, comps, z0)
+            verification = engine.analyze_network(design["topology"], fm, zl, comps, z0)
+            design["components"] = comps
+            design["verification"] = verification
+            design["input_impedance"] = verification["input_impedance"]
+            design["input_impedance_display"] = engine.fmt_complex(
+                complex(verification["input_impedance"]["re"],
+                        verification["input_impedance"]["im"]))
+            design["vswr"] = verification["vswr"]
+            design["s11_db"] = verification["s11_db"]
+            design["return_loss_db"] = verification["return_loss_db"]
+            design["steps"] = engine.build_steps(design["topology"], fm, zl, comps, z0)
+            design["bandwidth"] = engine.bandwidth(design["topology"], fm, zl, comps, z0)
+            design["sensitivity"] = engine.sensitivity(design["topology"], fm, zl, comps, z0)
         fmt = str(data.get("format", "html")).lower()
-        path = reports.generate(d, fmt=fmt, note=str(data.get("note", "")))
+        path = reports.generate(design, fmt=fmt, note=str(data.get("note", "")))
         return self._json({"ok": True, "path": str(path),
                            "url": f"/api/report/{path.name}",
                            "format": fmt,
                            "summary": f"报告已生成：{path.name}"})
 
-    def _matlab_verify(self) -> None:
+    # -- docs / library ---------------------------------------------------
+    def _docs_ai_search(self) -> None:
         data = self._body()
-        r = matlab_bridge.run_matlab_design(
-            data["topology"], float(data["frequency_mhz"]),
-            float(data["load_r"]), float(data.get("load_x", 0.0)),
-            None if data.get("L_uh") in (None, "", 0) else float(data["L_uh"]),
-            None if data.get("c3_pf") in (None, "", 0) else float(data["c3_pf"]),
-            float(data.get("z0", 50.0)),
-        )
-        return self._json(r)
+        cfg = config.load_config()
+        result = docs_hub.ai_search_docs(
+            str(data.get("query") or ""), cfg,
+            category=data.get("category") or None,
+            lang=str(data.get("lang", "zh")),
+            limit=int(data.get("limit", 60)))
+        return self._json(result)
+
+    def _library_index(self) -> None:
+        data = self._body()
+        return self._json(library.start_index(force=bool(data.get("force")),
+                                              ocr_first_pages=int(
+                                                  data.get("ocr_first_pages", 2))))
+
+    def _library_ocr(self) -> None:
+        data = self._body()
+        return self._json(library.ocr_page(int(data["doc_id"]), int(data["page"]),
+                                           force=bool(data.get("force"))))
+
+    def _library_ocr_book(self) -> None:
+        data = self._body()
+        return self._json(library.ocr_document(
+            int(data["doc_id"]), int(data.get("start", 1)),
+            int(data["end"]) if data.get("end") else None,
+            int(data.get("max_pages", 40))))
+
+    def _library_translate(self) -> None:
+        data = self._body()
+        try:
+            result = library.translate_page(
+                int(data["doc_id"]), int(data["page"]), config.load_config(),
+                target_lang=data.get("target_lang") or None)
+            return self._json(result)
+        except llm.LLMError as exc:
+            return self._error(exc.message, exc.hint, 400, "llm_error")
+
+    def _library_upload(self) -> None:
+        data = self._body()
+        result = library.add_book(str(data.get("name") or "book.pdf"),
+                                  data.get("content_base64") or "")
+        return self._json(result)
+
+    def _library_ai_search(self) -> None:
+        data = self._body()
+        cfg = config.load_config()
+        result = library.ai_search(
+            str(data.get("query") or ""), cfg,
+            doc_id=int(data["doc_id"]) if data.get("doc_id") else None,
+            lang=str(data.get("lang", "zh")),
+            limit=int(data.get("limit", 24)))
+        return self._json(result)
+
+    # -- providers / usage ------------------------------------------------
+    def _providers_update(self) -> None:
+        data = self._body()
+        mode = str(data.get("mode") or "models_dev")
+        cfg = config.load_config()
+        if mode == "models_dev":
+            return self._json(providers.update_from_models_dev())
+        if mode == "provider_api":
+            return self._json(providers.update_from_provider_api(cfg))
+        if mode == "announcements":
+            pid = str(data.get("provider_id") or
+                      (cfg.get("llm") or {}).get("provider") or "")
+            return self._json(providers.fetch_announcements(pid))
+        if mode == "ai":
+            ids = data.get("provider_ids") or None
+            return self._json(providers.ai_update(cfg, ids))
+        return self._error("未知更新模式", status=400, code="bad_request")
+
+    def _providers_rollback(self) -> None:
+        return self._json(providers.rollback())
+
+    def _providers_reset(self) -> None:
+        return self._json(providers.reset_override())
+
+    def _usage_clear(self) -> None:
+        return self._json(usage.clear())
 
     # -- chat SSE ---------------------------------------------------------
     def _chat(self) -> None:
         data = self._body()
         messages = data.get("messages") or []
         attach = data.get("attachments") or []
+        context = data.get("context") if isinstance(data.get("context"), dict) else None
         cfg = config.load_config()
         model = str(data.get("model") or "").strip()
-        if model and len(model) <= 80:
+        if model and len(model) <= 120:
             cfg["llm"]["model"] = model
+        protocol = str(data.get("protocol") or "").strip()
+        if protocol in ("openai", "anthropic", "custom", "as_is"):
+            cfg["llm"]["protocol"] = protocol
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-cache, no-transform")
@@ -452,14 +577,14 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.flush()
 
         try:
-            agent.run_chat(cfg, messages, attach, emit)
+            agent.run_chat(cfg, messages, attach, emit, context=context)
         except llm.LLMError as exc:
             emit("error", {"message": exc.message, "hint": exc.hint,
                            "status": exc.status})
         except (BrokenPipeError, ConnectionResetError):
             pass
         except Exception as exc:  # noqa: BLE001
-            _write_stderr(traceback.format_exc())
+            traceback.print_exc()
             try:
                 emit("error", {"message": f"智能体运行失败：{exc}",
                                "hint": "请查看终端日志，或检查模型服务配置。"})
@@ -480,7 +605,7 @@ def main(argv: Optional[list] = None) -> int:
     import argparse
     import webbrowser
 
-    parser = argparse.ArgumentParser(description="ImpedanceMCP desktop shell")
+    parser = argparse.ArgumentParser(description="Impedance Matching AI desktop shell")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-browser", action="store_true")
@@ -500,7 +625,7 @@ def main(argv: Optional[list] = None) -> int:
         raise SystemExit(f"无法启动本地服务：{last_error}")
     port = httpd.server_address[1]
     url = f"http://{args.host}:{port}/"
-    print(f"\n  智配芯生 · ImpedanceMCP v{config.VERSION}")
+    print(f"\n  {config.APP_NAME} · {config.APP_NAME_ZH} v{config.VERSION}")
     print(f"  Web 界面: {url}")
     print(f"  MCP stdio: python {config.PROJECT_ROOT / 'app' / 'run_mcp.py'}")
     print("  按 Ctrl+C 退出\n")

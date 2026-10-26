@@ -21,8 +21,9 @@ try:
 except Exception:  # pragma: no cover - non-Windows source runs
     winreg = None  # type: ignore[assignment]
 
-APP_DIR_NAME = "ImpedanceMCP"
-MCP_SERVER_NAME = "impedance-matching"
+APP_DIR_NAME = "ImpedanceMatchingAI"
+OLD_APP_DIR_NAMES = ("ImpedanceMCP", "ImpedanceMCP_App")
+MCP_SERVER_NAMES = ("impedance-matching-ai", "impedance-matching")
 UNINSTALL_KEY = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\{A4C1E2D3-5B6F-4A7E-9C8D-1E2F3A4B5C6D}_is1"
 
 
@@ -139,15 +140,22 @@ def _remove_json_entry(path: Path, parents: List[str], app_dir: Optional[Path],
         container = container.get(key)
         if container is None:
             return False
-    if not isinstance(container, dict) or MCP_SERVER_NAME not in container:
+    if not isinstance(container, dict):
         return False
-    if not _is_ours(container[MCP_SERVER_NAME], app_dir):
-        return False
-    _say(f"remove MCP entry {'.'.join(parents)}.{MCP_SERVER_NAME} from {path}", dry_run)
-    if not dry_run:
-        del container[MCP_SERVER_NAME]
+    removed = False
+    for name in MCP_SERVER_NAMES:
+        if name not in container:
+            continue
+        entry = container[name]
+        if not _is_ours(entry, app_dir):
+            continue
+        _say(f"remove MCP entry {'.'.join(parents)}.{name} from {path}", dry_run)
+        removed = True
+        if not dry_run:
+            del container[name]
+    if removed and not dry_run:
         _atomic_write(path, json.dumps(data, ensure_ascii=False, indent=2) + "\n")
-    return True
+    return removed
 
 
 def _remove_toml_section(path: Path, section: str, app_dir: Optional[Path],
@@ -200,7 +208,8 @@ def _clean_mcp_configs(profile: Path, app_dir: Optional[Path], dry_run: bool) ->
     codex = profile / ".codex" / "config.toml"
     try:
         if codex.is_file():
-            _remove_toml_section(codex, f"mcp_servers.{MCP_SERVER_NAME}", app_dir, dry_run)
+            for name in MCP_SERVER_NAMES:
+                _remove_toml_section(codex, f"mcp_servers.{name}", app_dir, dry_run)
     except Exception as exc:  # noqa: BLE001
         _say(f"skip Codex config {codex}: {exc}", dry_run)
 
@@ -260,10 +269,17 @@ def _clean_registry(dry_run: bool) -> None:
 
 
 def _clean_shortcuts(profiles: List[Path], app_dir: Optional[Path], dry_run: bool) -> None:
-    names = ["ImpedanceMCP.lnk", "一键卸载 ImpedanceMCP.lnk"]
+    names = [
+        "ImpedanceMatchingAI.lnk", "一键卸载 ImpedanceMatchingAI.lnk",
+        "ImpedanceMCP.lnk", "一键卸载 ImpedanceMCP.lnk",
+    ]
     common = [
         Path(os.environ.get("ProgramData", r"C:\ProgramData"))
+        / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Impedance Matching AI",
+        Path(os.environ.get("ProgramData", r"C:\ProgramData"))
         / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "智配芯生 ImpedanceMCP",
+        Path(os.environ.get("PUBLIC", r"C:\Users\Public")) / "Desktop" / "ImpedanceMatchingAI.lnk",
+        Path(os.environ.get("PUBLIC", r"C:\Users\Public")) / "Desktop" / "一键卸载 ImpedanceMatchingAI.lnk",
         Path(os.environ.get("PUBLIC", r"C:\Users\Public")) / "Desktop" / "ImpedanceMCP.lnk",
         Path(os.environ.get("PUBLIC", r"C:\Users\Public")) / "Desktop" / "一键卸载 ImpedanceMCP.lnk",
     ]
@@ -274,6 +290,8 @@ def _clean_shortcuts(profiles: List[Path], app_dir: Optional[Path], dry_run: boo
             profile / "Desktop",
             profile / "OneDrive" / "Desktop",
             profile / "OneDrive" / "桌面",
+            profile / "AppData" / "Roaming" / "Microsoft" / "Windows" / "Start Menu" / "Programs"
+            / "Impedance Matching AI",
             profile / "AppData" / "Roaming" / "Microsoft" / "Windows" / "Start Menu" / "Programs"
             / "智配芯生 ImpedanceMCP",
         ):
@@ -292,17 +310,19 @@ def cleanup(app_dir: Optional[Path] = None, dry_run: bool = False,
     profiles = list(_profiles())
     removed = []
     for profile in profiles:
-        for base in (profile / "AppData" / "Local" / APP_DIR_NAME,
-                     profile / "AppData" / "Roaming" / APP_DIR_NAME):
-            if _remove_tree(base, dry_run):
-                removed.append(str(base))
+        for dir_name in (APP_DIR_NAME, *OLD_APP_DIR_NAMES):
+            for base in (profile / "AppData" / "Local" / dir_name,
+                         profile / "AppData" / "Roaming" / dir_name):
+                if _remove_tree(base, dry_run):
+                    removed.append(str(base))
         if not keep_mcp_config:
             _clean_mcp_configs(profile, app_dir, dry_run)
     _clean_registry(dry_run)
     _clean_shortcuts(profiles, app_dir, dry_run)
     temp = Path(os.environ.get("TEMP", str(Path.home() / "AppData" / "Local" / "Temp")))
-    for item in temp.glob("ImpedanceMCP*"):
-        _remove_tree(item, dry_run)
+    for pattern in ("ImpedanceMatchingAI*", "ImpedanceMCP*"):
+        for item in temp.glob(pattern):
+            _remove_tree(item, dry_run)
     for item in temp.glob("imp_install*.log"):
         _remove_tree(item, dry_run)
     return {"ok": True, "profiles": len(profiles), "removed": removed, "dry_run": dry_run}

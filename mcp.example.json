@@ -1,16 +1,16 @@
 {
   "mcpServers": {
-    "impedance-matching": {
+    "impedance-matching-ai": {
       "type": "stdio",
       "command": "python",
       "args": [
-        "C:/path/to/Impedance_Matching_Calculation/app/run_mcp.py"
+        "C:/path/to/Impedance_Matching_AI_4_3_0/app/run_mcp.py"
       ],
       "env": {
         "PYTHONUNBUFFERED": "1",
         "PYTHONIOENCODING": "utf-8"
       },
-      "timeoutMs": 120000
+      "timeoutMs": 180000
     }
   }
 }

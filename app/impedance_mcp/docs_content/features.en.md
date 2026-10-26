@@ -1,0 +1,225 @@
+# Application Guide
+
+> This is an independent microwave/RF teaching, calculation and simulation tool. It is not tied to any competition or event. All computation, plotting, library indexing and MCP serving happen locally. Only AI chat sends the current question and the attachments you explicitly add to the provider you configure.
+
+## 1. Layout
+
+| Area | Contents | Notes |
+|---|---|---|
+| Left navigation | AI Agent, Design, Smith Analysis, Stress, Library, Documentation, About | Each view keeps the current design context |
+| Top bar | active model, MCP status, language, settings, export report | Local calculation works without any model |
+| Main workspace | forms, charts, documentation, textbook pages | Responsive width and scrolling |
+| Floating assistant | bottom-right `AI` button on every view | Collapse to a button, expand for contextual questions |
+
+The language button switches the interface between Chinese and English. Numerical values, units and textbook originals keep their standard notation.
+
+## 2. AI Agent
+
+- `Enter` sends, `Shift+Enter` inserts a newline.
+- Tool cards show the tool name, arguments, latency and a result summary.
+- All numerical conclusions about frequency, impedance, component values, VSWR, bandwidth and voltage stress come from local tools; the model explains them.
+- Each answer reports input/output tokens, cache hit rate, context usage, cost and latency.
+
+### 2.1 Any file, clipboard and drag-and-drop
+
+Click the paperclip, drop files onto the composer, or press `Ctrl+V`. Extensions are no longer restricted.
+
+| Type | Handling |
+|---|---|
+| PDF | Text layer; scanned pages can be OCR'ed or rendered for a vision model |
+| DOCX / PPTX / XLSX | Paragraphs, slide text, worksheet cells |
+| TXT / MD / TEX / CSV / source code | MATLAB, C, C++, Python, Verilog and other text files |
+| Images | Local OCR plus the original image when the model supports vision |
+| Audio / video / archives / other binaries | Stored and described; readable metadata or archive listing is sent |
+
+Plain text on the clipboard becomes a temporary `.txt` attachment. Code-like text is named according to the detected language. Attachments can be removed before sending.
+
+### 2.2 Vision
+
+If “Image understanding” is enabled in the model profile, images and scanned pages are sent as OpenAI `image_url` or Anthropic `image` blocks. Without vision support, only OCR text is sent and the UI says so.
+
+### 2.3 Textbook citations
+
+The agent can call `search_textbooks`, `read_textbook_page`, `translate_textbook_page` and `search_docs`. Textbook citations include the title, page, matched snippet, a page thumbnail or crop, and an “Open textbook page” button that jumps to the library and highlights the match.
+
+### 2.4 Floating assistant
+
+The floating assistant is available on every view and carries context automatically:
+
+- current design: topology, frequency, load, components, VSWR;
+- current textbook: title, page, selected text;
+- current document: category, heading, selected paragraph.
+
+It shares the model configuration and usage accounting with the main agent but keeps a separate conversation.
+
+## 3. Design
+
+### 3.1 Inputs
+
+| Parameter | Unit | Meaning |
+|---|---|---|
+| Frequency | MHz | operating frequency f0 |
+| System impedance | Ω | reference Z0, usually 50 |
+| R_L | Ω | load resistance, > 0 |
+| X_L | Ω | load reactance, negative for capacitive loads |
+| Topology | — | auto, L-right, L-left, T, π-I, π-II |
+| Auto fixed elements | — | choose practical L and C3 automatically |
+| L | µH | fixed series inductance when auto is off |
+| C3 | pF | third capacitor for T/π topologies |
+
+### 3.2 Outputs
+
+- KPIs: VSWR, S11 (dB), VSWR<2 bandwidth (%), design Q.
+- Smith chart: load, match point, animated trajectory, play/pause/reset/speed.
+- Matching steps: element, series/shunt, start/end impedance, explanation; click a step to show only the trajectory up to it.
+- Topology diagram and component values.
+- VSWR bandwidth sweep and threshold.
+- ±5% component tolerance sensitivity.
+- Engineering warnings: tiny/large components, parasitics, self-resonance, high Q.
+- Alternative topologies with component values, bandwidth, Q and ranking.
+
+### 3.3 Formulas
+
+- `z = Z/Z0`, `Γ = (z−1)/(z+1)`.
+- `VSWR = (1+|Γ|)/(1−|Γ|)`, `S11(dB) = 20log10|Γ|`, return loss `RL = −S11`.
+- L-network Q: `Q = √(R_high/R_low − 1)`.
+- Series elements move along constant-resistance circles; shunt elements move along constant-conductance circles. Series inductance moves up, series capacitance down; shunt capacitance up, shunt inductance down.
+- Every analytical solution is re-evaluated with a full nodal analysis of Zin, VSWR, S11 and element voltages/currents.
+
+### 3.4 Smith-chart learning path
+
+1. Enter a load such as `2.4 GHz, 20+j5 Ω`.
+2. Solve and watch the load move to the centre.
+3. Pause and click individual steps to isolate each element.
+4. Switch between L, T and π to compare trajectory length, Q and bandwidth.
+5. Search the library for `Smith chart`, `reflection coefficient` or `反射系数` and read the textbook page beside the chart; use the floating assistant to explain formulas.
+
+## 4. Smith Analysis (forward scan)
+
+- Inputs: topology, frequency, Z0, fixed L, grid steps, C1/C2/C3 ranges, target load.
+- Grey density cloud: darker grey means more matchable loads in that region.
+- Cyan highlight: points close to the centre (low reflection).
+- Orange marker: current load.
+- Boundary envelope: shows whether the target load is inside the matchable region.
+- Hover shows Z, Γ and VSWR.
+
+Results: R/X min/max and 5–95% percentiles, valid point count, sampled point count, five-topology bandwidth comparison, and an automatic conclusion.
+
+If “Run scan” appears unresponsive, check that L is positive and the ranges are valid; errors are shown in the conclusion panel and the previous successful result is kept.
+
+## 5. Stress
+
+Inputs: topology, frequency, power, load, L/C1/C2/C3 and rated voltage. Outputs: source open-circuit peak, input peak, load peak, per-element peak/RMS voltage and current, safety factor (rated/peak), and engineering advice. The calculation uses the full nodal model including the 50 Ω source.
+
+## 6. Textbook Library
+
+### 6.1 Adding books
+
+Put PDFs in `TextBook/` (project or installation folder) or `data/library/books/`, or click “Add textbook”. TXT, Markdown and TeX are also accepted. “Rebuild index” forces a full rescan; normal startup only processes new or modified files.
+
+Textbooks are not distributed with the repository. The software reads local files only and never uploads them.
+
+### 6.2 Indexing and OCR
+
+- Text-layer PDFs are indexed page by page.
+- Scanned PDFs are flagged as “OCR needed”; the first pages of each book are OCR'ed automatically so the table of contents becomes searchable.
+- “OCR this page” runs RapidOCR locally (Chinese/English).
+- “OCR this book” queues a page range in the background.
+- A vision model can read page images even without OCR.
+
+### 6.3 Search
+
+- Instant full-text search for Chinese, English, code symbols and formula fragments.
+- Fuzzy search corrects English typos and splits long Chinese terms into bigrams.
+- AI semantic search expands a natural-language question into Chinese/English keywords, then ranks locally.
+- Filter by book; results are grouped by book and page (up to four pages per book).
+- Matches are highlighted in the snippet and as rectangles on the page image.
+
+### 6.4 Reading
+
+- Previous/next page, page jump, zoom in/out/fit width.
+- Text panel: text layer or OCR result; if empty, OCR or use vision.
+- Translation panel: one-click academic Chinese/English translation, cached per page to avoid repeated cost.
+- PDF outline when available.
+- Search results and AI citations open the exact page and highlight the match.
+
+### 6.5 Working with the AI
+
+- “Ask about this page” sends the title, page and text to the floating assistant.
+- For scanned pages, the assistant can request a page image for a vision model.
+- Citations in answers include a thumbnail; “Open textbook page” returns to the library at the right page.
+
+## 7. Documentation Centre
+
+Four searchable domains:
+
+1. **Application guide** — this document.
+2. **Code reference** — generated from the live AST: modules, classes, functions, parameters, defaults, returns, exceptions, local variables, module constants and front-end functions.
+3. **AI model interface** — providers, protocols, capability matrix, vision, tools, pricing, cache and updates.
+4. **MCP protocol** — stdio / Streamable HTTP / legacy SSE, tool schemas, resources, prompts and client configuration.
+
+Search highlights every occurrence in the current document and provides “previous / next” navigation with an `n / m` counter. “All documents” searches across the four domains. “AI fuzzy search” expands natural language into keywords and falls back to local fuzzy matching when no model is configured.
+
+Select text and use the floating assistant to explain it with the current document and section as context.
+
+## 8. Settings
+
+### 8.1 Model service
+
+- 20 built-in providers: OpenAI, Anthropic, Google, DeepSeek, Alibaba DashScope, Zhipu, Moonshot, Baidu Qianfan, Tencent Hunyuan, ByteDance Ark, MiniMax, 01.AI, StepFun, Baichuan, iFlytek Spark, SiliconFlow, OpenRouter, xAI, Mistral, Groq.
+- Protocol: OpenAI-compatible, Anthropic Messages, or a fully custom URL.
+- Model: catalog selection or a custom model ID.
+- API key: stored only in local `data/config.json`, displayed as the first/last four characters.
+- Temperature, maximum output tokens, reasoning mode and thinking budget.
+
+### 8.2 Model profile
+
+Context length, maximum output, image/audio input, tool calls, JSON output, reasoning, Responses API, Anthropic API, FIM, input price with/without cache, output price, peak/off-peak prices, concurrency and currency. These values drive context usage and cost accounting.
+
+### 8.3 Catalog updates
+
+- **Update from official catalog**: reads models.dev and the current provider's `/models` endpoint; user overrides are preserved.
+- **Read official announcements**: fetches public model/pricing pages and extracts candidate model IDs; failures are listed per provider.
+- **AI-assisted update**: sends the current catalog and announcement excerpts to the configured model and asks for a strict JSON patch. The UI warns that AI output may be wrong and must be reviewed.
+- **Rollback**: every update is backed up; one click restores the previous catalog.
+
+### 8.4 Usage
+
+Per-request and daily/7-day/all-time totals: requests, tokens, cache hit rate, cost. The log is `data/usage.jsonl`.
+
+### 8.5 MCP configuration
+
+Copy the stdio configuration from Settings or About:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "impedance-matching-ai": {
+        "type": "stdio",
+        "command": "python",
+        "args": ["<project>/app/run_mcp.py"]
+      }
+    }
+  }
+}
+```
+
+## 9. Standalone and MCP modes
+
+- Standalone: design, scan, stress, reports, library and documentation work without any model.
+- MCP server: exposes the same tools to ZCode, Claude Code, Codex, Cursor, Cherry Studio and other clients.
+- HTTP/SSE: `python app/run_mcp.py --http 8790` provides `/mcp` and `/sse`.
+
+## 10. Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| No models listed | Base URL, API key, network/proxy; use “Test connection” for the HTTP error |
+| Attachment not parsed | File may be corrupt or legacy binary `.doc`/`.ppt`; it is still stored; export to PDF/DOCX or send a screenshot |
+| Scanned PDF not searchable | No text layer; OCR the page/book or configure a vision model |
+| OCR is slow | RapidOCR takes about 1–3 s per page on CPU; batch OCR runs in the background |
+| Translation fails | Model not configured, key invalid, or the page has no text; OCR first |
+| Context usage too high | Remove attachments or use a longer-context model; adjust the profile |
+| MCP client sees no tools | Check client config, Python path and `run_mcp.py`; inspect client logs |
+| Model broken after update | Use “Rollback catalog” in Settings |

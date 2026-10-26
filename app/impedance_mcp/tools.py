@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from typing import Any, Dict, List, Optional
 
-from . import config, engine, knowledge
+from . import code_docs, config, docs_hub, engine, knowledge, library
 
 TOPOLOGY_ENUM = ["auto", "l_right", "l_left", "t", "pi1", "pi2"]
 FIXED_TOPOLOGY_ENUM = ["l_right", "l_left", "t", "pi1", "pi2"]
@@ -426,12 +427,190 @@ def export_design_report(args: Dict[str, Any]) -> Dict[str, Any]:
         return _err(exc)
 
 
-def launch_classic_app(args: Dict[str, Any]) -> Dict[str, Any]:
+def _citation(item: Dict[str, Any], snippet: str = "") -> Dict[str, Any]:
+    doc_id = int(item.get("doc_id") or 0)
+    page = int(item.get("page") or 1)
+    return {
+        "kind": "textbook",
+        "doc_id": doc_id,
+        "page": page,
+        "title": item.get("title") or "",
+        "snippet": snippet or item.get("snippet", ""),
+        "rects": item.get("rects") or [],
+        "page_url": f"/api/library/page?doc={doc_id}&page={page}&zoom=1.0",
+        "thumb_url": f"/api/library/page?doc={doc_id}&page={page}&zoom=0.55",
+    }
+
+
+def search_textbooks(args: Dict[str, Any]) -> Dict[str, Any]:
     try:
-        from . import matlab_bridge
-        return matlab_bridge.launch_classic_app()
+        query = str(args.get("query") or "")
+        result = library.search(
+            query,
+            doc_id=int(args["doc_id"]) if args.get("doc_id") else None,
+            limit=int(args.get("limit", 12)),
+            fuzzy=bool(args.get("fuzzy", True)),
+            with_rects=bool(args.get("with_rects", True)),
+        )
+        if not result.get("ok"):
+            return result
+        citations = [_citation(item) for item in result.get("results", [])[:8]]
+        result["citations"] = citations
+        result["summary"] = (
+            f"教材检索“{query}”命中 {result.get('count', 0)} 页；"
+            + "；".join(f"{c['title']} 第 {c['page']} 页" for c in citations[:3])
+            if citations else f"教材检索“{query}”没有命中。"
+        )
+        return result
     except Exception as exc:  # noqa: BLE001
         return _err(exc)
+
+
+def read_textbook_page(args: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        doc_id = int(args["doc_id"])
+        page = int(args["page"])
+        info = library.page_info(doc_id, page, str(args.get("lang", "zh")))
+        if not info.get("ok"):
+            return info
+        info["page_url"] = f"/api/library/page?doc={doc_id}&page={page}&zoom=1.0"
+        info["thumb_url"] = f"/api/library/page?doc={doc_id}&page={page}&zoom=0.55"
+        info["citations"] = [{
+            "kind": "textbook", "doc_id": doc_id, "page": page,
+            "title": info.get("title", ""), "snippet": (info.get("text") or "")[:300],
+            "rects": [], "page_url": info["page_url"], "thumb_url": info["thumb_url"],
+        }]
+        if not (info.get("text") or "").strip():
+            image = library.page_image_base64(doc_id, page, dpi=150)
+            if image and args.get("include_image", True):
+                info["_vision_image"] = {
+                    "mime": image["mime"], "base64": image["base64"],
+                    "name": f"{info.get('title', 'textbook')} p.{page}",
+                    "doc_id": doc_id, "page": page,
+                }
+                info["summary"] = (
+                    f"第 {page} 页没有文字层，已附上页面截图，可由支持视觉的模型阅读。"
+                )
+            else:
+                info["summary"] = f"第 {page} 页没有文字层；请 OCR 或使用视觉模型。"
+        else:
+            info["summary"] = (
+                f"{info.get('title')} 第 {page} 页：{re.sub(r'\\s+', ' ', info.get('text', ''))[:180]}…"
+            )
+        return info
+    except Exception as exc:  # noqa: BLE001
+        return _err(exc)
+
+
+def translate_textbook_page(args: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        cfg = config.load_config()
+        result = library.translate_page(
+            int(args["doc_id"]), int(args["page"]), cfg,
+            target_lang=args.get("target_lang") or None,
+        )
+        if result.get("ok"):
+            result["summary"] = (
+                f"第 {args['page']} 页已翻译为 {result.get('lang')}（{'缓存' if result.get('cached') else '新译'}）。"
+            )
+        return result
+    except Exception as exc:  # noqa: BLE001
+        return _err(exc)
+
+
+def search_docs(args: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        query = str(args.get("query") or "")
+        category = args.get("category") or None
+        lang = str(args.get("lang", "zh"))
+        result = docs_hub.search_docs(
+            query, category=category, lang=lang,
+            fuzzy=bool(args.get("fuzzy", True)),
+            limit=int(args.get("limit", 30)),
+        )
+        if not result.get("ok"):
+            return result
+        result["citations"] = [{
+            "kind": "documentation",
+            "category": item["category"],
+            "block_id": item["block_id"],
+            "line": item["line"],
+            "title": item["category_title"],
+            "snippet": item["snippet"],
+        } for item in result.get("results", [])[:8]]
+        result["summary"] = (
+            f"文档检索“{query}”命中 {result.get('count', 0)} 个段落。"
+            if result.get("count") else f"文档检索“{query}”没有命中。"
+        )
+        return result
+    except Exception as exc:  # noqa: BLE001
+        return _err(exc)
+
+
+def get_code_reference(args: Dict[str, Any]) -> Dict[str, Any]:
+    try:
+        module = str(args.get("module") or "").strip()
+        function = str(args.get("function") or "").strip()
+        if not module:
+            modules = []
+            for candidate in sorted(code_docs.PACKAGE_DIR.glob("*.py")):
+                try:
+                    modules.append(code_docs._module_info(candidate)["name"])
+                except Exception:
+                    modules.append(candidate.stem)
+            return {
+                "ok": True,
+                "modules": modules,
+                "summary": "请提供 module 参数；可用模块见 modules 列表。",
+            }
+        path = code_docs.PACKAGE_DIR / f"{module}.py"
+        if not path.exists():
+            return {"ok": False, "message": f"模块不存在：{module}", "summary": "模块不存在"}
+        info = code_docs._module_info(path)
+        items = []
+        for fn in info["functions"]:
+            if function and fn.name != function:
+                continue
+            signature = f"{fn.name}({', '.join(code_docs._signature_parts(fn))})"
+            if getattr(fn, "returns", None) is not None:
+                signature += " -> " + code_docs._annotation(fn.returns)
+            items.append({
+                "name": fn.name,
+                "signature": signature,
+                "line": fn.lineno,
+                "doc": code_docs._docstring(fn),
+                "parameters": [
+                    {"name": row[0], "type": row[1], "default": row[2],
+                     "kind": row[3], "description": row[4]}
+                    for row in code_docs._function_rows(module, fn)
+                ],
+                "locals": code_docs._local_vars(fn),
+            })
+        return {
+            "ok": True,
+            "module": module,
+            "doc": info["doc"],
+            "constants": [
+                {"name": name, "line": line, "value": value}
+                for name, line, value in info["constants"]
+            ],
+            "functions": items,
+            "summary": f"{module}：{len(items)} 个函数匹配。",
+        }
+    except Exception as exc:  # noqa: BLE001
+        return _err(exc)
+
+
+def get_library_status(args: Dict[str, Any]) -> Dict[str, Any]:
+    state = library.status()
+    docs = library.doc_list()
+    state["documents"] = docs
+    state["summary"] = (
+        f"教材库：{state.get('docs', 0)} 本，{state.get('indexed_pages', 0)} 页有文字，"
+        f"{state.get('ocr_pages', 0)} 页已 OCR，{state.get('needs_ocr', 0)} 页待 OCR。"
+    )
+    return state
+
 
 
 def get_system_status(args: Dict[str, Any]) -> Dict[str, Any]:
@@ -439,8 +618,8 @@ def get_system_status(args: Dict[str, Any]) -> Dict[str, Any]:
     s["ok"] = True
     s["summary"] = (
         f"版本 {s['version']}；LLM {'已配置' if s['llm']['configured'] else '未配置'}；"
-        f"MATLAB {'已安装 ' + (s['matlab']['matlab_version'] or '') if s['matlab']['matlab_path'] else '未安装'}；"
-        f"原版 exe {'可用' if s['matlab']['classic_app_available'] else '未找到'}。"
+        f"MCP {s.get('mcp', {}).get('transport', 'stdio')}；"
+        f"教材目录 {len(s.get('library_dirs', []))} 个。"
     )
     return s
 
@@ -477,9 +656,14 @@ HANDLERS = {
     "search_knowledge": search_knowledge,
     "validate_design": validate_design,
     "export_design_report": export_design_report,
-    "launch_classic_app": launch_classic_app,
     "get_system_status": get_system_status,
     "list_presets": list_presets,
+    "search_textbooks": search_textbooks,
+    "read_textbook_page": read_textbook_page,
+    "translate_textbook_page": translate_textbook_page,
+    "search_docs": search_docs,
+    "get_code_reference": get_code_reference,
+    "get_library_status": get_library_status,
 }
 
 
@@ -710,13 +894,95 @@ TOOL_SPECS: List[Dict[str, Any]] = [
         },
     },
     {
-        "name": "launch_classic_app",
-        "description": "启动原版 MATLAB 编译的经典界面 Impedance_Matching.exe（作为可视化内核外壳调用）。",
+        "name": "search_textbooks",
+        "description": (
+            "在本地教材库中全文/模糊搜索（PDF、OCR 结果、TXT/Markdown）。返回书名、页码、"
+            "命中片段、页面高亮矩形与缩略图 URL。支持中文、英文、代码与公式片段。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "doc_id": {"type": "integer", "description": "限定某本教材，省略表示全库"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 40, "default": 12},
+                "fuzzy": {"type": "boolean", "default": True},
+                "with_rects": {"type": "boolean", "default": True,
+                               "description": "是否返回页面高亮矩形"},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "read_textbook_page",
+        "description": (
+            "读取教材指定页的文字层或 OCR 文本，并返回页码、缩略图与引用信息。"
+            "扫描页没有文字时，可返回页面截图供支持视觉的模型阅读。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "doc_id": {"type": "integer"},
+                "page": {"type": "integer", "minimum": 1},
+                "lang": {"type": "string", "enum": ["zh", "en"], "default": "zh"},
+                "include_image": {"type": "boolean", "default": True,
+                                  "description": "无文字层时是否附页面截图"},
+            },
+            "required": ["doc_id", "page"],
+        },
+    },
+    {
+        "name": "translate_textbook_page",
+        "description": "把教材某页翻译为学术中文或英文；译文按页缓存，避免重复计费。",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "doc_id": {"type": "integer"},
+                "page": {"type": "integer", "minimum": 1},
+                "target_lang": {"type": "string", "enum": ["zh", "en"]},
+            },
+            "required": ["doc_id", "page"],
+        },
+    },
+    {
+        "name": "search_docs",
+        "description": (
+            "检索软件内置的四类文档：features 软件功能、code 代码参考、ai 模型接口、"
+            "mcp 协议接口。返回分类、段落、行号与高亮片段。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "category": {"type": "string", "enum": ["features", "code", "ai", "mcp"]},
+                "lang": {"type": "string", "enum": ["zh", "en"], "default": "zh"},
+                "fuzzy": {"type": "boolean", "default": True},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 80, "default": 30},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "get_code_reference",
+        "description": (
+            "返回由源码 AST 生成的代码参考：模块说明、模块常量、函数的完整签名、"
+            "参数类型/默认值/作用、返回类型、异常与局部变量。"
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "module": {"type": "string", "description": "模块名，如 engine、llm、library"},
+                "function": {"type": "string", "description": "可选：只看某个函数"},
+            },
+        },
+    },
+    {
+        "name": "get_library_status",
+        "description": "查询教材库索引状态：书籍数量、已索引页、OCR 页、待 OCR 页与文件列表。",
         "inputSchema": {"type": "object", "properties": {}},
     },
     {
         "name": "get_system_status",
-        "description": "查询软件版本、LLM 配置、MATLAB/Runtime、原版 exe 与 MCP 运行状态。",
+        "description": "查询软件版本、LLM 配置、MCP 运行状态与教材目录。",
         "inputSchema": {"type": "object", "properties": {}},
     },
     {

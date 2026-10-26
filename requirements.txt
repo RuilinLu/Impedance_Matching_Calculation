@@ -1,7 +1,19 @@
 # Core calculation
 numpy>=1.24
 
-# Optional: richer attachment parsing
-pypdf>=4.0
+# PDF text, page rendering, OCR page images
+pymupdf>=1.24
+
+# Attachment parsing
+python-docx>=1.1
+python-pptx>=0.6
 openpyxl>=3.1
 Pillow>=10.0
+
+# Local OCR (Chinese/English). Optional: without it, text-layer PDFs and
+# vision models still work.
+rapidocr_onnxruntime>=1.2
+
+# Native Windows window (optional; --browser works without these)
+pywebview>=6.0; sys_platform == "win32"
+pythonnet>=3.0; sys_platform == "win32"

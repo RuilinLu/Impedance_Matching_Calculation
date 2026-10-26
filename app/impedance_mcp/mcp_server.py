@@ -20,16 +20,19 @@ import urllib.parse
 import uuid
 from typing import Any, Dict, Iterable, List, Optional
 
-from . import config, engine, knowledge, tools
+from . import config, docs_hub, engine, knowledge, library, tools
 
 PROTOCOL_VERSIONS = {"2024-11-05", "2025-03-26", "2025-06-18"}
 DEFAULT_PROTOCOL = "2025-06-18"
 
 INSTRUCTIONS = (
-    "这是「智配芯生 · ImpedanceMCP」微波阻抗匹配计算与仿真服务器。"
+    "这是「Impedance Matching AI」微波阻抗匹配计算、仿真与教材检索服务器。"
     "任何涉及频率、负载阻抗、L/C 元件值、VSWR、带宽、耐压的具体问题，"
     "请先调用 design_matching_network / evaluate_network / scan_matching_range 等工具，"
     "再基于工具返回值解释。topology=auto 会自动比较 L/T/π 五种拓扑。"
+    "涉及教材原文、公式出处、Smith 圆图、传输线、波导、天线时，"
+    "请调用 search_textbooks / read_textbook_page / translate_textbook_page；"
+    "引用必须带书名与页码。软件自身的使用说明可调用 search_docs 或 get_code_reference。"
     "单位：频率 MHz，阻抗 Ω，电感 µH，电容 pF。"
 )
 
@@ -97,8 +100,8 @@ class MCPServer:
                     "logging": {},
                 },
                 "serverInfo": {
-                    "name": "impedance-mcp",
-                    "title": "智配芯生 · 微波阻抗匹配 MCP",
+                    "name": "impedance-matching-ai",
+                    "title": "Impedance Matching AI · 微波阻抗匹配与教材检索",
                     "version": config.VERSION,
                     "websiteUrl": "https://github.com/RuilinLu/Impedance_Matching_Calculation",
                 },
@@ -162,7 +165,13 @@ class MCPServer:
              "description": "圆图、Q/带宽、寄生、耐压、选型与常见问题",
              "mimeType": "text/markdown"},
             {"uri": "impedance://status", "name": "运行状态",
-             "description": "版本、LLM、MATLAB、原版 exe 与 MCP 状态",
+             "description": "版本、LLM、MCP 与教材目录状态",
+             "mimeType": "application/json"},
+            {"uri": "impedance://library", "name": "教材库目录",
+             "description": "已索引教材、页数、OCR 状态与教材库统计",
+             "mimeType": "application/json"},
+            {"uri": "impedance://docs", "name": "软件文档目录",
+             "description": "四类文档（功能、代码、AI 接口、MCP）的入口",
              "mimeType": "application/json"},
         ]
 
@@ -172,12 +181,21 @@ class MCPServer:
             mime = "application/json"
         elif uri == "impedance://knowledge":
             parts = []
-            for s in knowledge.all_sections():
-                parts.append(f"## {s['title']}\n\n{s['text']}")
+            for section in knowledge.all_sections():
+                parts.append(f"## {section['title']}\n\n{section['text']}")
             text = "\n\n".join(parts)
             mime = "text/markdown"
         elif uri == "impedance://status":
             text = json.dumps(config.status(), ensure_ascii=False, indent=2)
+            mime = "application/json"
+        elif uri == "impedance://library":
+            text = json.dumps({
+                "status": library.status(),
+                "documents": library.doc_list(),
+            }, ensure_ascii=False, indent=2)
+            mime = "application/json"
+        elif uri == "impedance://docs":
+            text = json.dumps(docs_hub.list_docs("zh"), ensure_ascii=False, indent=2)
             mime = "application/json"
         else:
             return JsonRpcError(-32602, f"未知资源：{uri}")
@@ -213,6 +231,24 @@ class MCPServer:
                     {"name": "problem", "description": "现象描述", "required": True},
                 ],
             },
+            {
+                "name": "find_textbook",
+                "title": "在教材中查找",
+                "description": "检索教材库并定位到具体页码与段落",
+                "arguments": [
+                    {"name": "topic", "description": "要查找的概念或公式", "required": True},
+                    {"name": "book", "description": "可选：书名或 doc_id", "required": False},
+                ],
+            },
+            {
+                "name": "explain_textbook_page",
+                "title": "讲解教材页",
+                "description": "读取指定教材页，解释公式与工程含义",
+                "arguments": [
+                    {"name": "doc_id", "description": "教材 id", "required": True},
+                    {"name": "page", "description": "页码", "required": True},
+                ],
+            },
         ]
 
     def _get_prompt(self, name: str, args: Dict[str, Any]) -> Any:
@@ -234,6 +270,19 @@ class MCPServer:
             text = (f"我的匹配设计遇到问题：{problem}。请先检索知识库，"
                     "必要时调用 compare_topologies 或 design_matching_network 验证，"
                     "然后给出物理原因与可执行的修改步骤。")
+        elif name == "find_textbook":
+            topic = args.get("topic", "")
+            book = args.get("book", "")
+            text = (f"请在教材库中检索“{topic}”" +
+                    (f"（限定：{book}）" if book else "") +
+                    "，调用 search_textbooks，并用 read_textbook_page 阅读最相关的 1–3 页；"
+                    "回答时给出书名、页码、原文摘录与你的解释。")
+        elif name == "explain_textbook_page":
+            doc_id = args.get("doc_id", "")
+            page = args.get("page", "")
+            text = (f"请读取教材 doc_id={doc_id} 第 {page} 页（read_textbook_page），"
+                    "解释其中的公式、变量与工程含义；如果页面是扫描版且模型支持视觉，"
+                    "请阅读返回的页面截图。引用必须带书名与页码。")
         else:
             return JsonRpcError(-32602, f"未知 prompt：{name}")
         return {"description": name, "messages": [

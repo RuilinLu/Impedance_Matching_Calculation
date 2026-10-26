@@ -1,4 +1,4 @@
-# ---- Python ----
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -8,34 +8,25 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
-# ---- Runtime data (may contain API keys / uploads / reports) ----
+# User data, API keys, uploads, reports, textbook index
 data/
-!data/.gitkeep
+TextBook/
+webview/
 
-# ---- Large binaries (installers and MATLAB Runtime) ----
-*.exe
-*.zip
-*.7z
-APP_Release_Release_Version/Main_Installation/
-APP_Release_Release_Version/Problem_Solution/
-APP_Release_Release_Version/Backup/Code_V3_For_R2023b/Impedance_Mctching/
-APP_Release_Release_Version/Backup/Code_V3_For_R2023b/_extracted/
-
-# ---- Third-party reference application and downloaded pages ----
-Requirement/
-Reference/匹配电路的应用程序/
-APP_Release_Release_Version/Reference/匹配电路的应用程序/
-Reference/~$*
+# Security scanner state
 .mimosa/
+**/.mimosa/
 
-# ---- Build artifacts ----
-release/*.zip
-release/*.exe
+# Build artifacts
 dist/
 build/
 *.spec
+release/*.exe
+release/*.zip
+release/*.7z
+release/*_App/
 
-# ---- OS / editor ----
+# OS / editor
 Thumbs.db
 Desktop.ini
 .DS_Store
@@ -43,20 +34,9 @@ Desktop.ini
 .idea/
 *.log
 
-# ---- Keep the documentation PDFs and source assets ----
-!docs/*.pdf
-!APP_Release_Release_Version/ReadMe/*.pdf
-!APP_Release_Release_Version/Reference/*.pdf
-
-# local release assets (uploaded to GitHub Releases)
-release/*.pdf
-
-# ---- Generated app payload ----
-release/*_App/
-release/mcp_home/
-
-# Track the installer payload spec
-!release/ImpedanceMCP.spec
-
-# Native WebView2 cache
-webview/
+# Keep release scripts, icons, version info and checksums
+!release/build_exe.py
+!release/icon.ico
+!release/version_info*.txt
+!release/RELEASE_NOTES.md
+!release/SHA256SUMS.txt
