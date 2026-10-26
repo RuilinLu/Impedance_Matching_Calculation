@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "impedance-mcp"
+version = "4.0.0"
+description = "智配芯生 · ImpedanceMCP — microwave impedance-matching calculation, simulation and MCP tools"
+readme = "../README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Ruilin Lu", email = "Lu_Skywalker2915@sjtu.edu.cn" },
+  { name = "Keji Lu" },
+  { name = "Zhiyi Lin" },
+  { name = "Yunlei Zhang" },
+]
+dependencies = ["numpy>=1.24"]
+
+[project.optional-dependencies]
+attachments = ["pypdf>=4.0", "openpyxl>=3.1", "Pillow>=10.0"]
+
+[project.scripts]
+impedance-mcp = "impedance_mcp.mcp_server:main"
+impedance-app = "impedance_mcp.web_server:main"
+
+[tool.setuptools]
+packages = ["impedance_mcp"]
+
+[tool.setuptools.package-data]
+impedance_mcp = ["web/*"]
