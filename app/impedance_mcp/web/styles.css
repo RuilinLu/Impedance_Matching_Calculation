@@ -734,6 +734,29 @@ code, pre, .mono { font-family: "Cascadia Code", Consolas, "SFMono-Regular", mon
 .alt-card p { margin: 2px 0; color: var(--muted); font-size: 10px; }
 .alt-card .alt-metric { color: var(--green); font-size: 10.5px; }
 
+/* Help ------------------------------------------------------------------- */
+.help-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 16px; align-items: start; }
+.help-side { position: sticky; top: 0; }
+.help-search {
+  width: 100%; height: 34px; margin-bottom: 10px; padding: 0 10px;
+  border: 1px solid var(--line); border-radius: 8px; outline: 0;
+  background: rgba(6, 14, 26, .6); color: var(--text); font-size: 12px;
+}
+.help-search:focus { border-color: rgba(34, 211, 238, .5); }
+.help-list { display: flex; flex-direction: column; gap: 6px; max-height: calc(100vh - 380px); overflow-y: auto; padding-right: 2px; }
+.help-item { display: block; width: 100%; text-align: left; padding: 10px 11px; border: 1px solid var(--line); border-radius: 10px; background: rgba(6, 14, 26, .4); color: var(--text-2); transition: .16s; }
+.help-item:hover { border-color: rgba(34, 211, 238, .3); background: rgba(34, 211, 238, .05); }
+.help-item.active { border-color: rgba(34, 211, 238, .45); background: rgba(34, 211, 238, .09); }
+.help-item b { display: block; font-size: 12px; font-weight: 600; color: var(--text); }
+.help-item small { display: block; margin-top: 2px; font-size: 9.5px; color: var(--muted); line-height: 1.5; }
+.help-main { display: flex; flex-direction: column; min-width: 0; }
+.help-frame { width: 100%; min-height: calc(100vh - 230px); border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+@media (max-width: 1020px) {
+  .help-layout { grid-template-columns: 1fr; }
+  .help-list { max-height: 220px; }
+  .help-frame { min-height: 65vh; }
+}
+
 /* Analysis ---------------------------------------------------------------- */
 .analysis-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .compare-list { display: flex; flex-direction: column; gap: 7px; }

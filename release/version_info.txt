@@ -1,0 +1,32 @@
+# PyInstaller version resource for ImpedanceMCP
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(4, 2, 0, 0),
+    prodvers=(4, 2, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable(
+        '080404B0',
+        [
+          StringStruct('CompanyName', 'Shanghai Jiao Tong University - School of Integrated Circuits'),
+          StringStruct('FileDescription', 'ImpedanceMCP - Microwave Impedance Matching Calculator and MCP Server'),
+          StringStruct('FileVersion', '4.2.0.0'),
+          StringStruct('InternalName', 'ImpedanceMCP'),
+          StringStruct('LegalCopyright', 'Copyright (c) 2025-2026 Ruilin Lu, Keji Lu, Zhiyi Lin, Yunlei Zhang. MIT License.'),
+          StringStruct('OriginalFilename', 'ImpedanceMCP.exe'),
+          StringStruct('ProductName', 'Zhipei Xinsheng - ImpedanceMCP'),
+          StringStruct('ProductVersion', '4.2.0.0'),
+          StringStruct('Comments', 'radarlurui@gmail.com | Lu_Skywalker2915@sjtu.edu.cn | https://github.com/RuilinLu/Impedance_Matching_Calculation')
+        ]
+      )
+    ]),
+    VarFileInfo([VarStruct('Translation', [2052, 1200])])
+  ]
+)

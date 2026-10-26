@@ -1,5 +1,27 @@
 # Changelog
 
+## v4.2.0 — 2026-10-26
+
+### 新增
+- **Windows 安装程序** `ImpedanceMCP_Setup_v4.2.0.exe`：检测 x64/磁盘/VC++/ZCode，自动补全 VC++，支持自定义安装目录、桌面/开始菜单快捷方式、可选写入 ZCode MCP 配置、安装后启动。
+- **独立运行 + MCP 一体**：安装后的 `ImpedanceMCP.exe` 双击打开软件，`--mcp` 进 stdio，`--mcp --http 8790` 进 HTTP/SSE。
+- **内置帮助中心**：用户手册、MCP 兼容性、计算正确性审计、技术白皮书、架构说明、比赛说明、安装与杀毒说明；安装目录 `docs` 同时提供 PDF。
+- **计算正确性审计**：新增 ABCD 级联独立校验、正向扫描逐点反算、轨迹连续性、功率守恒、VSWR 关系测试；26/26 通过。
+- 关于页/文档/安装程序加入作者联系方式：radarlurui@gmail.com、Lu_Skywalker2915@sjtu.edu.cn。
+- 应用与安装程序加入版本信息、图标、许可证页；发布 `SHA256SUMS.txt`。
+- 安装程序使用 **onedir** 载荷（非 onefile 自解压），降低杀毒误报；提供代码签名/误报处理指南。
+
+### 修复
+- 帮助中心中文文件名导致 HTTP `Content-Disposition` 非 latin-1、响应 500/截断；改用 RFC 5987 ASCII 头，并新增回归测试。
+
+### 变更
+- 版本号 v4.2.0；文档、PDF、DOCX、Release 同步。
+- 安装后的用户数据仍保存在 `%LOCALAPPDATA%\ImpedanceMCP\data`。
+
+### 说明
+- 32 位 Windows（x86 OS）不支持；需要 Windows 10/11 x64。
+- 杀毒软件误报无法用许可证消除；正确做法是代码签名、SHA-256、VirusTotal 信誉和误报提交，详见 `docs/安装与杀毒软件说明.md`。
+
 ## v4.1.0 — 2026-10-26
 
 ### 新增

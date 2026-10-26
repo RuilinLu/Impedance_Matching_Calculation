@@ -112,7 +112,7 @@ a { color: var(--brand); text-decoration: none; }
       <h2>赛道一 · AI 智能体 · 创作背景、创新点、操作指南与团队</h2>
       <div class="rule"></div>
       <div class="meta">
-        <div><b>版本</b>　v4.1.0　｜　<b>更新日期</b>　2026-10-26</div>
+        <div><b>版本</b>　v4.2.0　｜　<b>更新日期</b>　2026-10-26</div>
         <div><b>开发者</b>　卢瑞林、卢柯吉、林芷伊、张昀蕾</div>
         <div><b>项目</b>　智配芯生 · ImpedanceMCP 微波阻抗匹配智能计算与仿真软件</div>
       </div>
@@ -289,7 +289,7 @@ a { color: var(--brand); text-decoration: none; }
 <h2 id="5_1">五、操作指南（5 分钟演示）</h2>
 <h3 id="1">步骤 1：启动</h3>
 <p><strong>方式 A（推荐，无需 Python）</strong>：</p>
-<pre><code class="language-text">双击 release/ImpedanceMCP_v4.1.0_Windows.exe
+<pre><code class="language-text">双击 release/ImpedanceMCP.exe
 </code></pre>
 <p><strong>方式 B（源码）</strong>：</p>
 <pre><code class="language-bat">pip install numpy pypdf openpyxl Pillow
@@ -344,7 +344,7 @@ start_app.bat
 <p>智能体会调用 <code>compare_topologies</code> / <code>design_matching_network</code>，并把工具结果作为回答依据。</p>
 <p>客户端配置示例：</p>
 <ul>
-<li><strong>Claude Code</strong>：<code>claude mcp add impedance-matching -- "...\ImpedanceMCP_v4.1.0_Windows.exe" --mcp</code></li>
+<li><strong>Claude Code</strong>：<code>claude mcp add impedance-matching -- "...\ImpedanceMCP.exe" --mcp</code></li>
 <li><strong>Codex</strong>：<code>~/.codex/config.toml</code> 的 <code>[mcp_servers.impedance-matching]</code></li>
 <li><strong>ZCode</strong>：<code>~/.zcode/cli/config.json</code> 的 <code>mcp.servers</code></li>
 <li><strong>Cherry Studio</strong>：先 <code>--mcp --http 8790</code>，添加 SSE <code>http://127.0.0.1:8790/sse</code></li>
@@ -401,8 +401,16 @@ start_app.bat
 </thead>
 <tbody>
 <tr>
-<td>Python 引擎回归</td>
-<td>8/8 通过</td>
+<td>引擎 + MCP + 物理 + Web 帮助总测试</td>
+<td><strong>26/26 通过</strong></td>
+</tr>
+<tr>
+<td>ABCD 级联 vs 节点法</td>
+<td>通过，误差 &lt; 1e-8</td>
+</tr>
+<tr>
+<td>正向扫描逐点反算</td>
+<td>通过，VSWR &lt; 1.001</td>
 </tr>
 <tr>
 <td>300 组随机设计</td>
@@ -417,8 +425,16 @@ start_app.bat
 <td>11/11 通过</td>
 </tr>
 <tr>
+<td>Streamable HTTP / legacy SSE</td>
+<td>通过</td>
+</tr>
+<tr>
+<td>安装程序</td>
+<td>安装/自定义目录/快捷方式/MCP 配置/卸载通过</td>
+</tr>
+<tr>
 <td>浏览器视觉</td>
-<td>AI/设计/分析/耐压/设置/关于/报告逐页检查</td>
+<td>AI/设计/分析/耐压/帮助/设置/关于/报告逐页检查</td>
 </tr>
 <tr>
 <td>报告一致性</td>
@@ -470,10 +486,10 @@ python -m unittest app.tests.test_mcp_protocol -v
 <p>我们希望通过这个作品说明：<strong>AI 不是替代专业工具，而是让专业工具更容易被使用、被验证、被复用。</strong></p>
 <hr />
 <p><strong>仓库</strong>：<a href="https://github.com/RuilinLu/Impedance_Matching_Calculation">https://github.com/RuilinLu/Impedance_Matching_Calculation</a>
-<strong>版本</strong>：v4.1.0 ｜ <strong>日期</strong>：2026-10-26
+<strong>版本</strong>：v4.2.0 ｜ <strong>日期</strong>：2026-10-26
 <strong>团队</strong>：卢瑞林、卢柯吉、林芷伊、张昀蕾
 <strong>学院</strong>：上海交通大学集成电路学院（信息与电子工程学院）</p>
-<div class="doc-end">智配芯生 · ImpedanceMCP v4.1.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
+<div class="doc-end">智配芯生 · ImpedanceMCP v4.2.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
 上海交通大学集成电路学院（信息与电子工程学院）</div>
 </main>
 </body></html>

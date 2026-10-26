@@ -112,7 +112,7 @@ a { color: var(--brand); text-decoration: none; }
       <h2>V4.1 目录结构、模块职责、数据流与测试</h2>
       <div class="rule"></div>
       <div class="meta">
-        <div><b>版本</b>　v4.1.0　｜　<b>更新日期</b>　2026-10-26</div>
+        <div><b>版本</b>　v4.2.0　｜　<b>更新日期</b>　2026-10-26</div>
         <div><b>开发者</b>　卢瑞林、卢柯吉、林芷伊、张昀蕾</div>
         <div><b>项目</b>　智配芯生 · ImpedanceMCP 微波阻抗匹配智能计算与仿真软件</div>
       </div>
@@ -156,7 +156,7 @@ a { color: var(--brand); text-decoration: none; }
 </section>
 <main class="content">
 <h1 id="impedancemcp-v40">智配芯生 · ImpedanceMCP 软件架构说明（V4.0）</h1>
-<p><strong>版本：v4.1.0 ｜ 更新日期：2026-10-26</strong></p>
+<p><strong>版本：v4.2.0 ｜ 更新日期：2026-10-26</strong></p>
 <p>开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾
 上海交通大学集成电路学院（信息与电子工程学院）</p>
 <hr />
@@ -232,7 +232,7 @@ a { color: var(--brand); text-decoration: none; }
 │  ├─ build_providers.py      # 从 models.dev 生成服务商目录
 │  ├─ icon.ico
 │  ├─ RELEASE_NOTES.md
-│  └─ ImpedanceMCP_v4.1.0_Windows.exe
+│  └─ ImpedanceMCP_v4.2.0_Windows.exe
 │
 ├─ APP_Release_Release_Version/
 │  ├─ Main_Installation/MyAppInstaller_mcr.exe   # 内置 Runtime 的安装包
@@ -413,12 +413,19 @@ a { color: var(--brand); text-decoration: none; }
 <li><code>launcher.py</code> 是 exe 的统一入口：</li>
 <li>默认：<code>web_server.main()</code>，启动独立界面；</li>
 <li><code>--mcp</code>：<code>mcp_server.main()</code>，stdio；</li>
-<li><code>--mcp --http 8790</code>：HTTP/SSE。</li>
+<li><code>--mcp --http 8790</code>：HTTP/SSE；</li>
+<li><code>--configure-mcp zcode|claude|codex</code>：写入/备份客户端 MCP 配置。</li>
 <li><code>release/build_exe.py</code> 用 PyInstaller 打包：</li>
-<li>打包 <code>app/impedance_mcp/web</code> 与 <code>app/matlab/*.m</code>；</li>
+<li><strong>onefile</strong> 便携版 + <strong>onedir</strong> 安装载荷（降低自解压误报、启动更快）；</li>
+<li>打包 <code>app/impedance_mcp/web</code>、<code>providers.json</code> 与 <code>app/matlab/*.m</code>；</li>
 <li>隐藏导入 <code>pypdf</code> / <code>PIL</code> / <code>openpyxl</code>；</li>
+<li>版本信息 <code>release/version_info.txt</code>；</li>
 <li><code>config.py</code> 检测 <code>sys.frozen</code>，用户数据写入 <code>%LOCALAPPDATA%\ImpedanceMCP\data</code>；</li>
-<li>输出 <code>ImpedanceMCP_v4.1.0_Windows.exe</code>（约 32 MB）。</li>
+<li>输出 <code>release/ImpedanceMCP_v4.2.0_Portable.exe</code> 与 <code>release/ImpedanceMCP_v4.2.0_App/</code>。</li>
+<li><code>installer/ImpedanceMCP.iss</code>（Inno Setup 6）：</li>
+<li>检测 x64/VC++/ZCode，支持自定义目录、桌面/开始菜单、可选经典界面、可选 MCP 配置；</li>
+<li>输出 <code>ImpedanceMCP_Setup_v4.2.0.exe</code>；</li>
+<li>帮助文档安装到 <code>{app}\docs</code>，<code>web_server /help/&lt;doc&gt;</code> 提供内置帮助中心。</li>
 </ul>
 <hr />
 <h2 id="4">4. 数据流</h2>
@@ -507,7 +514,7 @@ python -m unittest app.tests.test_mcp_protocol -v
 </ul>
 <hr />
 <h2 id="7">7. 版本与团队</h2>
-<p><strong>v4.1.0 ｜ 2026-10-26</strong></p>
+<p><strong>v4.2.0 ｜ 2026-10-26</strong></p>
 <table>
 <thead>
 <tr>
@@ -536,7 +543,7 @@ python -m unittest app.tests.test_mcp_protocol -v
 </table>
 <p>上海交通大学集成电路学院（信息与电子工程学院）
 “智绘芯生，AI 赋能” AI 教与学活动周 · 赛道一</p>
-<div class="doc-end">智配芯生 · ImpedanceMCP v4.1.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
+<div class="doc-end">智配芯生 · ImpedanceMCP v4.2.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
 上海交通大学集成电路学院（信息与电子工程学院）</div>
 </main>
 </body></html>

@@ -47,8 +47,19 @@
     design: ["匹配设计", "五种拓扑 · 解析求解 · 完整网络节点法复核"],
     analysis: ["圆图分析", "正向扫描可匹配范围，比较拓扑与带宽"],
     stress: ["耐压分析", "峰值电压、RMS 电流与安全系数"],
-    about: ["关于与团队", "智配芯生 · ImpedanceMCP v4.0.0"],
+    help: ["帮助文档", "用户手册 · 计算审计 · MCP 兼容性 · 安装与排查"],
+    about: ["关于与团队", "智配芯生 · ImpedanceMCP v4.2.0"],
   };
+
+  const HELP_DOCS = [
+    { file: "用户手册.html", title: "用户手册", desc: "安装、界面、设计、MCP 与常见问题", keys: "安装 启动 界面 设计 圆图 耐压 MCP 常见问题" },
+    { file: "MCP兼容性说明.html", title: "MCP 兼容性说明", desc: "stdio / Streamable HTTP / SSE · 客户端矩阵", keys: "MCP Claude Code Codex ZCode Cursor Cherry Studio Chatbox" },
+    { file: "计算正确性审计.html", title: "计算正确性审计", desc: "公式推导 · ABCD 级联 · 节点法 · 测试结论", keys: "公式 ABCD 节点法 审计 正确性 微波 电磁场" },
+    { file: "技术白皮书.html", title: "技术白皮书", desc: "总体架构、计算模型、协议与验证", keys: "技术 白皮书 架构 公式 验证" },
+    { file: "软件架构说明.html", title: "软件架构说明", desc: "目录、模块、数据流与测试", keys: "架构 模块 目录 数据流 测试" },
+    { file: "比赛说明文档.html", title: "比赛说明文档", desc: "赛道一 · 作品说明与演示脚本", keys: "比赛 赛道 演示 团队 作品" },
+    { file: "安装与杀毒软件说明.html", title: "安装与杀毒软件说明", desc: "安装、依赖、代码签名与误报处理", keys: "安装 杀毒 签名 误报 Runtime 卡巴斯基 防火墙" },
+  ];
 
   const TOPO_DESC = {
     auto: "自动比较五种拓扑，优先选择元件更少、可实现性更好的方案。",
@@ -1635,6 +1646,53 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* Help                                                               */
+  /* ------------------------------------------------------------------ */
+  let currentHelp = HELP_DOCS[0];
+
+  function renderHelpList(filter = "") {
+    const q = filter.trim().toLowerCase();
+    const list = HELP_DOCS.filter((d) =>
+      !q || `${d.title} ${d.desc} ${d.keys}`.toLowerCase().includes(q));
+    const box = $("#helpList");
+    box.innerHTML = list.map((d) => `
+      <button class="help-item ${d.file === currentHelp.file ? "active" : ""}" data-help-file="${escapeHtml(d.file)}">
+        <b>${escapeHtml(d.title)}</b><small>${escapeHtml(d.desc)}</small>
+      </button>`).join("");
+    $$("[data-help-file]", box).forEach((b) => b.addEventListener("click", () => {
+      const doc = HELP_DOCS.find((d) => d.file === b.dataset.helpFile);
+      if (doc) loadHelpDoc(doc);
+    }));
+    if (list.length && !list.some((d) => d.file === currentHelp.file)) loadHelpDoc(list[0]);
+  }
+
+  function loadHelpDoc(doc) {
+    currentHelp = doc;
+    $("#helpTitle").textContent = doc.title;
+    $("#helpDesc").textContent = doc.desc;
+    $("#helpFrame").src = `/help/${encodeURIComponent(doc.file)}`;
+    $$(".help-item").forEach((b) => b.classList.toggle("active", b.dataset.helpFile === doc.file));
+  }
+
+  function initHelp() {
+    renderHelpList();
+    loadHelpDoc(currentHelp);
+    $("#helpSearch").addEventListener("input", (e) => renderHelpList(e.target.value));
+    $("#helpOpen").addEventListener("click", () => {
+      window.open(`/help/${encodeURIComponent(currentHelp.file)}`, "_blank", "noopener");
+    });
+    $("#helpPrint").addEventListener("click", () => {
+      const frame = $("#helpFrame");
+      try {
+        frame.contentWindow.focus();
+        frame.contentWindow.print();
+      } catch (e) {
+        toast("打印失败", "请点击「新标签打开」后在浏览器中打印。", "amber");
+      }
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
   /* Boot                                                               */
   /* ------------------------------------------------------------------ */
   let booted = false;
@@ -1649,6 +1707,7 @@
     initContext();
     initPresets();
     initGlobal();
+    initHelp();
     smith = new SmithChart($("#smithCanvas"), {
       tooltip: $("#smithTooltip"),
       onStateChange: (playing) => {

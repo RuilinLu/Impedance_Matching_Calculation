@@ -24,6 +24,11 @@ for stream in (sys.stdout, sys.stderr):
 
 def main() -> int:
     args = list(sys.argv[1:])
+    if "--configure-mcp" in args:
+        i = args.index("--configure-mcp")
+        targets = [a for a in args[i + 1:] if not a.startswith("--")]
+        from impedance_mcp.configure_mcp import main as configure_main
+        return configure_main(targets or ["zcode"])
     if "--mcp" in args:
         args = [a for a in args if a != "--mcp"]
         from impedance_mcp.mcp_server import main as mcp_main

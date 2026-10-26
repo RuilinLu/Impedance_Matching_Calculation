@@ -1,6 +1,6 @@
 # MCP 客户端兼容性说明
 
-**版本：v4.1.0 ｜ 更新日期：2026-10-26**
+**版本：v4.2.0 ｜ 更新日期：2026-10-26**
 
 ---
 
@@ -10,7 +10,7 @@
 
 - 支持 MCP 的客户端（Claude Code / Claude Desktop / Codex / ZCode / Cursor / Cherry Studio 等）可以通过标准配置加载本软件；
 - 本身不支持 MCP 的聊天软件（例如某些旧版 Chatbox、DeepSeek 官方 App 的某些版本）**无法直接加载任何 MCP 服务器**——这是客户端能力问题，不是本服务器“协议不标准”；
-- 本软件同时提供**独立运行界面**，不依赖 MCP：双击 `ImpedanceMCP_v4.1.0_Windows.exe` 就能完成全部匹配计算、圆图、耐压和报告；
+- 本软件同时提供**独立运行界面**，不依赖 MCP：双击 `ImpedanceMCP.exe` 就能完成全部匹配计算、圆图、耐压和报告；
 - 对于“任意 OpenAI 兼容模型”，本软件内置了 214 家国内外服务商目录，用户在设置里自己选择，不设默认厂商。
 
 所以更准确的说法是：
@@ -39,13 +39,13 @@
 
 ```bat
 :: 1) 独立运行（双击 exe 也可以）
-ImpedanceMCP_v4.1.0_Windows.exe
+ImpedanceMCP.exe
 
 :: 2) stdio MCP（Claude Code / Codex / ZCode / Cursor）
-ImpedanceMCP_v4.1.0_Windows.exe --mcp
+ImpedanceMCP.exe --mcp
 
 :: 3) Streamable HTTP + legacy SSE
-ImpedanceMCP_v4.1.0_Windows.exe --mcp --http 8790
+ImpedanceMCP.exe --mcp --http 8790
 ```
 
 源码方式：
@@ -99,7 +99,7 @@ HTTP 端点：
 {
   "mcpServers": {
     "impedance-matching": {
-      "command": "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe",
+      "command": "C:\\path\\to\\ImpedanceMCP.exe",
       "args": ["--mcp"]
     }
   }
@@ -111,7 +111,7 @@ HTTP 端点：
 推荐：
 
 ```bat
-claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP_v4.1.0_Windows.exe" --mcp
+claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP.exe" --mcp
 ```
 
 或项目根目录 `.mcp.json`：
@@ -120,7 +120,7 @@ claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP_v4.1.0_Windows.exe
 {
   "mcpServers": {
     "impedance-matching": {
-      "command": "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe",
+      "command": "C:\\path\\to\\ImpedanceMCP.exe",
       "args": ["--mcp"]
     }
   }
@@ -133,7 +133,7 @@ claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP_v4.1.0_Windows.exe
 
 ```toml
 [mcp_servers.impedance-matching]
-command = "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe"
+command = "C:\\path\\to\\ImpedanceMCP.exe"
 args = ["--mcp"]
 startup_timeout_sec = 30
 tool_timeout_sec = 120
@@ -149,7 +149,7 @@ tool_timeout_sec = 120
     "servers": {
       "impedance-matching": {
         "type": "stdio",
-        "command": "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe",
+        "command": "C:\\path\\to\\ImpedanceMCP.exe",
         "args": ["--mcp"],
         "timeoutMs": 120000
       }
@@ -168,7 +168,7 @@ tool_timeout_sec = 120
 {
   "mcpServers": {
     "impedance-matching": {
-      "command": "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe",
+      "command": "C:\\path\\to\\ImpedanceMCP.exe",
       "args": ["--mcp"]
     }
   }
@@ -179,7 +179,7 @@ tool_timeout_sec = 120
 
 1. 先启动 HTTP/SSE 模式：
    ```bat
-   ImpedanceMCP_v4.1.0_Windows.exe --mcp --http 8790
+   ImpedanceMCP.exe --mcp --http 8790
    ```
 2. 设置 → MCP 服务器 → 添加：
    - 类型：`SSE`
@@ -187,7 +187,7 @@ tool_timeout_sec = 120
 3. 保存后应看到 15 个工具。
 
 如果 Cherry Studio 当前版本只支持 stdio，也可以添加：
-- 命令：`C:\path\to\ImpedanceMCP_v4.1.0_Windows.exe`
+- 命令：`C:\path\to\ImpedanceMCP.exe`
 - 参数：`--mcp`
 
 ### 4.7 Chatbox
@@ -268,7 +268,7 @@ Chatbox 的 MCP 支持随版本变化：
 ## 8. 故障排查
 
 1. **客户端看不到工具**：
-   - 先运行 `ImpedanceMCP_v4.1.0_Windows.exe --mcp`，看终端是否报错；
+   - 先运行 `ImpedanceMCP.exe --mcp`，看终端是否报错；
    - 确认配置中的路径是绝对路径；
    - 重启客户端（大多数客户端只在启动时读取 MCP 配置）；
    - 查看客户端 MCP 日志。

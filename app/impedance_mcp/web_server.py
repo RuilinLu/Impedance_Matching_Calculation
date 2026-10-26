@@ -17,6 +17,23 @@ from . import agent, attachments, config, engine, knowledge, llm, matlab_bridge,
 
 MAX_BODY = 42 * 1024 * 1024  # base64 uploads
 
+HELP_FILES = {
+    "用户手册.html", "用户手册.pdf",
+    "MCP兼容性说明.html", "MCP兼容性说明.pdf",
+    "技术白皮书.html", "技术白皮书.pdf",
+    "计算正确性审计.html", "计算正确性审计.pdf",
+    "软件架构说明.html", "软件架构说明.pdf",
+    "比赛说明文档.html", "比赛说明文档.pdf",
+    "安装与杀毒软件说明.html", "安装与杀毒软件说明.pdf",
+}
+
+
+def _inline_disposition(name: str) -> str:
+    """Build an ASCII-only Content-Disposition; RFC 5987 carries the CJK name."""
+    suffix = Path(name).suffix or ".html"
+    quoted = urllib.parse.quote(name, safe="")
+    return f"inline; filename=\"document{suffix}\"; filename*=UTF-8''{quoted}"
+
 
 def _json_bytes(payload: Any) -> bytes:
     return json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -98,6 +115,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(knowledge.search(q))
             if path == "/api/health":
                 return self._json({"ok": True, "version": config.VERSION})
+            if path.startswith("/help/"):
+                return self._serve_help(urllib.parse.unquote(path[len("/help/"):]))
             if path.startswith("/api/report/"):
                 return self._serve_report(path.split("/")[-1])
             if path in ("/", "/index.html"):
@@ -178,6 +197,28 @@ class Handler(BaseHTTPRequestHandler):
             ctype += "; charset=utf-8"
         self._send(200, target.read_bytes(), ctype)
 
+    def _serve_help(self, name: str) -> None:
+        safe = Path(name).name
+        if safe not in HELP_FILES:
+            return self._error("非法帮助文档", status=403, code="forbidden")
+        target = (config.HELP_DIR / safe).resolve()
+        if not target.is_file():
+            html = (
+                "<!doctype html><html lang='zh-CN'><meta charset='utf-8'>"
+                "<title>帮助文档未安装</title>"
+                "<body style='font-family:Microsoft YaHei;background:#0b1220;color:#e6eefc;"
+                "padding:40px;line-height:1.8'>"
+                "<h2>帮助文档未随当前版本安装</h2>"
+                "<p>如果你使用的是便携版 exe，请改用安装程序，或直接查看 GitHub 的 docs 目录。</p>"
+                "<p><a style='color:#22d3ee' href='https://github.com/RuilinLu/"
+                "Impedance_Matching_Calculation/tree/main/docs'>打开在线文档</a></p>"
+                "</body></html>"
+            )
+            return self._send(200, html.encode("utf-8"), "text/html; charset=utf-8")
+        ctype = "application/pdf" if target.suffix.lower() == ".pdf" else "text/html; charset=utf-8"
+        self._send(200, target.read_bytes(), ctype,
+                   {"Content-Disposition": _inline_disposition(safe)})
+
     def _serve_report(self, name: str) -> None:
         safe = Path(urllib.parse.unquote(name)).name
         if not safe.startswith("impedance_report_") or not safe.endswith((".html", ".md")):
@@ -187,7 +228,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._error("报告不存在", status=404, code="not_found")
         ctype = "text/html; charset=utf-8" if path.suffix == ".html" else "text/markdown; charset=utf-8"
         self._send(200, path.read_bytes(), ctype,
-                   {"Content-Disposition": f'inline; filename="{safe}"'})
+                   {"Content-Disposition": _inline_disposition(safe)})
 
     # -- config / LLM -----------------------------------------------------
     def _save_config(self) -> None:

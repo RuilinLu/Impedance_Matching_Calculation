@@ -1,6 +1,6 @@
 # 智配芯生 · ImpedanceMCP
 
-**微波阻抗匹配智能计算与仿真软件 · v4.1.0**
+**微波阻抗匹配智能计算与仿真软件 · v4.2.0**
 
 **一个可独立运行的桌面软件 + 一个标准 MCP 服务器 + 一个支持 214 家国内外模型服务商的 AI 智能体。**
 
@@ -19,7 +19,7 @@
 
 | 形态 | 入口 | 用途 |
 |---|---|---|
-| **独立软件** | 双击 `ImpedanceMCP_v4.1.0_Windows.exe` 或 `start_app.bat` | 不连任何 AI、不需要 MCP，直接做匹配设计、圆图、扫描、耐压、报告 |
+| **独立软件** | 安装后双击桌面 `ImpedanceMCP`；或便携版 `ImpedanceMCP_v4.2.0_Portable.exe` | 不连任何 AI、不需要 MCP，直接做匹配设计、圆图、扫描、耐压、报告 |
 | **MCP 服务器** | `ImpedanceMCP.exe --mcp` | stdio 接入 Claude Code / Codex / ZCode / Cursor / Claude Desktop |
 | **MCP 服务器（HTTP/SSE）** | `ImpedanceMCP.exe --mcp --http 8790` | Streamable HTTP + legacy SSE，接入 Cherry Studio / 远程 MCP 客户端 |
 | **AI 智能体** | 独立软件内的「AI 智能体」页 | 在 214 家服务商中选择模型，用自己的 Key 对话、调用 15 个工具 |
@@ -48,21 +48,38 @@
 
 ## 3. 安装与启动
 
-### 3.1 独立软件（推荐）
-
-**方式 A：exe（无需 Python）**
+### 3.1 安装程序（推荐）
 
 ```text
-双击 release/ImpedanceMCP_v4.1.0_Windows.exe
+双击 release/ImpedanceMCP_Setup_v4.2.0.exe
 ```
 
-- 默认启动本地 Web 界面并打开浏览器；
-- 端口 8765，被占用会自动尝试 8766–8776；
-- 用户数据保存在 `%LOCALAPPDATA%\ImpedanceMCP\data\`（配置、上传、报告）。
+安装程序会：
 
-**方式 B：源码**
+- 检测 Windows x64、磁盘空间、VC++ 运行库；
+- 支持修改安装目录；
+- 可选创建桌面/开始菜单快捷方式；
+- 可选写入 ZCode MCP 配置（自动备份原配置）；
+- 安装后桌面快捷方式指向 `ImpedanceMCP.exe`，双击即打开软件。
 
-需要 Python 3.10+：
+安装后的目录：
+
+```text
+{安装目录}\ImpedanceMCP.exe       主程序（双击打开；--mcp 进 MCP）
+{安装目录}\_internal\             运行时
+{安装目录}\docs\                  内置帮助（HTML/PDF）
+{安装目录}\classic\               原版经典界面（可选）
+```
+
+用户数据：`%LOCALAPPDATA%\ImpedanceMCP\data`。
+
+**便携版**（不安装，直接运行）：
+
+```text
+双击 release/ImpedanceMCP_v4.2.0_Portable.exe
+```
+
+**源码运行**（需要 Python 3.10+）：
 
 ```bat
 pip install numpy pypdf openpyxl Pillow
@@ -136,7 +153,8 @@ API Key 只保存在本机，exe 为 `%LOCALAPPDATA%\ImpedanceMCP\data\config.js
 
 **能。**
 
-- 双击 `ImpedanceMCP_v4.1.0_Windows.exe`：打开独立 Web 界面；
+- 安装版：双击桌面/开始菜单 `ImpedanceMCP`，或 `{安装目录}\ImpedanceMCP.exe`；
+- 便携版：双击 `ImpedanceMCP_v4.2.0_Portable.exe`；
 - 不需要 AI、不需要 MCP、不需要联网，直接做设计、圆图、扫描、耐压、报告；
 - 页面里的「AI 智能体」是可选的；不配置模型也能用所有计算功能；
 - 原版 `Impedance_Matching.exe` 仍然保留，可从右上角「打开原版」启动。
@@ -186,7 +204,7 @@ API Key 只保存在本机，exe 为 `%LOCALAPPDATA%\ImpedanceMCP\data\config.js
     "servers": {
       "impedance-matching": {
         "type": "stdio",
-        "command": "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe",
+        "command": "C:\\path\\to\\ImpedanceMCP.exe",
         "args": ["--mcp"],
         "timeoutMs": 120000
       }
@@ -221,7 +239,7 @@ API Key 只保存在本机，exe 为 `%LOCALAPPDATA%\ImpedanceMCP\data\config.js
 
 ```toml
 [mcp_servers.impedance-matching]
-command = "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe"
+command = "C:\\path\\to\\ImpedanceMCP.exe"
 args = ["--mcp"]
 startup_timeout_sec = 30
 tool_timeout_sec = 120
@@ -230,7 +248,7 @@ tool_timeout_sec = 120
 ### 5.5 Claude Code
 
 ```bat
-claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP_v4.1.0_Windows.exe" --mcp
+claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP.exe" --mcp
 ```
 
 ### 5.6 Claude Desktop
@@ -241,7 +259,7 @@ claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP_v4.1.0_Windows.exe
 {
   "mcpServers": {
     "impedance-matching": {
-      "command": "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe",
+      "command": "C:\\path\\to\\ImpedanceMCP.exe",
       "args": ["--mcp"]
     }
   }
@@ -253,7 +271,7 @@ claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP_v4.1.0_Windows.exe
 先启动：
 
 ```bat
-ImpedanceMCP_v4.1.0_Windows.exe --mcp --http 8790
+ImpedanceMCP.exe --mcp --http 8790
 ```
 
 在客户端 MCP 设置中添加 SSE：
@@ -387,15 +405,21 @@ S11(dB) = 20 log10 |Γ|
 
 ## 8. 正确性验证
 
-### 8.1 随机用例
+### 8.1 测试用例
 
-`app/tests/test_engine.py` 对 5 种拓扑、多个频段、随机负载做设计 + 节点法复核：
+`app/tests/` 包含四类测试：
+
+- `test_engine.py`：5 拓扑、频段、随机负载、扫描、带宽、耐压、报告；
+- `test_mcp_protocol.py`：initialize、15 工具、resources、prompts、错误处理；
+- `test_physics.py`：**独立 ABCD 级联矩阵** vs 节点法、正向扫描逐点反算、轨迹连续性、功率守恒、VSWR 关系；
+- `test_web_help.py`：帮助文档 HTTP 头（中文文件名 UTF-8 编码）与安装说明白名单。
 
 ```text
-Ran 19 tests ... OK
+Ran 26 tests ... OK
 ```
 
 所有成功设计的 `VSWR < 1.001`，`|Zin − 50| < 0.01 Ω`。
+详细推导与审计见 [`docs/计算正确性审计.md`](docs/计算正确性审计.md)。
 
 ### 8.2 MATLAB R2025b 交叉验证
 
@@ -424,6 +448,18 @@ Ran 11 tests ... OK
 - Legacy SSE：`GET /sse` + `POST /messages`，initialize / tools/list 通过；
 - 独立 exe：`--mcp` 15 个工具、双击启动 Web UI 与计算均通过。
 
+### 8.5 安装程序与内置帮助
+
+- 静默安装到自定义目录通过；
+- 桌面/开始菜单快捷方式创建通过；
+- 可选经典界面文件复制通过；
+- `--configure-mcp zcode` 自动写入并备份配置通过；
+- 安装后 `ImpedanceMCP.exe` 独立运行、MCP、214 服务商、`/help/用户手册.html`、设计计算通过；
+- 卸载清理通过；
+- 帮助中心包含用户手册、MCP 兼容性、计算正确性审计、技术白皮书、架构、比赛说明、安装与杀毒说明。
+
+安装与杀毒说明见 [`docs/安装与杀毒软件说明.md`](docs/安装与杀毒软件说明.md)。
+
 ---
 
 ## 9. 目录结构
@@ -439,6 +475,7 @@ Ran 11 tests ... OK
 │  │  ├─ llm.py             # OpenAI 兼容 + Anthropic + Azure 适配
 │  │  ├─ providers.py       # 服务商目录加载
 │  │  ├─ providers.json     # 214 家服务商与模型（来自 models.dev）
+│  │  ├─ configure_mcp.py   # 一键写入 ZCode/Claude/Codex 配置
 │  │  ├─ attachments.py     # PDF/DOCX/XLSX 附件解析
 │  │  ├─ reports.py         # HTML/Markdown 报告
 │  │  ├─ matlab_bridge.py   # MATLAB R2025b / 原版 exe
@@ -450,16 +487,26 @@ Ran 11 tests ... OK
 │  │  ├─ mw_batch_entry.m   # -batch 批处理入口
 │  │  └─ original_v3/       # V3 原版 App Designer 提取源码
 │  ├─ tests/
+│  │  ├─ test_engine.py
+│  │  ├─ test_mcp_protocol.py
+│  │  └─ test_physics.py    # ABCD/扫描/轨迹/功率独立审计
 │  ├─ launcher.py           # exe 统一入口（默认 UI，--mcp 进 MCP）
 │  ├─ run_app.py
 │  └─ run_mcp.py
-├─ docs/                    # 用户手册、技术白皮书、比赛说明、架构、MCP 兼容性
+├─ docs/                    # 用户手册、MCP、审计、白皮书、架构、比赛、安装/杀毒
+├─ installer/
+│  ├─ ImpedanceMCP.iss      # Inno Setup 安装脚本
+│  ├─ sign_example.ps1      # 代码签名模板（需自己的证书）
+│  ├─ LICENSE.txt
+│  └─ README.txt
 ├─ release/
-│  ├─ build_exe.py          # PyInstaller 构建脚本
+│  ├─ build_exe.py          # PyInstaller portable + onedir
 │  ├─ build_providers.py    # 从 models.dev 生成服务商目录
+│  ├─ version_info.txt
 │  ├─ icon.ico
 │  └─ RELEASE_NOTES.md
 ├─ APP_Release_Release_Version/  # 原版安装包、Runtime、问题解决文件
+├─ SECURITY.md
 ├─ start_app.bat
 ├─ start_mcp.bat
 ├─ README.md
@@ -488,7 +535,7 @@ A：选择“DeepSeek 深度求索”，模型列表中有 `deepseek-flash`、`d
 A：不是。MCP 是标准，但客户端必须实现 MCP。支持 MCP 的客户端（Claude Code / Codex / ZCode / Cursor / Cherry Studio 等）可以接入；没有 MCP 入口的聊天软件无法加载任何 MCP 服务器。详见 `docs/MCP兼容性说明.md`。
 
 **Q：这个软件能不能自己运行？**
-A：能。双击 `ImpedanceMCP_v4.1.0_Windows.exe` 即打开独立界面，不依赖 MCP、不依赖 AI 客户端。
+A：能。双击 `ImpedanceMCP.exe` 即打开独立界面，不依赖 MCP、不依赖 AI 客户端。
 
 **Q：DeepSeek 报 401 / 404？**
 A：401 是 Key 无效；404 是 Base URL、模型 ID 或 Azure 部署名不对。检查服务商控制台与设置。
@@ -519,6 +566,10 @@ A：当前安全策略拒绝本机/内网地址，避免 SSRF 风险；请通过
 上海交通大学集成电路学院（信息与电子工程学院）
 “智绘芯生，AI 赋能” AI 教与学活动周 · 2026-10-26
 
+**联系**：radarlurui@gmail.com ｜ Lu_Skywalker2915@sjtu.edu.cn
+**GitHub**：<https://github.com/RuilinLu/Impedance_Matching_Calculation>
+**v4.2.0 Release**：<https://github.com/RuilinLu/Impedance_Matching_Calculation/releases/tag/v4.2.0>
+
 ---
 
 ## 12. 许可与致谢
@@ -526,6 +577,7 @@ A：当前安全策略拒绝本机/内网地址，避免 SSRF 风险；请通过
 - 代码：MIT License（见 `LICENSE`）
 - 原版 MATLAB App Designer 软件、`Impedance_Matching.exe` 及相关图片：由本项目团队开发，版权归团队所有。
 - 服务商/模型目录：来自开源项目 [models.dev](https://github.com/sst/models.dev)，仅包含公开的端点、模型 ID 与文档链接，不含任何密钥。
+- 安全与杀毒误报说明：见 [`SECURITY.md`](SECURITY.md) 与 [`docs/安装与杀毒软件说明.md`](docs/安装与杀毒软件说明.md)。
 - 感谢 MathWorks 提供的 MATLAB R2025b 与 App Designer / RF Toolbox 生态。
 
 > 本软件用于教学、科研与工程估算；正式产品请用实际元件模型、网络分析仪与实测数据复核。

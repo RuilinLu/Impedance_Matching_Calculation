@@ -24,7 +24,7 @@ DOCS = ROOT / "docs"
 ASSETS = DOCS / "assets"
 TEAM = "卢瑞林、卢柯吉、林芷伊、张昀蕾"
 DATE = "2026-10-26"
-VERSION = "v4.1.0"
+VERSION = "v4.2.0"
 
 CHROME_CANDIDATES = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -280,6 +280,12 @@ def main() -> None:
         {"slug": "MCP兼容性说明", "md": "MCP兼容性说明.md", "title": "MCP 客户端兼容性说明",
          "subtitle": "stdio / Streamable HTTP / legacy SSE · 客户端矩阵与配置",
          "kicker": "MCP Compatibility", "desc": "Claude Code、Codex、ZCode、Cursor、Cherry Studio、Chatbox 等接入与限制。"},
+        {"slug": "计算正确性审计", "md": "计算正确性审计.md", "title": "计算正确性审计",
+         "subtitle": "解析解 · ABCD 级联 · 节点法 · 26 项测试",
+         "kicker": "Calculation Audit", "desc": "五种拓扑推导、正向扫描反算、功率/VSWR/轨迹验证与边界。"},
+        {"slug": "安装与杀毒软件说明", "md": "安装与杀毒软件说明.md", "title": "安装与杀毒软件说明",
+         "subtitle": "安装程序 · 依赖检测 · 代码签名 · 误报处理",
+         "kicker": "Installer & Security", "desc": "干净 Windows 安装、路径/快捷方式、MCP 配置与杀毒误报。"},
     ]
     built = []
     chrome = find_chrome()

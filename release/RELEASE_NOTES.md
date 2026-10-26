@@ -1,161 +1,163 @@
-# 智配芯生 · ImpedanceMCP v4.1.0
+# 智配芯生 · ImpedanceMCP v4.2.0
 
 **发布日期：2026-10-26** ｜ **赛道一 · AI 智能体** ｜ 上海交通大学集成电路学院（信息与电子工程学院）
 **开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾**
+**联系：radarlurui@gmail.com ｜ Lu_Skywalker2915@sjtu.edu.cn**
 
 ---
 
-## 一、这次更新的核心
+## 一、v4.2.0 的核心：一个安装程序，两种使用模式
 
-v4.1.0 把 v4.0.0 的“DeepSeek 单厂商 + stdio MCP”升级为：
+v4.2.0 把 v4.1.0 的“独立 exe + MCP”进一步做成 **可交付给普通用户的 Windows 安装程序**：
 
-> **独立可运行软件 + 标准 MCP 服务器 + 214 家国内外模型服务商可选。**
+> **复制 `ImpedanceMCP_Setup_v4.2.0.exe` 到任意 Windows 10/11 x64 电脑 → 双击安装 → 桌面/开始菜单 `ImpedanceMCP` → 打开即用。**
 
-具体：
+安装后的 `ImpedanceMCP.exe` 同时是：
 
-1. **不再默认使用任何厂商**（包括 DeepSeek）：设置里第一项永远是“请选择模型服务商”，用户自己选厂商、模型、填自己的 Key。
-2. **内置 214 家服务商目录**（来自开源项目 models.dev）：
-   - 国内：DeepSeek、阿里云百炼（Qwen）、智谱 GLM、Kimi、硅基流动、火山引擎方舟（豆包）、MiniMax、阶跃星辰、商汤、魔搭、腾讯 TokenHub 等；
-   - 国外：OpenAI、Anthropic Claude、Google Gemini、xAI、Mistral、Groq、Cohere、Together、DeepInfra、Perplexity、OpenRouter、NVIDIA、Fireworks 等；
-   - 自定义：任意 OpenAI 兼容服务。
-3. **DeepSeek Flash 已在目录中**：选择“DeepSeek 深度求索”可看到 `deepseek-flash`、`deepseek-v4-flash`、`deepseek-v4-pro` 等模型。
-4. **MCP 三种传输**：stdio、Streamable HTTP、legacy HTTP+SSE。
-5. **独立 Windows exe**：双击运行完整界面；`--mcp` 运行 MCP；`--mcp --http 8790` 运行 HTTP/SSE。
+1. **独立软件**：双击打开匹配设计、Smith 圆图、扫描、耐压、报告；
+2. **MCP 服务器**：`ImpedanceMCP.exe --mcp` 作为 stdio 服务，供 ZCode / Claude Code / Codex / Cursor 等调用；
+3. **HTTP/SSE MCP**：`ImpedanceMCP.exe --mcp --http 8790`，供 Cherry Studio 等使用；
+4. **内置 AI**：设置里选择 214 家服务商之一，填自己的 API Key，像 MATLAB Copilot 一样对话；
+5. **外部 AI**：通过 MCP，让 Codex/ZCode 等调用本软件，像 MATLAB 的 MCP 连接 Codex。
 
 ---
 
-## 二、MCP：协议与客户端兼容性
+## 二、安装程序能力
 
-### 2.1 实现的协议
+`ImpedanceMCP_Setup_v4.2.0.exe`（约 52 MB）：
 
-- JSON-RPC 2.0；
-- 协议版本：2024-11-05 / 2025-03-26 / 2025-06-18；
-- 15 个工具、3 个资源、3 个提示模板；
-- `Mcp-Session-Id` 会话；
-- 日志只写 stderr，stdout 只输出协议 JSON；
-- 只监听 `127.0.0.1`，校验 Origin。
+- 检测 Windows 10/11 x64（32 位 Windows 会明确提示不支持）；
+- 支持**自定义安装目录**；
+- 可选**桌面快捷方式**、开始菜单、帮助文档快捷方式；
+- 检测 **VC++ 运行库**，缺失时自动静默安装（仅原版经典界面需要）；
+- 可选**为 ZCode 写入 MCP 配置**（自动备份原 `config.json`，保留其他 MCP 服务器）；
+- 可选安装原版 MATLAB 经典界面（`classic\Impedance_Matching.exe`）；
+- 安装完成可立即启动；
+- 卸载保留 `%LOCALAPPDATA%\ImpedanceMCP\data` 用户数据。
 
-### 2.2 三种传输
-
-| 传输 | 启动 | 客户端 |
-|---|---|---|
-| stdio | `ImpedanceMCP.exe --mcp` | Claude Code / Claude Desktop / Codex / ZCode / Cursor |
-| Streamable HTTP | `--mcp --http 8790` → `POST /mcp` | 支持 HTTP 的客户端 |
-| legacy HTTP+SSE | `--mcp --http 8790` → `GET /sse` | Cherry Studio / 旧版 MCP 客户端 |
-
-### 2.3 客户端矩阵（摘要）
-
-| 客户端 | MCP | 推荐传输 |
-|---|---|---|
-| Claude Code | 是 | stdio |
-| Claude Desktop | 是 | stdio |
-| OpenAI Codex CLI | 是 | stdio |
-| ZCode | 是 | stdio |
-| Cursor | 是 | stdio |
-| Cherry Studio | 是（较新版本） | stdio / SSE |
-| Chatbox | 取决于版本 | SSE / HTTP |
-| DeepSeek 官方 App / Harness | 取决于版本 | 无 MCP 入口则无法加载 |
-
-> **诚实说明**：MCP 是开放协议，但不是所有 AI 软件都实现了它。没有 MCP 入口的客户端无法加载任何 MCP 服务器，这是客户端限制，不是本服务器“协议不标准”。即使不接 MCP，双击 exe 也能独立运行完整功能。
->
-> 完整配置与排查见 `docs/MCP兼容性说明.md`。
+> **新版 ImpedanceMCP 与 MCP 不需要 Python、不需要 MATLAB、不需要 Node.js。**
+> 原版经典界面才需要 MATLAB Runtime R2023b；安装程序会检测并提示，不会强制下载 974 MB Runtime。
 
 ---
 
-## 三、独立运行：它不只是 MCP
+## 三、内置帮助中心（类似 MATLAB Help）
 
-- 双击 `ImpedanceMCP_v4.1.0_Windows.exe`：打开独立 Web UI；
-- 不连接 AI、不配置 MCP，也能完成五种拓扑设计、Smith 圆图、扫描、带宽、灵敏度、耐压、报告；
-- 原版 `Impedance_Matching.exe` 仍保留，可从右上角「打开原版」启动；
-- 源码方式：`pip install numpy pypdf openpyxl Pillow` + `start_app.bat`。
+软件左侧新增「帮助文档」：
 
----
+- 用户手册
+- MCP 兼容性说明
+- **计算正确性审计**
+- 技术白皮书
+- 软件架构说明
+- 比赛说明文档
+- 安装与杀毒软件说明
 
-## 四、模型服务商配置（无默认）
-
-设置 → 模型服务：
-
-1. 选择服务商（214 家；常用在顶部）；
-2. Base URL 自动填入；
-3. 选择模型，或填写「自定义模型 ID」；
-4. 填写你自己在厂商控制台申请的 API Key；
-5. 点击「测试连接」。
-
-**没有默认厂商、没有默认模型、没有内置 Key。**
-
-特殊适配：
-
-- **Anthropic Claude**：Messages 原生协议（已适配工具调用）；
-- **Azure OpenAI**：`api-key` + 部署名 + `api-version`；
-- **Google Gemini**：OpenAI 兼容端点；
-- **其他**：OpenAI 兼容 `/chat/completions`。
-
-环境变量（可选，仍然不设默认厂商）：
-
-```bat
-set LLM_BASE_URL=https://api.deepseek.com/v1
-set LLM_API_KEY=sk-...
-set LLM_MODEL=deepseek-chat
-```
+支持搜索、iframe 阅读、新标签打开、打印/另存 PDF。
+安装目录 `docs` 同时提供 HTML 与 PDF，开始菜单也有帮助快捷方式。
 
 ---
 
-## 五、验证结果
+## 四、计算正确性审计（重点）
+
+新增 `app/tests/test_physics.py`，用**独立的 ABCD 级联矩阵**复核节点法，避免“同一个错误在两条公式里重复”：
 
 | 测试 | 结果 |
 |---|---|
-| Python 引擎 + MCP 协议回归 | **19/19 通过** |
-| 300 组随机设计 | **VSWR 全部 1.000000** |
-| MATLAB R2025b 交叉验证 | **5/5 通过，Zin 偏差 0.0** |
-| MCP stdio | initialize / tools/list / tools/call 通过 |
-| Streamable HTTP | initialize / tools/list / tools/call / DELETE 通过 |
-| Legacy SSE | endpoint / initialize / tools/list / notification 通过 |
-| 独立 exe | 双击启动 Web UI + 设计计算通过；`--mcp` 15 个工具通过 |
-| 浏览器 | AI / 设计 / 分析 / 耐压 / 设置 / 关于 / 报告逐页检查 |
+| ABCD vs 节点法（5 拓扑随机） | 通过，误差 < 1e-8 |
+| 正向扫描点逐点反算 | 通过，VSWR < 1.001 |
+| Smith 轨迹连续性 / 终点 | 通过 |
+| 功率守恒 / 输入峰值电压 | 通过 |
+| VSWR 与 Γ 关系 | 通过 |
+| Web 帮助 HTTP 头（中文文件名） | 通过 |
+| **总测试** | **26/26 通过** |
+| MATLAB R2025b 交叉 | 5/5，Zin 偏差 0.0 |
+| 300 组随机设计 | VSWR 全部 1.000000 |
+
+详细推导、边界与测试证据见 `docs/计算正确性审计.pdf`。
+
+> 适用范围：理想无损集总参数网络。PCB 寄生、封装 ESL/ESR、SRF、微带不连续性和全波电磁场需实测/全波仿真复核；本软件不冒充全波求解器。
 
 ---
 
-## 六、安装
+## 五、214 家模型服务商，无默认
 
-### 6.1 独立软件
-
-双击 `ImpedanceMCP_v4.1.0_Windows.exe`（约 32 MB，Release 附件）。
-无需 Python；用户数据在 `%LOCALAPPDATA%\ImpedanceMCP\data`。
-
-源码：`start_app.bat`，Python 3.10+。
-
-### 6.2 原版 MATLAB 软件
-
-- **安装包（推荐）**：`APP_Release_Release_Version/Main_Installation/MyAppInstaller_mcr.exe`。
-  **已内置 MATLAB Runtime**（`package.mcr=true`），直接安装即可。
-- **便携 exe**：需先装 `VC_redist.x64.exe` + `MATLAB_Runtime_R2023b_Update_10_win64.zip`。
-
-> 新版独立软件 / MCP 的 Python 内核不依赖 MATLAB Runtime；Runtime 只影响“打开原版 exe”和“MATLAB R2025b 复核”。
+- 目录来自开源项目 models.dev（214 家）；
+- **不设默认厂商/模型/Key**；
+- 国内：DeepSeek、阿里云百炼、智谱 GLM、Kimi、硅基流动、火山引擎方舟、MiniMax、阶跃星辰、商汤、魔搭、腾讯 TokenHub 等；
+- 国外：OpenAI、Anthropic Claude、Google Gemini、xAI、Mistral、Groq、Cohere、Together、DeepInfra、Perplexity、OpenRouter、NVIDIA、Fireworks 等；
+- 自定义：任意 OpenAI 兼容服务；
+- DeepSeek 目录包含 `deepseek-flash`、`deepseek-v4-flash` 等；
+- Anthropic 使用 Messages 原生适配；Azure 使用 `api-key` + 部署名。
 
 ---
 
-## 七、本次修复
+## 六、MCP 兼容性
 
-- 修复 PyInstaller 冻结模式数据目录写入临时目录的问题；exe 用户数据改存 `%LOCALAPPDATA%\ImpedanceMCP\data`。
-- 修复 MCP HTTP 仅支持简单 POST 的问题，补齐 Streamable HTTP 会话与 legacy SSE。
-- 修复切换服务商时可能复用旧 Key 的问题。
-- 默认配置改为空白，不再预设任何厂商 / Base URL / 模型 / Key。
-- 移除交大平台专用配置与文档；不绑定任何校园网关。
-- 保留 v4.0.0 已修复的 L 型（右）正向扫描共轭、S11 显示、报告元件值、耐压输入电压等问题。
+| 传输 | 入口 | 客户端 |
+|---|---|---|
+| stdio | `ImpedanceMCP.exe --mcp` | Claude Code / Claude Desktop / Codex / ZCode / Cursor |
+| Streamable HTTP | `--mcp --http 8790` → `POST /mcp` | 支持 HTTP 的 MCP 客户端 |
+| legacy HTTP+SSE | `--mcp --http 8790` → `GET /sse` | Cherry Studio / 旧版客户端 |
 
----
+15 个工具、3 个资源、3 个提示模板；协议版本 2024-11-05 / 2025-03-26 / 2025-06-18。
 
-## 八、附件
-
-- `ImpedanceMCP_v4.1.0_Windows.exe`：独立软件 + MCP（双击运行；`--mcp` 进 MCP）。
-- `ImpedanceMCP_v4.1.0_Source.zip`：完整源码、文档、测试（不含大安装包/Runtime）。
-- `User_Manual_v4.1.0.pdf`、`White_Paper_v4.1.0.pdf`、`Competition_Dossier_v4.1.0.pdf`、`MCP_Compatibility_v4.1.0.pdf`、`Installation_Guide_v4.1.0.pdf`。
-
-> 974 MB 的 `MyAppInstaller_mcr.exe` 与 4.6 GB 的 Runtime ZIP 不放入 GitHub Release（体积限制），它们位于项目 `APP_Release_Release_Version` 目录，安装指南中有说明与下载链接。
+**诚实说明**：MCP 是标准，但不是所有 AI 软件都实现了它。没有 MCP 入口的聊天软件无法加载任何 MCP 服务器；此时使用本软件的独立界面即可。详见 `docs/MCP兼容性说明.pdf`。
 
 ---
 
-## 九、团队
+## 七、关于杀毒软件误报（重要）
+
+**没有许可证可以阻止卡巴斯基/Windows Defender 误报。** MIT License 只是法律授权，不是白名单。
+
+本版本已做的降低误报措施：
+
+- 安装载荷使用 **PyInstaller onedir**（不是 onefile 自解压）；
+- 不使用 UPX；
+- exe 与安装程序带完整版本信息、图标、公司/产品/版权；
+- 提供 `SHA256SUMS.txt` 供下载后校验；
+- 不写启动项、不注入进程、不修改浏览器、不上传数据。
+
+**真正有效的长期方案是代码签名**（OV/EV Authenticode 证书），签名安装程序与 `ImpedanceMCP.exe`，并使用时间戳。本仓库提供 `installer/sign_example.ps1` 模板，但**不包含证书**；没有证书就无法伪造受信任签名。
+
+如果被杀毒软件隔离：
+
+1. 从 GitHub Release 重新下载；
+2. 用 `certutil -hashfile <文件> SHA256` 核对 `SHA256SUMS.txt`；
+3. 在杀毒软件中恢复并加入排除（仅在哈希一致时）；
+4. 向 Microsoft/Kaspersky/VirusTotal 提交误报。
+
+详见 `docs/安装与杀毒软件说明.pdf`。
+
+---
+
+## 八、系统要求
+
+- Windows 10/11 **x64**（x86_64）；
+- 32 位 Windows（x86 OS）不支持：程序使用 64 位 Python/NumPy 运行时；
+- 新版软件/MCP 不需要 Python、MATLAB、Node.js；
+- AI 对话需要联网 + 用户自己的 API Key；
+- 原版经典界面需要 VC++ 运行库 + MATLAB Runtime R2023b（安装程序自动装 VC++；Runtime 需另外安装）。
+
+---
+
+## 九、附件
+
+- `ImpedanceMCP_Setup_v4.2.0.exe`：Windows 安装程序（推荐）
+- `ImpedanceMCP_v4.2.0_Portable.exe`：便携版（可选）
+- `ImpedanceMCP_v4.2.0_Source.zip`：完整源码与文档
+- `User_Manual_v4.2.0.pdf`
+- `White_Paper_v4.2.0.pdf`
+- `Competition_Dossier_v4.2.0.pdf`
+- `MCP_Compatibility_v4.2.0.pdf`
+- `Calculation_Audit_v4.2.0.pdf`
+- `Installation_And_Antivirus_v4.2.0.pdf`
+- `SHA256SUMS.txt`
+
+> 974 MB 的 `MyAppInstaller_mcr.exe` 与 4.6 GB 的 Runtime ZIP 不放入 GitHub Release（体积限制）；它们位于项目 `APP_Release_Release_Version` 目录，安装指南中有说明。
+
+---
+
+## 十、团队
 
 | 成员 | 分工 |
 |---|---|

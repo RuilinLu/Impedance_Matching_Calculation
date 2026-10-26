@@ -34,10 +34,13 @@ else:
 UPLOAD_DIR = DATA_DIR / "uploads"
 REPORT_DIR = DATA_DIR / "reports"
 CONFIG_PATH = DATA_DIR / "config.json"
+if FROZEN:
+    HELP_DIR = EXE_DIR / "docs" if (EXE_DIR / "docs").exists() else (APP_DIR / "docs")
+else:
+    HELP_DIR = PROJECT_ROOT / "docs"
 
 
-
-VERSION = "4.1.0"
+VERSION = "4.2.0"
 RELEASE_DATE = "2026-10-26"
 TEAM = [
     {"name": "卢瑞林", "role": "项目负责人 / 算法与 MCP 架构", "initials": "LRL"},
@@ -45,6 +48,8 @@ TEAM = [
     {"name": "林芷伊", "role": "交互设计、可视化与文档", "initials": "LZY"},
     {"name": "张昀蕾", "role": "测试、演示与用户研究", "initials": "ZYL"},
 ]
+AUTHOR_EMAILS = ["radarlurui@gmail.com", "Lu_Skywalker2915@sjtu.edu.cn"]
+PROJECT_URL = "https://github.com/RuilinLu/Impedance_Matching_Calculation"
 
 
 def ensure_dirs() -> None:
@@ -302,6 +307,8 @@ def status() -> Dict[str, Any]:
             "legacy_sse": "http://127.0.0.1:8790/sse",
         },
         "team": TEAM,
+        "contacts": AUTHOR_EMAILS,
+        "project_url": PROJECT_URL,
         "python": sys.version.split()[0],
         "project_root": str(PROJECT_ROOT),
         "frozen": FROZEN,

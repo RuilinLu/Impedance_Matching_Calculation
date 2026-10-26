@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>安装指南与目录说明 V4.1 · 智配芯生 ImpedanceMCP</title>
+<title>安装指南与目录说明 V4.2 · 智配芯生 ImpedanceMCP</title>
 <style>
 :root{
   --blue:#004098; --blue-2:#0b5cab; --red:#8B0000; --ink:#1f2937; --muted:#5b6b82;
@@ -69,7 +69,7 @@ tr:nth-child(even) td{background:#fbfdff}
     <h1>安装指南与目录说明</h1>
     <p>智配芯生 · ImpedanceMCP — 微波阻抗匹配智能计算与仿真软件</p>
     <div class="meta">
-      <span><b>版本</b> v4.1.0</span>
+      <span><b>版本</b> v4.2.0</span>
       <span><b>更新</b> 2026-10-26</span>
       <span><b>开发者</b> 卢瑞林、卢柯吉、林芷伊、张昀蕾</span>
       <span><b>赛道</b> 赛道一 · AI 智能体</span>
@@ -87,10 +87,10 @@ tr:nth-child(even) td{background:#fbfdff}
     <h2>1. 三种使用方式</h2>
     <div class="grid">
       <div class="card">
-        <h4>A. 独立软件（推荐）</h4>
-        <p>双击即用：AI 对话 + 五种拓扑 + Smith 圆图 + MCP 工具 + 报告；不需要 Python，也不需要 AI 客户端。</p>
-        <span class="file">ImpedanceMCP_v4.1.0_Windows.exe</span>
-        <p style="margin-top:6px">源码方式：<span class="file">start_app.bat</span>（需要 Python）</p>
+        <h4>A. 安装程序（推荐）</h4>
+        <p>双击安装，检测系统/VC++，可选安装目录、桌面快捷方式、ZCode MCP 配置；安装后双击桌面 ImpedanceMCP 即用，不需要 Python。</p>
+        <span class="file">ImpedanceMCP_Setup_v4.2.0.exe</span>
+        <p style="margin-top:6px">便携版：<span class="file">ImpedanceMCP_v4.2.0_Portable.exe</span> · 源码：<span class="file">start_app.bat</span></p>
       </div>
       <div class="card">
         <h4>B. 原版安装包（经典界面）</h4>
@@ -109,17 +109,16 @@ tr:nth-child(even) td{background:#fbfdff}
       </div>
     </div>
 
-    <h2>2. 安装新版智能外壳</h2>
+    <h2>2. 安装程序（推荐）</h2>
     <ol class="steps">
-      <li>确认 Windows 10/11 64 位，安装 <b>Python 3.10+</b>（推荐 3.11–3.14），勾选 “Add Python to PATH”。</li>
-      <li>在项目根目录打开命令行，执行：
-        <pre><code>pip install numpy pypdf openpyxl Pillow</code></pre>
-        <code>numpy</code> 是计算必需；其余用于 PDF/XLSX/图片附件解析，可选。
-      </li>
-      <li>双击 <code>start_app.bat</code>，或在命令行执行 <code>python app\run_app.py</code>。</li>
-      <li>浏览器自动打开 <code>http://127.0.0.1:8765/</code>；若端口被占用，会自动尝试 8766–8776。</li>
-      <li>点击右上角「设置」，选择服务商与模型（214 家国内外厂商，无默认），填写你自己的 API Key，点击「测试连接」。</li>
+      <li>确认 Windows 10/11 <b>x64</b>（32 位 Windows 不支持）。</li>
+      <li>双击 <code>ImpedanceMCP_Setup_v4.2.0.exe</code>，按向导选择安装目录。</li>
+      <li>按需勾选：桌面快捷方式、开始菜单、帮助文档、<b>为 ZCode 写入 MCP 配置</b>、原版经典界面。</li>
+      <li>安装程序会检测 VC++ 运行库，缺失时自动安装；MATLAB Runtime 只影响原版经典界面，新版不需要。</li>
+      <li>安装完成后双击桌面 <code>ImpedanceMCP</code>（或安装目录的 <code>ImpedanceMCP.exe</code>）打开软件。</li>
+      <li>首次使用 AI：设置 → 选择服务商与模型（214 家，无默认）→ 填自己的 API Key → 测试连接。</li>
     </ol>
+    <p>便携版：双击 <code>ImpedanceMCP_v4.2.0_Portable.exe</code>，无需安装。源码方式：安装 Python 3.10+ 后运行 <code>start_app.bat</code>。</p>
 
     <div class="alert info">
       <b>不需要 MATLAB 也能用新版：</b>默认 Python 内核完成全部计算、绘图、报告与 MCP 工具。
@@ -176,7 +175,8 @@ tr:nth-child(even) td{background:#fbfdff}
 ├─ <span class="e">start_app.bat</span>               <span class="c"># 一键启动新版</span>
 ├─ <span class="e">start_mcp.bat</span>               <span class="c"># 一键启动 MCP</span>
 ├─ <span class="f">release/</span>
-│  └─ <span class="e">ImpedanceMCP_v4.1.0_Windows.exe</span>  <span class="c"># 独立软件 + MCP</span>
+│  ├─ <span class="e">ImpedanceMCP_Setup_v4.2.0.exe</span>      <span class="c"># 安装程序（推荐）</span>
+│  └─ <span class="e">ImpedanceMCP_v4.2.0_Portable.exe</span>   <span class="c"># 便携版（可选）</span>
 ├─ <span class="p">README.md</span>                   <span class="c"># 总说明</span>
 ├─ <span class="p">requirements.txt</span>            <span class="c"># Python 依赖</span>
 ├─ <span class="p">mcp.example.json</span>            <span class="c"># MCP 配置示例</span>
@@ -191,7 +191,7 @@ tr:nth-child(even) td{background:#fbfdff}
     "servers": {
       "impedance-matching": {
         "type": "stdio",
-        "command": "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe",
+        "command": "C:\\path\\to\\ImpedanceMCP.exe",
         "args": ["--mcp"],
         "timeoutMs": 120000
       }
@@ -236,7 +236,7 @@ tr:nth-child(even) td{background:#fbfdff}
     <div class="footer">
       <b>开发者：</b>卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
       上海交通大学集成电路学院（信息与电子工程学院）· “智绘芯生，AI 赋能” AI 教与学活动周 · 赛道一<br>
-      版本 v4.1.0 ｜ 更新日期 2026-10-26 ｜ 仓库：github.com/RuilinLu/Impedance_Matching_Calculation
+      版本 v4.2.0 ｜ 更新日期 2026-10-26 ｜ 仓库：github.com/RuilinLu/Impedance_Matching_Calculation
     </div>
   </div>
 </div>

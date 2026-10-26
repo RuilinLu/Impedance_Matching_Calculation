@@ -50,3 +50,7 @@ Desktop.ini
 
 # local release assets (uploaded to GitHub Releases)
 release/*.pdf
+
+# ---- Generated app payload ----
+release/*_App/
+release/mcp_home/
