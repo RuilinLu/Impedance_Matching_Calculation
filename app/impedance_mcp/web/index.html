@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>智配芯生 · ImpedanceMCP — 微波阻抗匹配智能计算与仿真</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<svg class="svg-sprite" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M8 24h8l3-9 5 18 4-13 3 4h9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24" cy="24" r="2.4" fill="currentColor"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3v4M8.5 12.5h.01M15.5 12.5h.01M9 16h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M2.5 12v4M21.5 12v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-design" viewBox="0 0 24 24"><path d="M4 18V6m0 6h5l3-5 3 10 3-5h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="12" r="1.4" fill="currentColor"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 3.5v17M3.5 12h17M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.1" opacity=".55"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.2-2.8 7.4-7 9-4.2-1.6-7-4.8-7-9V6l7-3z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m9 12 2.2 2.2L15.5 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 10.5v5M12 7.5h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1.1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+  <symbol id="i-attach" viewBox="0 0 24 24"><path d="M20 11.5 12.7 18.8a4 4 0 0 1-5.7-5.7l7.8-7.8a2.8 2.8 0 0 1 4 4l-7.9 7.9a1.7 1.7 0 0 1-2.4-2.4l7.1-7.1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12 20 4l-4.5 16-3.4-6.1L4 12z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m12.1 13.9 3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5-11-6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5V9H9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.4L19 10l-5.1 1.6L12 17l-1.9-5.4L5 10l5.1-1.6L12 3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z" fill="currentColor" opacity=".7"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 21 20H3L12 4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 9v5M12 17h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><svg><use href="#i-logo"/></svg></div>
+      <div class="brand-text">
+        <strong>智配芯生</strong>
+        <span>ImpedanceMCP</span>
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-view="agent">
+        <svg><use href="#i-bot"/></svg>
+        <span class="nav-copy"><b>AI 智能体</b><small>对话 · 工具 · 报告</small></span>
+      </button>
+      <button class="nav-item" data-view="design">
+        <svg><use href="#i-design"/></svg>
+        <span class="nav-copy"><b>匹配设计</b><small>L / T / π 五种拓扑</small></span>
+      </button>
+      <button class="nav-item" data-view="analysis">
+        <svg><use href="#i-chart"/></svg>
+        <span class="nav-copy"><b>圆图分析</b><small>扫描 · 带宽 · 对比</small></span>
+      </button>
+      <button class="nav-item" data-view="stress">
+        <svg><use href="#i-shield"/></svg>
+        <span class="nav-copy"><b>耐压分析</b><small>峰值电压 · 电流应力</small></span>
+      </button>
+      <button class="nav-item" data-view="about">
+        <svg><use href="#i-info"/></svg>
+        <span class="nav-copy"><b>关于与团队</b><small>架构 · MCP · 四位开发者</small></span>
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="mcp-state" id="mcpState">
+        <span class="pulse"></span>
+        <div><b>MCP Server</b><small id="mcpStateText">stdio · 15 个工具</small></div>
+      </div>
+      <button class="copy-config" id="btnCopyMcpSide">
+        <svg><use href="#i-copy"/></svg> 复制 ZCode 配置
+      </button>
+      <div class="version">v4.0.0 · 2026-10-26<br>上海交通大学集成电路学院</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">
+        <h1 id="viewTitle">AI 智能体</h1>
+        <p id="viewSubtitle">用自然语言驱动微波阻抗匹配计算、仿真与工程决策</p>
+      </div>
+      <div class="status-group">
+        <span class="pill" id="llmStatus"><i class="dot"></i><span>模型检测中…</span></span>
+        <span class="pill" id="matlabStatus"><i class="dot"></i><span>MATLAB 检测中…</span></span>
+        <span class="pill" id="mcpStatus"><i class="dot ok"></i><span>MCP 就绪</span></span>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn ghost icon-only" id="btnSettings" title="设置"><svg><use href="#i-settings"/></svg></button>
+        <button class="btn ghost" id="btnMatlab"><svg><use href="#i-external"/></svg><span>打开原版</span></button>
+        <button class="btn primary" id="btnReport"><svg><use href="#i-download"/></svg><span>导出报告</span></button>
+      </div>
+    </header>
+
+    <div class="views" id="views">
+
+      <!-- ================= AI AGENT ================= -->
+      <section class="view active" id="view-agent">
+        <div class="agent-layout">
+          <div class="chat-panel">
+            <div class="chat-scroll" id="chatScroll">
+              <div class="chat-welcome" id="chatWelcome">
+                <div class="welcome-orbit">
+                  <div class="orbit-ring"></div>
+                  <div class="orbit-core"><svg><use href="#i-logo"/></svg></div>
+                  <span class="orbit-dot d1"></span><span class="orbit-dot d2"></span><span class="orbit-dot d3"></span>
+                </div>
+                <h2>把匹配设计交给对话</h2>
+                <p>我会调用本地仿真引擎完成计算，再用微波工程语言解释每一步。试试下面的问题，或直接描述你的负载。</p>
+                <div class="suggest-grid" id="suggestGrid">
+                  <button class="suggest" data-prompt="在 2.4 GHz 把 20+j5 Ω 匹配到 50 Ω，给出完整元件值和 VSWR。">
+                    <span class="suggest-icon">2.4G</span>
+                    <b>Wi-Fi 低阻负载</b><small>2.4 GHz · 20+j5 Ω</small>
+                  </button>
+                  <button class="suggest" data-prompt="比较 L 型、T 型和 π 型，哪种更适合 100−j30 Ω 的高阻负载？给出带宽对比。">
+                    <span class="suggest-icon">高阻</span>
+                    <b>高阻拓扑对比</b><small>100−j30 Ω · 带宽优先</small>
+                  </button>
+                  <button class="suggest" data-prompt="为 433 MHz、15 Ω 的负载设计匹配网络，并分析 ±5% 容差和 10 W 下的元件耐压。">
+                    <span class="suggest-icon">433</span>
+                    <b>功率与容差</b><small>433 MHz · 10 W</small>
+                  </button>
+                  <button class="suggest" data-prompt="解释史密斯圆图上串联电感和并联电容的轨迹方向，并画一个例子。">
+                    <span class="suggest-icon">理论</span>
+                    <b>圆图原理</b><small>轨迹 · 等电阻圆</small>
+                  </button>
+                </div>
+                <div class="welcome-features">
+                  <span><svg><use href="#i-check"/></svg> 15 个 MCP 工具</span>
+                  <span><svg><use href="#i-check"/></svg> 节点法双重校验</span>
+                  <span><svg><use href="#i-check"/></svg> 支持 PDF / DOCX / XLSX 附件</span>
+                </div>
+              </div>
+              <div class="messages" id="messages"></div>
+            </div>
+            <div class="composer">
+              <div class="attachment-bar" id="attachmentBar"></div>
+              <div class="composer-box">
+                <textarea id="chatInput" rows="1" placeholder="描述负载与频率，或直接提问…  Enter 发送，Shift+Enter 换行"></textarea>
+                <div class="composer-tools">
+                  <div class="left-tools">
+                    <button class="tool-btn" id="btnAttach" title="上传附件"><svg><use href="#i-attach"/></svg></button>
+                    <input type="file" id="fileInput" multiple hidden accept=".txt,.md,.csv,.json,.pdf,.docx,.xlsx,.pptx,.ipynb,.py,.m,.png,.jpg,.jpeg">
+                    <select id="modelSelect" class="model-select" title="模型"></select>
+                  </div>
+                  <div class="right-tools">
+                    <span class="kbd-hint">Enter 发送</span>
+                    <button class="send-btn" id="btnSend" title="发送"><svg><use href="#i-send"/></svg></button>
+                  </div>
+                </div>
+              </div>
+              <div class="composer-note">AI 可能出错，工程结论请用「MATLAB 复核」与实测验证。</div>
+            </div>
+          </div>
+          <aside class="agent-rail">
+            <div class="rail-card">
+              <div class="rail-head"><h3>当前设计上下文</h3><span class="tag" id="contextTag">未设计</span></div>
+              <div id="contextDesign" class="context-empty">
+                <div class="empty-icon"><svg><use href="#i-chart"/></svg></div>
+                <p>完成一次设计后，这里会显示元件值、VSWR 和圆图缩略图。</p>
+              </div>
+              <canvas id="miniSmith" class="mini-smith" width="280" height="280"></canvas>
+              <div class="context-actions">
+                <button class="btn tiny" id="btnContextDesign">在设计中打开</button>
+                <button class="btn tiny ghost" id="btnContextReport">导出报告</button>
+              </div>
+            </div>
+            <div class="rail-card">
+              <div class="rail-head"><h3>MCP 工具</h3><span class="tag cyan">15</span></div>
+              <div class="tool-list" id="toolList"></div>
+              <button class="btn tiny block" id="btnCopyMcp"><svg><use href="#i-copy"/></svg> 复制 ZCode MCP 配置</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ================= DESIGN ================= -->
+      <section class="view" id="view-design">
+        <div class="design-layout">
+          <aside class="form-panel">
+            <div class="form-head">
+              <h2>设计参数</h2>
+              <span class="tag" id="designModeTag">Python 内核</span>
+            </div>
+            <div class="topology-pills" id="topologyPills">
+              <button class="topo-pill active" data-topology="auto">自动</button>
+              <button class="topo-pill" data-topology="l_right">L·右</button>
+              <button class="topo-pill" data-topology="l_left">L·左</button>
+              <button class="topo-pill" data-topology="t">T</button>
+              <button class="topo-pill" data-topology="pi1">πⅠ</button>
+              <button class="topo-pill" data-topology="pi2">πⅡ</button>
+            </div>
+            <div class="topo-desc" id="topoDesc">自动比较五种拓扑，优先选择元件更少、可实现性更好的方案。</div>
+            <div class="field-grid">
+              <label class="field"><span>频率 <em>MHz</em></span><input id="inFreq" type="number" value="2400" min="0.001" step="1"></label>
+              <label class="field"><span>系统阻抗 <em>Ω</em></span><input id="inZ0" type="number" value="50" min="1" step="1"></label>
+              <label class="field"><span>负载实部 R<sub>L</sub> <em>Ω</em></span><input id="inR" type="number" value="20" min="0.001" step="0.1"></label>
+              <label class="field"><span>负载虚部 X<sub>L</sub> <em>Ω</em></span><input id="inX" type="number" value="5" step="0.1"></label>
+            </div>
+            <div class="section-label"><span>固定元件</span><i></i></div>
+            <label class="toggle-row">
+              <span><b>自动选值</b><small>自动选择可行的 L 与 C3</small></span>
+              <input type="checkbox" id="autoFixed" checked>
+            </label>
+            <div class="field-grid fixed-grid" id="fixedFields">
+              <label class="field"><span>电感 L <em>µH</em></span><input id="inL" type="number" value="1.94" min="0.000001" step="0.1" disabled></label>
+              <label class="field" id="c3Field"><span>电容 C3 <em>pF</em></span><input id="inC3" type="number" value="2" min="0.001" step="0.1" disabled></label>
+            </div>
+            <div class="form-actions">
+              <button class="btn primary block" id="btnDesign">求解设计</button>
+              <div class="btn-row">
+                <button class="btn ghost" id="btnScan">扫描范围</button>
+                <button class="btn ghost" id="btnMatlabVerify">MATLAB 复核</button>
+              </div>
+            </div>
+            <div class="section-label"><span>快速预设</span><i></i></div>
+            <div class="preset-list" id="presetList"></div>
+            <div class="form-note">提示：L 型适合纯阻抗变换；需要带宽或调节自由度时选 T / π 型。</div>
+          </aside>
+
+          <div class="design-main" id="designMain">
+            <div class="kpi-row" id="designKpis">
+              <div class="kpi-card"><span>VSWR</span><b>—</b><small>目标 &lt; 1.5</small></div>
+              <div class="kpi-card"><span>S11</span><b>—</b><small>dB</small></div>
+              <div class="kpi-card"><span>带宽</span><b>—</b><small>VSWR &lt; 2</small></div>
+              <div class="kpi-card"><span>设计 Q</span><b>—</b><small>越低越宽</small></div>
+            </div>
+            <div class="empty-design" id="emptyDesign">
+              <div class="empty-visual"><div class="pulse-ring"></div><svg><use href="#i-design"/></svg></div>
+              <h3>输入参数，开始一次匹配设计</h3>
+              <p>软件会同时给出解析解与完整网络节点法复核结果，并在 Smith 圆图上逐步演示。</p>
+              <button class="btn primary" id="btnDesignEmpty">使用 2.4 GHz / 20+j5 Ω 演示</button>
+            </div>
+            <div id="designResult" class="hidden">
+              <div class="viz-grid">
+                <div class="panel chart-panel">
+                  <div class="panel-head">
+                    <div><h2>Smith 圆图</h2><p id="smithSub">反射系数平面 · 归一化到 50Ω</p></div>
+                    <div class="chart-controls">
+                      <button class="icon-btn sm" id="btnPlay" title="播放"><svg><use href="#i-play"/></svg></button>
+                      <button class="icon-btn sm" id="btnResetChart" title="重置"><svg><use href="#i-reset"/></svg></button>
+                      <input type="range" id="speedRange" min="1" max="100" value="45" title="动画速度">
+                    </div>
+                  </div>
+                  <div class="canvas-wrap"><canvas id="smithCanvas"></canvas><div class="smith-tooltip" id="smithTooltip"></div></div>
+                  <div class="legend" id="smithLegend"></div>
+                </div>
+                <div class="panel steps-panel">
+                  <div class="panel-head"><h2>匹配步骤</h2><span class="tag" id="stepCount">0 步</span></div>
+                  <div class="step-list" id="stepList"></div>
+                  <div class="formula-box" id="formulaBox"></div>
+                </div>
+              </div>
+              <div class="panel topology-panel">
+                <div class="panel-head"><h2>电路拓扑与元件</h2><span class="tag" id="topoName">—</span></div>
+                <div class="topology-flex">
+                  <div class="topo-diagram" id="topoDiagram"></div>
+                  <div class="component-grid" id="componentGrid"></div>
+                </div>
+              </div>
+              <div class="viz-grid two">
+                <div class="panel"><div class="panel-head"><h2>VSWR 带宽</h2><span class="tag" id="bwTag">—</span></div><canvas id="bwCanvas" class="chart-canvas"></canvas><div class="chart-note" id="bwNote"></div></div>
+                <div class="panel"><div class="panel-head"><h2>±5% 容差灵敏度</h2><span class="tag">最差 VSWR</span></div><canvas id="sensCanvas" class="chart-canvas"></canvas><div class="chart-note" id="sensNote"></div></div>
+              </div>
+              <div class="panel warning-panel" id="warningPanel">
+                <div class="panel-head"><h2>工程提示</h2><span class="tag amber" id="warnCount">0</span></div>
+                <ul id="warningList" class="warning-list"></ul>
+              </div>
+              <div class="panel" id="alternativesPanel">
+                <div class="panel-head"><h2>可选拓扑对比</h2><span class="tag">自动推荐</span></div>
+                <div class="alt-grid" id="altGrid"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ANALYSIS ================= -->
+      <section class="view" id="view-analysis">
+        <div class="analysis-layout">
+          <aside class="form-panel slim">
+            <div class="form-head"><h2>扫描设置</h2><span class="tag">正向</span></div>
+            <label class="field"><span>拓扑</span><select id="anTopology" class="select">
+              <option value="l_right">L型（右）</option><option value="l_left">L型（左）</option>
+              <option value="t">T型</option><option value="pi1">π型Ⅰ</option><option value="pi2">π型Ⅱ</option>
+            </select></label>
+            <div class="field-grid">
+              <label class="field"><span>频率 <em>MHz</em></span><input id="anFreq" type="number" value="2400" step="1"></label>
+              <label class="field"><span>Z0 <em>Ω</em></span><input id="anZ0" type="number" value="50" step="1"></label>
+              <label class="field"><span>电感 L <em>µH</em></span><input id="anL" type="number" value="1.94" step="0.1"></label>
+              <label class="field"><span>扫描步数</span><input id="anSteps" type="number" value="45" min="6" max="80" step="1"></label>
+              <label class="field"><span>R<sub>L</sub> <em>Ω</em></span><input id="anR" type="number" value="20" step="0.1"></label>
+              <label class="field"><span>X<sub>L</sub> <em>Ω</em></span><input id="anX" type="number" value="5" step="0.1"></label>
+            </div>
+            <div class="section-label"><span>可调电容范围 pF</span><i></i></div>
+            <div class="range-row"><label>C1</label><input id="anC1min" type="number" value="0.5"><span>–</span><input id="anC1max" type="number" value="10"></div>
+            <div class="range-row"><label>C2</label><input id="anC2min" type="number" value="0.5"><span>–</span><input id="anC2max" type="number" value="10"></div>
+            <div class="range-row" id="anC3row"><label>C3</label><input id="anC3min" type="number" value="0.2"><span>–</span><input id="anC3max" type="number" value="10"></div>
+            <button class="btn primary block" id="btnRunScan">运行扫描</button>
+            <div class="form-note">扫描点以灰色显示在圆图上；颜色越亮表示越接近圆心。</div>
+          </aside>
+          <div class="analysis-main">
+            <div class="kpi-row" id="scanKpis">
+              <div class="kpi-card"><span>R 范围</span><b>—</b><small>Ω</small></div>
+              <div class="kpi-card"><span>X 范围</span><b>—</b><small>Ω</small></div>
+              <div class="kpi-card"><span>有效点</span><b>—</b><small>个</small></div>
+              <div class="kpi-card"><span>覆盖密度</span><b>—</b><small>相对图形</small></div>
+            </div>
+            <div class="viz-grid">
+              <div class="panel chart-panel">
+                <div class="panel-head"><h2>匹配范围圆图</h2><span class="tag cyan" id="scanTopoTag">L·右</span></div>
+                <div class="canvas-wrap"><canvas id="scanCanvas"></canvas><div class="smith-tooltip" id="scanTooltip"></div></div>
+                <div class="legend"><span><i class="legend-dot" style="background:#64748b"></i>扫描点</span><span><i class="legend-dot" style="background:#22d3ee"></i>高密度区域</span><span><i class="legend-dot" style="background:#f59e0b"></i>当前负载</span></div>
+              </div>
+              <div class="panel">
+                <div class="panel-head"><h2>拓扑对比</h2><button class="btn tiny ghost" id="btnCompare">重新比较</button></div>
+                <div class="compare-list" id="compareList"><div class="empty-mini">点击「重新比较」评估五种拓扑。</div></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h2>扫描结论</h2><span class="tag">自动生成</span></div>
+              <div class="scan-summary" id="scanSummary">尚未运行扫描。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= STRESS ================= -->
+      <section class="view" id="view-stress">
+        <div class="stress-layout">
+          <aside class="form-panel slim">
+            <div class="form-head"><h2>耐压参数</h2><span class="tag">节点法</span></div>
+            <label class="field"><span>拓扑</span><select id="stTopology" class="select">
+              <option value="l_right">L型（右）</option><option value="l_left">L型（左）</option>
+              <option value="t">T型</option><option value="pi1">π型Ⅰ</option><option value="pi2">π型Ⅱ</option>
+            </select></label>
+            <div class="field-grid">
+              <label class="field"><span>频率 <em>MHz</em></span><input id="stFreq" type="number" value="2400"></label>
+              <label class="field"><span>输入功率 <em>W</em></span><input id="stPower" type="number" value="10" min="0.001"></label>
+              <label class="field"><span>R<sub>L</sub> <em>Ω</em></span><input id="stR" type="number" value="20"></label>
+              <label class="field"><span>X<sub>L</sub> <em>Ω</em></span><input id="stX" type="number" value="5"></label>
+              <label class="field"><span>L <em>µH</em></span><input id="stL" type="number" value="1.94" step="0.1"></label>
+              <label class="field"><span>C1 <em>pF</em></span><input id="stC1" type="number" value="1.62" step="0.1"></label>
+              <label class="field"><span>C2 <em>pF</em></span><input id="stC2" type="number" value="6.8" step="0.1"></label>
+              <label class="field" id="stC3Field"><span>C3 <em>pF</em></span><input id="stC3" type="number" value="0" step="0.1"></label>
+              <label class="field"><span>额定电压 <em>V</em></span><input id="stRated" type="number" value="0" step="1"></label>
+            </div>
+            <button class="btn primary block" id="btnStress">开始耐压分析</button>
+            <button class="btn ghost block" id="btnStressFromDesign">从当前设计填入</button>
+            <div class="form-note">峰值电压包含源阻抗 50Ω 的负载效应；额定电压用于计算安全系数。</div>
+          </aside>
+          <div class="stress-main">
+            <div class="kpi-row" id="stressKpis">
+              <div class="kpi-card"><span>源峰值电压</span><b>—</b><small>V</small></div>
+              <div class="kpi-card"><span>负载峰值电压</span><b>—</b><small>V</small></div>
+              <div class="kpi-card"><span>最大元件电压</span><b>—</b><small>V</small></div>
+              <div class="kpi-card"><span>最小安全系数</span><b>—</b><small>额定 / 峰值</small></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h2>元件应力</h2><span class="tag amber" id="stressTag">—</span></div>
+              <canvas id="stressCanvas" class="chart-canvas tall"></canvas>
+              <div class="table-wrap"><table class="data-table" id="stressTable"><thead><tr><th>元件</th><th>峰值电压</th><th>RMS 电压</th><th>峰值电流</th><th>RMS 电流</th><th>安全系数</th></tr></thead><tbody></tbody></table></div>
+            </div>
+            <div class="panel"><div class="panel-head"><h2>工程建议</h2></div><ul class="warning-list" id="stressAdvice"><li>完成一次计算后显示建议。</li></ul></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ABOUT ================= -->
+      <section class="view" id="view-about">
+        <div class="about-wrap">
+          <div class="about-hero">
+            <div class="about-mark"><svg><use href="#i-logo"/></svg></div>
+            <div><h2>智配芯生 · ImpedanceMCP</h2><p>微波阻抗匹配智能计算与仿真软件 · v4.0.0</p></div>
+            <span class="tag cyan">赛道一 · AI 智能体</span>
+          </div>
+          <div class="about-grid">
+            <div class="panel">
+              <h3>我们做了什么</h3>
+              <p>在原有 MATLAB App Designer 软件的基础上，保留并封装经典 <code>Impedance_Matching.exe</code> 计算内核，新增 Python / MATLAB R2025b 双计算引擎、MCP 标准接口、DeepSeek 工具调用智能体与现代化可视化界面。</p>
+              <div class="feature-grid">
+                <div><b>01</b><span>五种拓扑解析设计 + 节点法复核</span></div>
+                <div><b>02</b><span>Smith 圆图逐步动画与匹配范围扫描</span></div>
+                <div><b>03</b><span>VSWR 带宽、±5% 容差、耐压分析</span></div>
+                <div><b>04</b><span>MCP 服务，可被 ZCode / 任意 Agent 调用</span></div>
+                <div><b>05</b><span>DeepSeek 对话、附件解析、工具调用</span></div>
+                <div><b>06</b><span>一键导出 HTML / Markdown 报告</span></div>
+              </div>
+            </div>
+            <div class="panel team-panel">
+              <h3>开发团队</h3>
+              <div class="team-list">
+                <div class="team-member"><div class="avatar">卢</div><div><b>卢瑞林</b><small>项目负责人 · 算法与 MCP 架构</small></div></div>
+                <div class="team-member"><div class="avatar">卢</div><div><b>卢柯吉</b><small>MATLAB 计算内核与仿真验证</small></div></div>
+                <div class="team-member"><div class="avatar">林</div><div><b>林芷伊</b><small>交互设计、可视化与文档</small></div></div>
+                <div class="team-member"><div class="avatar">张</div><div><b>张昀蕾</b><small>测试、演示与用户研究</small></div></div>
+              </div>
+              <p class="team-note">上海交通大学集成电路学院（信息与电子工程学院）<br>“智绘芯生，AI 赋能” AI 教与学活动周</p>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>系统架构</h3>
+            <div class="arch">
+              <div class="arch-layer"><span>表现层</span><div>Web UI · Smith 圆图 · 对话 · 报告</div></div>
+              <div class="arch-arrow">↓</div>
+              <div class="arch-layer"><span>智能体层</span><div>DeepSeek 工具调用 · 附件解析 · 知识库检索</div></div>
+              <div class="arch-arrow">↓</div>
+              <div class="arch-layer"><span>协议层</span><div>MCP stdio / HTTP · 15 个工具 · 3 个资源</div></div>
+              <div class="arch-arrow">↓</div>
+              <div class="arch-layer"><span>计算层</span><div>Python 引擎 · MATLAB R2025b 批处理 · 原版 exe 外壳</div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>MCP 接入</h3>
+            <p>在 ZCode / Claude Desktop / 任意 MCP 客户端中加入以下配置，即可让智能体调用匹配计算工具：</p>
+            <pre class="code-block" id="aboutMcpCode">加载中…</pre>
+            <button class="btn tiny" id="btnCopyMcpAbout"><svg><use href="#i-copy"/></svg> 复制配置</button>
+          </div>
+          <div class="about-foot">
+            <span>v4.0.0 · 更新日期 2026-10-26</span>
+            <span>开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾</span>
+            <a href="https://github.com/RuilinLu/Impedance_Matching_Calculation" target="_blank" rel="noreferrer">GitHub 仓库 ↗</a>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ================= SETTINGS MODAL ================= -->
+<div class="modal-backdrop hidden" id="settingsModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h2>设置</h2><p>模型服务 · 计算引擎 · MCP</p></div>
+      <button class="icon-btn" id="btnCloseSettings"><svg><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <section class="settings-section">
+        <h3>模型服务</h3>
+        <div class="field-grid two-col">
+          <label class="field"><span>服务预设</span><select id="setProvider" class="select">
+            <option value="sjtu">上海交大模型平台</option>
+            <option value="deepseek">DeepSeek 官方</option>
+            <option value="custom">自定义 OpenAI 兼容服务</option>
+          </select></label>
+          <label class="field"><span>模型 ID</span><select id="setModel" class="select"></select></label>
+        </div>
+        <label class="field"><span>Base URL</span><input id="setBaseUrl" type="text" placeholder="https://api.deepseek.com/v1"></label>
+        <label class="field"><span>API Key <em>仅保存在本机 data/config.json</em></span><input id="setApiKey" type="password" placeholder="sk-…"></label>
+        <div class="field-grid two-col">
+          <label class="field"><span>温度</span><input id="setTemp" type="number" min="0" max="2" step="0.05" value="0.25"></label>
+          <label class="field"><span>最大输出 tokens</span><input id="setMaxTokens" type="number" min="256" max="8192" step="128" value="2600"></label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="btnTestLlm">测试连接</button>
+          <span class="inline-status" id="llmTestResult"></span>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h3>计算引擎</h3>
+        <div class="engine-options">
+          <label class="radio-card"><input type="radio" name="engine" value="python" checked><div><b>Python 内核</b><small>毫秒级，默认；公式与 MATLAB 逐项一致并做节点法复核</small></div></label>
+          <label class="radio-card"><input type="radio" name="engine" value="matlab"><div><b>MATLAB R2025b</b><small>通过 -batch 调用已安装的 MATLAB 进行交叉复核</small></div></label>
+        </div>
+        <div class="engine-status" id="engineStatus">检测中…</div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="btnOpenMatlab">打开原版 Impedance_Matching.exe</button>
+          <button class="btn ghost" id="btnRecheck">重新检测</button>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h3>ZCode MCP 配置</h3>
+        <p class="muted">把这段加入 <code>~/.zcode/cli/config.json</code> 的 <code>mcp.servers</code>，重启 ZCode 即可看到 15 个工具。</p>
+        <pre class="code-block small" id="settingsMcpCode">加载中…</pre>
+        <button class="btn tiny" id="btnCopyMcpSettings"><svg><use href="#i-copy"/></svg> 复制配置</button>
+      </section>
+    </div>
+    <div class="modal-foot">
+      <span class="muted" id="saveHint"></span>
+      <div><button class="btn ghost" id="btnCancelSettings">取消</button><button class="btn primary" id="btnSaveSettings">保存设置</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+<script src="/smith.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
