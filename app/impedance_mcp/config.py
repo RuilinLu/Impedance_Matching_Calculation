@@ -86,7 +86,7 @@ def default_config() -> Dict[str, Any]:
             "chat_path": "",
             "extra_headers": {},
             "temperature": 0.25,
-            "max_tokens": 4096,
+            "max_tokens": 16384,
             "reasoning_effort": "",
             "thinking_budget": 0,
             "model_profile": {},

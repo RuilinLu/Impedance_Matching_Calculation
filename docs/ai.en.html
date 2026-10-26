@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Model Interface · Impedance Matching AI</title>
+<link rel="stylesheet" href="manual.css">
+<script>
+window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},svg:{fontCache:"global"},
+options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
+</script>
+<script src="vendor/mathjax/tex-svg-full.js"></script>
+</head><body><div class="layout"><aside>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.3.0</small></div></div>
+<nav><a class="" href="index.html">文档首页</a>
+<a class="" href="features.zh.html">软件功能文档</a>
+<a class="" href="code.zh.html">代码参考文档</a>
+<a class="" href="ai.zh.html">AI 大模型接口</a>
+<a class="" href="mcp.zh.html">MCP 协议接口</a>
+<a class="" href="features.en.html">Application Guide (EN)</a>
+<a class="" href="code.en.html">Code Reference (EN)</a>
+<a class="active" href="ai.en.html">AI Interface (EN)</a>
+<a class="" href="mcp.en.html">MCP Protocol (EN)</a>
+<a class="" href="教材库说明.html">教材库与数据库</a>
+<a class="" href="安装与卸载说明.html">安装与卸载</a></nav></aside><main>
+<div class="top"><span class="tag">离线文档</span><a href="index.html">← 返回文档首页</a></div>
+<h1>AI Model Interface</h1>
+<p>The application is provider-agnostic. The user selects a provider, protocol and model, then supplies their own API key. The software translates the same tool/message format into either OpenAI-compatible or Anthropic Messages requests.</p>
+<h2>1. Architecture</h2>
+<p><pre><code>UI / floating assistant / MCP clients
+        │
+        ▼
+agent.run_chat  ── tool loop, citations, usage aggregation
+        │
+        ▼
+llm.chat  ── OpenAI-compatible / Anthropic Messages / custom URL
+        │
+        ▼
+selected model provider (20 built-in catalog entries, updatable)</code></pre></p>
+<ul>
+<li><code>providers.json</code>: built-in public catalog (endpoints, model IDs, capabilities, reference prices, no keys).</li>
+<li><code>data/catalog/providers_override.json</code>: user updates and manual edits, merged over the built-in catalog.</li>
+<li><code>data/config.json</code>: active provider, protocol, model, key, model profile and UI settings.</li>
+<li><code>data/usage.jsonl</code>: tokens, cache, cost and latency per request.</li>
+</ul>
+<h2>2. Built-in providers</h2>
+<p>OpenAI, Anthropic, Google Gemini, xAI, Mistral, Groq, OpenRouter, DeepSeek, Alibaba DashScope, Zhipu, Moonshot, Baidu Qianfan, Tencent Hunyuan, ByteDance Ark, MiniMax, 01.AI, StepFun, Baichuan, iFlytek Spark, SiliconFlow.</p>
+<p>Each entry contains id, localized names, region, OpenAI base URL, optional Anthropic base URL, auth header, environment variable, documentation link and release-notes URL.</p>
+<h2>3. Protocols</h2>
+<h3>OpenAI-compatible</h3>
+<p><code>POST {base}/chat/completions</code> with <code>Authorization: Bearer &lt;key&gt;</code>, <code>messages</code>, optional <code>tools</code>, <code>tool_choice</code>, <code>temperature</code>, <code>max_tokens</code>. Tool results are returned as <code>role=&quot;tool&quot;</code> messages. Usage is read from <code>usage.prompt_tokens</code>, <code>completion_tokens</code>, <code>prompt_tokens_details.cached_tokens</code> and <code>completion_tokens_details.reasoning_tokens</code>.</p>
+<h3>Anthropic Messages</h3>
+<p><code>POST {base}/v1/messages</code> (or <code>/messages</code> when the base already ends with <code>/v1</code>) with <code>x-api-key</code> and <code>anthropic-version: 2023-06-01</code>. The system prompt is top-level; tools use <code>tool_use</code>/<code>tool_result</code> blocks; images use base64 <code>image</code> blocks. Usage includes <code>input_tokens</code>, <code>output_tokens</code>, <code>cache_read_input_tokens</code> and <code>cache_creation_input_tokens</code>.</p>
+<h3>Custom URL</h3>
+<p>No path is appended. Use this for Azure OpenAI, gateways and reverse proxies; provide the complete endpoint and auth header.</p>
+<h2>4. Model profile</h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>context</code></td>
+<td>context window in tokens</td>
+</tr>
+<tr>
+<td><code>max_output</code></td>
+<td>maximum output tokens</td>
+</tr>
+<tr>
+<td><code>vision</code> / <code>audio</code></td>
+<td>whether image/audio content may be sent</td>
+</tr>
+<tr>
+<td><code>tool_call</code></td>
+<td>function/tool calling</td>
+</tr>
+<tr>
+<td><code>json_output</code></td>
+<td>JSON mode</td>
+</tr>
+<tr>
+<td><code>reasoning</code></td>
+<td>thinking mode</td>
+</tr>
+<tr>
+<td><code>responses_api</code> / <code>anthropic_api</code> / <code>fim</code></td>
+<td>other capabilities</td>
+</tr>
+<tr>
+<td><code>pricing</code></td>
+<td>per-million-token prices by cache hit/miss and output, with optional peak/off-peak tables</td>
+</tr>
+<tr>
+<td><code>concurrency</code></td>
+<td>provider concurrency limit (reference)</td>
+</tr>
+<tr>
+<td><code>release</code> / <code>notes</code></td>
+<td>version date and restrictions</td>
+</tr>
+</tbody>
+</table>
+<p>Capabilities drive the UI, vision routing and cost calculation; they do not force a particular endpoint.</p>
+<h2>5. Pricing and usage</h2>
+<p>Prices are per 1,000,000 tokens. With <code>P</code> input tokens, <code>C</code> cached input tokens, <code>O</code> output tokens and prices <code>p_hit</code>, <code>p_miss</code>, <code>p_out</code>:</p>
+<p><pre><code>cost = [C × p_hit + (P − C) × p_miss + O × p_out] / 1,000,000
+cache hit rate = C / P
+context usage = P / context</code></pre></p>
+<p>If peak/off-peak tables exist, the local time and the provider's off-peak window select the price; automatic scheduling can be disabled in Settings.</p>
+<h3>DeepSeek example</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Context</th>
+<th>Output</th>
+<th>Thinking</th>
+<th>Vision</th>
+<th>Tools</th>
+<th>Off-peak (CNY/M tokens)</th>
+<th>Peak</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>deepseek-flash</code></td>
+<td>1M</td>
+<td>384K</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+<td>0.02 hit / 1 miss / 4 output</td>
+<td>0.04 / 2 / 8</td>
+</tr>
+<tr>
+<td><code>deepseek-v4-pro</code></td>
+<td>1M</td>
+<td>384K</td>
+<td>yes</td>
+<td>no</td>
+<td>yes</td>
+<td>0.15 / 4.5 / 13.5</td>
+<td>0.30 / 9 / 27</td>
+</tr>
+</tbody>
+</table>
+<p>Concurrency: 2500 and 500. Both support JSON output, tool calls, Responses API, Anthropic API and prefix completion; FIM is available in non-thinking mode only.</p>
+<h2>6. Vision</h2>
+<p>Enable “Image understanding” in the model profile. Images, scanned PDF pages and clipboard screenshots are attached as OpenAI <code>image_url</code> blocks or Anthropic base64 <code>image</code> blocks, together with any OCR text. Models without vision receive text only and the UI says so.</p>
+<h2>7. Tool loop</h2>
+<p><code>agent.run_chat</code> runs at most five tool rounds: send system prompt, history and schemas; execute returned tool calls locally; return results as tool messages; continue until the model produces a final answer; aggregate usage. Tool results larger than 16 KB are truncated and marked. Textbook citations emit a separate <code>citation</code> event with a thumbnail and page-jump metadata.</p>
+<h2>8. Catalog updates</h2>
+<p>Sources: <code>https://models.dev/api.json</code>, the current provider's <code>GET {base}/models</code> (requires a valid key), and public model/pricing pages fetched over HTTPS.</p>
+<p>Merge rules: match by provider id, append new models, preserve user-edited capabilities and prices, mark missing models as deprecated instead of deleting them, write an override file and keep a <code>.bak.json</code> backup.</p>
+<p>AI-assisted update: fetch announcement text (about 20 KB per provider), ask the configured model for a strict JSON patch, validate the schema and numeric ranges, discard invalid entries, show a warning and keep rollback available.</p>
+<h2>9. Security</h2>
+<ul>
+<li>Only <code>http/https</code>; resolve the host and reject loopback, private, reserved, link-local and multicast addresses.</li>
+<li>API keys stay in the local config file; the UI shows only the first/last four characters; logs never contain keys.</li>
+<li>Provider errors map to readable hints: 401 invalid key, 402 insufficient balance, 403 no permission, 404 wrong base/model, 429 rate limit.</li>
+<li>Textbooks and attachments are never uploaded automatically; only the conversation the user sends leaves the machine.</li>
+<li>Catalog updates read public pages only (the current provider's <code>/models</code> call uses its key).</li>
+</ul>
+<h2>10. Errors</h2>
+<table>
+<thead>
+<tr>
+<th>HTTP</th>
+<th>Meaning</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>400</td>
+<td>bad request</td>
+<td>check model id, tool schema, context length</td>
+</tr>
+<tr>
+<td>401</td>
+<td>invalid key</td>
+<td>re-enter the key</td>
+</tr>
+<tr>
+<td>402</td>
+<td>insufficient balance</td>
+<td>top up or switch provider</td>
+</tr>
+<tr>
+<td>403</td>
+<td>no permission</td>
+<td>enable the model in the provider console</td>
+</tr>
+<tr>
+<td>404</td>
+<td>endpoint/model missing</td>
+<td>check base URL and model id; switch protocol</td>
+</tr>
+<tr>
+<td>413</td>
+<td>payload too large</td>
+<td>remove attachments or use a longer-context model</td>
+</tr>
+<tr>
+<td>429</td>
+<td>rate/concurrency limit</td>
+<td>retry later; reduce concurrency</td>
+</tr>
+<tr>
+<td>5xx</td>
+<td>provider outage</td>
+<td>retry later; check status page</td>
+</tr>
+</tbody>
+</table>
+<div class="footer">Impedance Matching AI v4.3.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
+</main></div></body></html>

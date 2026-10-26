@@ -213,7 +213,7 @@
               <input type="checkbox" id="autoFixed" checked>
             </label>
             <div class="field-grid fixed-grid" id="fixedFields">
-              <label class="field"><span data-i18n="design.l">电感 L <em>µH</em></span><input id="inL" type="number" value="1.94" min="0.000001" step="0.1" disabled></label>
+              <label class="field"><span data-i18n="design.l">电感 L <em>nH</em></span><input id="inL" type="number" value="1.94" min="0.001" step="0.1" disabled></label>
               <label class="field" id="c3Field"><span data-i18n="design.c3">电容 C3 <em>pF</em></span><input id="inC3" type="number" value="2" min="0.001" step="0.1" disabled></label>
             </div>
             <div class="form-actions">
@@ -294,7 +294,7 @@
             <div class="field-grid">
               <label class="field"><span data-i18n="analysis.freq">频率 <em>MHz</em></span><input id="anFreq" type="number" value="2400" step="1"></label>
               <label class="field"><span data-i18n="analysis.z0">Z0 <em>Ω</em></span><input id="anZ0" type="number" value="50" step="1"></label>
-              <label class="field"><span data-i18n="analysis.l">电感 L <em>µH</em></span><input id="anL" type="number" value="1.94" step="0.1"></label>
+              <label class="field"><span data-i18n="analysis.l">电感 L <em>nH</em></span><input id="anL" type="number" value="1.94" step="0.1"></label>
               <label class="field"><span data-i18n="analysis.steps">扫描步数</span><input id="anSteps" type="number" value="45" min="6" max="80" step="1"></label>
               <label class="field"><span data-i18n="analysis.rl">R<sub>L</sub> <em>Ω</em></span><input id="anR" type="number" value="20" step="0.1"></label>
               <label class="field"><span data-i18n="analysis.xl">X<sub>L</sub> <em>Ω</em></span><input id="anX" type="number" value="5" step="0.1"></label>
@@ -347,9 +347,9 @@
               <label class="field"><span data-i18n="stress.power">输入功率 <em>W</em></span><input id="stPower" type="number" value="10" min="0.001"></label>
               <label class="field"><span data-i18n="stress.rl">R<sub>L</sub> <em>Ω</em></span><input id="stR" type="number" value="20"></label>
               <label class="field"><span data-i18n="stress.xl">X<sub>L</sub> <em>Ω</em></span><input id="stX" type="number" value="5"></label>
-              <label class="field"><span data-i18n="stress.l">L <em>µH</em></span><input id="stL" type="number" value="1.94" step="0.1"></label>
-              <label class="field"><span data-i18n="stress.c1">C1 <em>pF</em></span><input id="stC1" type="number" value="1.62" step="0.1"></label>
-              <label class="field"><span data-i18n="stress.c2">C2 <em>pF</em></span><input id="stC2" type="number" value="6.8" step="0.1"></label>
+              <label class="field"><span data-i18n="stress.l">L <em>nH</em></span><input id="stL" type="number" value="1.94" step="0.1"></label>
+              <label class="field"><span data-i18n="stress.c1">C1 <em>pF</em></span><input id="stC1" type="number" value="1.6244" step="0.1"></label>
+              <label class="field"><span data-i18n="stress.c2">C2 <em>pF</em></span><input id="stC2" type="number" value="6.8033" step="0.1"></label>
               <label class="field" id="stC3Field"><span data-i18n="stress.c3">C3 <em>pF</em></span><input id="stC3" type="number" value="0" step="0.1"></label>
               <label class="field"><span data-i18n="stress.rated">额定电压 <em>V</em></span><input id="stRated" type="number" value="0" step="1"></label>
             </div>
@@ -589,7 +589,7 @@
         <label class="field"><span>API Key <em data-i18n="settings.keyLocal">仅保存在本机</em></span><input id="setApiKey" type="password" placeholder="sk-…"></label>
         <div class="field-grid three-col">
           <label class="field"><span data-i18n="settings.temp">温度</span><input id="setTemp" type="number" min="0" max="2" step="0.05" value="0.25"></label>
-          <label class="field"><span data-i18n="settings.maxTokens">最大输出 tokens</span><input id="setMaxTokens" type="number" min="64" max="400000" step="128" value="4096"></label>
+          <label class="field"><span data-i18n="settings.maxTokens">最大输出 tokens</span><input id="setMaxTokens" type="number" min="64" max="400000" step="128" value="16384"></label>
           <label class="field"><span data-i18n="settings.reasoning">思考强度</span><select id="setReasoning" class="select">
             <option value="">默认/关闭</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
           </select></label>

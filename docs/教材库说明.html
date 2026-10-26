@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>教材库与数据库 · Impedance Matching AI</title>
+<link rel="stylesheet" href="manual.css">
+<script>
+window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},svg:{fontCache:"global"},
+options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
+</script>
+<script src="vendor/mathjax/tex-svg-full.js"></script>
+</head><body><div class="layout"><aside>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.3.0</small></div></div>
+<nav><a class="" href="index.html">文档首页</a>
+<a class="" href="features.zh.html">软件功能文档</a>
+<a class="" href="code.zh.html">代码参考文档</a>
+<a class="" href="ai.zh.html">AI 大模型接口</a>
+<a class="" href="mcp.zh.html">MCP 协议接口</a>
+<a class="" href="features.en.html">Application Guide (EN)</a>
+<a class="" href="code.en.html">Code Reference (EN)</a>
+<a class="" href="ai.en.html">AI Interface (EN)</a>
+<a class="" href="mcp.en.html">MCP Protocol (EN)</a>
+<a class="active" href="教材库说明.html">教材库与数据库</a>
+<a class="" href="安装与卸载说明.html">安装与卸载</a></nav></aside><main>
+<div class="top"><span class="tag">离线文档</span><a href="index.html">← 返回文档首页</a></div>
+<h1>教材库与数据库</h1>
+<p class="lead">教材库是本机的 SQLite 全文索引；教材文件不会上传。</p>
+<h2>把教材放进哪里</h2>
+<ul>
+<li>安装目录或项目目录的 <code>TextBook/</code>；</li>
+<li>用户数据目录 <code>%LOCALAPPDATA%\ImpedanceMatchingAI\TextBook\</code>；</li>
+<li><code>%LOCALAPPDATA%\ImpedanceMatchingAI\data\library\books\</code>；</li>
+<li>或直接在软件内点击“添加教材”。</li>
+</ul>
+<h2>数据库位置</h2>
+<p>索引数据库：<code>%LOCALAPPDATA%\ImpedanceMatchingAI\data\library\index.sqlite3</code></p>
+<p>页面缓存：<code>%LOCALAPPDATA%\ImpedanceMatchingAI\data\library\cache\</code></p>
+<p>安装程序会通过 <code>--init-data</code> 自动创建数据库、<code>books/</code>、<code>TextBook/</code> 与说明文件；首次打开教材库也会自动建立索引。</p>
+<h2>支持格式</h2>
+<p>PDF、TXT、Markdown、TeX、DOCX、PPTX、XLSX、IPYNB；旧版 .doc/.ppt/.xls 会尽量提取可读文本。扫描版 PDF 使用本地 RapidOCR，逐页或按页码范围识别。</p>
+<h2>搜索与引用</h2>
+<p>支持中文/英文全文搜索、模糊搜索、AI 语义扩展、页码定位、命中矩形、页面缩放与学术翻译。AI 引用会带书名、页码和命中区域截图。</p>
+<h2>备份</h2>
+<p>直接备份 <code>index.sqlite3</code> 即可保留索引、OCR 结果与翻译缓存；教材原件请另行备份。</p>
+<div class="footer">Impedance Matching AI v4.3.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
+</main></div></body></html>

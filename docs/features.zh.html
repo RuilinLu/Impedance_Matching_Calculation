@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>软件功能文档 · Impedance Matching AI</title>
+<link rel="stylesheet" href="manual.css">
+<script>
+window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},svg:{fontCache:"global"},
+options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
+</script>
+<script src="vendor/mathjax/tex-svg-full.js"></script>
+</head><body><div class="layout"><aside>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.3.0</small></div></div>
+<nav><a class="" href="index.html">文档首页</a>
+<a class="active" href="features.zh.html">软件功能文档</a>
+<a class="" href="code.zh.html">代码参考文档</a>
+<a class="" href="ai.zh.html">AI 大模型接口</a>
+<a class="" href="mcp.zh.html">MCP 协议接口</a>
+<a class="" href="features.en.html">Application Guide (EN)</a>
+<a class="" href="code.en.html">Code Reference (EN)</a>
+<a class="" href="ai.en.html">AI Interface (EN)</a>
+<a class="" href="mcp.en.html">MCP Protocol (EN)</a>
+<a class="" href="教材库说明.html">教材库与数据库</a>
+<a class="" href="安装与卸载说明.html">安装与卸载</a></nav></aside><main>
+<div class="top"><span class="tag">离线文档</span><a href="index.html">← 返回文档首页</a></div>
+<h1>软件功能文档</h1>
+<blockquote>
+<p>本软件是一个独立的微波与射频教学、计算与仿真工具，不依赖任何平台或特定活动。
+所有计算、绘图、教材索引与 MCP 服务都在本机完成；只有 AI 对话会把当前问题与用户主动选择的附件发送给用户配置的模型服务商。</p>
+</blockquote>
+<h2>1. 启动与界面结构</h2>
+<table>
+<thead>
+<tr>
+<th>区域</th>
+<th>内容</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>左侧导航</td>
+<td>AI 智能体、匹配设计、圆图分析、耐压分析、教材库、文档中心、关于</td>
+<td>每个板块独立工作，切换时保留当前设计上下文</td>
+</tr>
+<tr>
+<td>顶部状态栏</td>
+<td>当前模型、MCP 状态、语言、设置、导出报告</td>
+<td>模型未配置时仍可使用全部本地计算功能</td>
+</tr>
+<tr>
+<td>主工作区</td>
+<td>当前板块的表单、图表、文档或教材页面</td>
+<td>可滚动、可缩放，宽度自适应</td>
+</tr>
+<tr>
+<td>右侧浮动助手</td>
+<td>任意板块右下角的 AI 按钮</td>
+<td>展开后可边看教材/文档边提问，收起后只保留一个按钮</td>
+</tr>
+</tbody>
+</table>
+<h3>1.1 中英文切换</h3>
+<p>顶部语言按钮在 <code>中文</code> 与 <code>English</code> 之间切换，影响导航、按钮、表单标签、设置页、教材库、文档中心与 AI 助手的界面文字。专业数值（频率、阻抗、元件值、VSWR、dB）保持国际单位。教材原文与译文分别显示，不会被界面语言覆盖。</p>
+<h3>1.2 数学公式与 LaTeX</h3>
+<p>AI 回答、文档中心与教材翻译均支持 LaTeX。行内公式使用 <code>\( ... \)</code>，独立公式使用 <code>\[ ... \]</code>；也接受 <code>$ ... $</code>、<code>$$ ... $$</code> 与 <code>\begin{equation}</code> 等常见写法。渲染器内置 MathJax（离线），支持分式、根式、希腊字母、上下标、积分、矩阵、分段函数、<code>align</code>、<code>cases</code>、<code>boldsymbol</code>、<code>mhchem</code> 等常用扩展。</p>
+<p>例如归一化阻抗与反射系数：</p>
+<p><span class="math-display">\[
+z = \frac{Z_L}{Z_0}, \qquad
+\Gamma = \frac{z-1}{z+1}, \qquad
+\mathrm{VSWR} = \frac{1+|\Gamma|}{1-|\Gamma|}
+\]</span></p>
+<p>匹配网络的 ABCD 矩阵可以写成：</p>
+<p><span class="math-display">\[
+\begin{bmatrix} A &amp; B \\ C &amp; D \end{bmatrix}
+=
+\begin{bmatrix} 1 &amp; j\omega L \\ 0 &amp; 1 \end{bmatrix}
+\begin{bmatrix} 1 &amp; 0 \\ j\omega C_1 &amp; 1 \end{bmatrix}
+\]</span></p>
+<p>公式不可用时，软件会保留原始 LaTeX 文本，不会把答案变成乱码或空白。</p>
+<h3>1.3 首次启动</h3>
+<ol>
+<li>软件自动创建用户数据目录（安装版位于 <code>%LOCALAPPDATA%\ImpedanceMatchingAI\data</code>）。</li>
+<li>教材库首次打开时扫描 <code>TextBook/</code> 与 <code>data/library/books/</code>，建立本地 SQLite 索引。</li>
+<li>有文字层的 PDF 立即可搜索；扫描版 PDF 会标记“需要 OCR”，可逐页 OCR 或用视觉模型读图。</li>
+<li>AI 功能需要在“设置 → 模型服务”中选择厂商、填写自己的 API Key；软件不内置任何厂商密钥。</li>
+</ol>
+<h2>2. AI 智能体</h2>
+<h3>2.1 对话</h3>
+<ul>
+<li>输入框支持多行；<code>Enter</code> 发送，<code>Shift+Enter</code> 换行。</li>
+<li>发送后显示工具调用卡片，记录工具名、参数、耗时和返回摘要。</li>
+<li>涉及频率、阻抗、元件值、VSWR、带宽、耐压的数字结论由本地计算工具产生，模型只负责解释。</li>
+<li>回答下方显示本轮统计：输入 tokens、输出 tokens、缓存命中率、上下文占用率、费用与耗时。</li>
+</ul>
+<h3>2.2 任意文件上传</h3>
+<p>点击回形针、把文件拖入输入框，或直接 <code>Ctrl+V</code> 粘贴，都可以添加附件。软件不再限制扩展名，常见类型会自动解析：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>处理方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PDF</td>
+<td>提取文字层；扫描页可 OCR 或渲染为图片交给视觉模型</td>
+</tr>
+<tr>
+<td>DOCX / PPTX / XLSX</td>
+<td>读取段落、幻灯片文字、工作表单元格</td>
+</tr>
+<tr>
+<td>MAT / CSV / TXT / MD / TEX / 代码</td>
+<td>按文本读取；MATLAB、C、Python、C++、Verilog 等源码均可</td>
+</tr>
+<tr>
+<td>图片</td>
+<td>本地 OCR 提取文字；若模型支持视觉，同时发送原图</td>
+</tr>
+<tr>
+<td>音频 / 视频 / 压缩包 / 其他二进制</td>
+<td>接收并保存；提取可读元数据或列出压缩包文件名，提示模型能力限制</td>
+</tr>
+</tbody>
+</table>
+<p>剪贴板中的纯文本会自动保存为一个临时 <code>.txt</code> 附件；如果内容看起来是代码，会按代码类型命名。附件在发送前显示名称、类型与字符数，可逐个移除。</p>
+<h3>2.3 视觉模型</h3>
+<p>在“设置 → 模型详情”中把“图像理解”设为支持后，图片、扫描版 PDF 页面、教材截图会以标准 OpenAI <code>image_url</code> 或 Anthropic <code>image</code> 块发送。模型不支持视觉时，软件只发送 OCR 文本并明确提示。</p>
+<h3>2.4 教材与文档引用</h3>
+<p>智能体可以调用 <code>search_textbooks</code>、<code>read_textbook_page</code>、<code>translate_textbook_page</code>、<code>search_docs</code> 等工具。回答中出现教材引用时，会附带：</p>
+<ul>
+<li>书名、页码与命中片段；</li>
+<li>页面缩略图或命中区域截图；</li>
+<li>“打开教材页”按钮，点击后跳到教材库对应页并高亮检索词。</li>
+</ul>
+<h3>2.5 浮动助手</h3>
+<p>右下角 <code>AI</code> 按钮在任意板块可用。展开后是一个独立的小对话窗口，自动携带当前上下文：</p>
+<ul>
+<li>当前设计：拓扑、频率、负载、元件值、VSWR；</li>
+<li>当前教材：书名、页码、选中文字；</li>
+<li>当前文档：文档分类、标题与选中段落。</li>
+</ul>
+<p>浮动助手与主智能体共享模型配置和用量统计，但对话历史相互独立。</p>
+<h2>3. 匹配设计</h2>
+<h3>3.1 输入参数</h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>单位</th>
+<th>含义</th>
+<th>约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>频率</td>
+<td>MHz</td>
+<td>工作频率 f0</td>
+<td>&gt; 0</td>
+</tr>
+<tr>
+<td>系统阻抗</td>
+<td>Ω</td>
+<td>参考阻抗 Z0</td>
+<td>通常 50</td>
+</tr>
+<tr>
+<td>R_L</td>
+<td>Ω</td>
+<td>负载电阻实部</td>
+<td>&gt; 0</td>
+</tr>
+<tr>
+<td>X_L</td>
+<td>Ω</td>
+<td>负载电抗虚部</td>
+<td>容性为负</td>
+</tr>
+<tr>
+<td>拓扑</td>
+<td>—</td>
+<td>auto / L·右 / L·左 / T / πⅠ / πⅡ</td>
+<td>auto 会逐一尝试五种拓扑</td>
+</tr>
+<tr>
+<td>自动选值</td>
+<td>—</td>
+<td>自动选择可行的 L 与 C3</td>
+<td>关闭后可手动输入</td>
+</tr>
+<tr>
+<td>L</td>
+<td>nH</td>
+<td>固定串联电感（界面用 nH；MCP/引擎内部用 µH）</td>
+<td>自动模式关闭时必填</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>pF</td>
+<td>T/π 型的第三个电容</td>
+<td>自动模式关闭时可选</td>
+</tr>
+</tbody>
+</table>
+<h3>3.2 输出</h3>
+<ul>
+<li><strong>KPI</strong>：VSWR、S11（dB）、VSWR&lt;2 带宽（%）、设计 Q。</li>
+<li><strong>Smith 圆图</strong>：负载点、匹配点、逐段轨迹；播放/暂停/重置/速度。</li>
+<li><strong>匹配步骤</strong>：每一步的元件、串联/并联类型、起止阻抗、说明；点击某一步可只显示到该步的轨迹。</li>
+<li><strong>电路拓扑与元件</strong>：拓扑示意图、L/C1/C2/C3 数值与作用。</li>
+<li><strong>VSWR 带宽</strong>：扫频曲线、合格频段、VSWR 门限虚线。</li>
+<li><strong>±5% 容差灵敏度</strong>：每个元件单独偏移 ±5% 时的最差 VSWR。</li>
+<li><strong>工程提示</strong>：元件过小/过大、寄生、自谐振、Q 值过高等风险。</li>
+<li><strong>可选拓扑对比</strong>：五种拓扑的元件值、带宽、Q 与推荐排序，可一键应用。</li>
+</ul>
+<h3>3.3 设计公式</h3>
+<ul>
+<li>归一化阻抗 <code>z = Z/Z0</code>，反射系数 <code>Γ = (z−1)/(z+1)</code>。</li>
+<li><code>VSWR = (1+|Γ|)/(1−|Γ|)</code>，<code>S11(dB) = 20log10|Γ|</code>，回波损耗 <code>RL = −S11</code>。</li>
+<li>L 型网络的 Q 由阻抗变换比决定：<code>Q = √(R_high/R_low − 1)</code>。</li>
+<li>串联元件沿等电阻圆移动，并联元件沿等电导圆移动；串联电感向上、串联电容向下，并联电容向上、并联电感向下。</li>
+<li>所有解析解都会再用完整网络节点法复核 Zin、VSWR、S11、各节点电压与电流；解析值与复核值不一致时以节点法为准并给出提示。</li>
+</ul>
+<h3>3.4 Smith 圆图学习模式</h3>
+<ol>
+<li>在“匹配设计”输入一个负载，例如 <code>2.4 GHz, 20+j5 Ω</code>。</li>
+<li>点击“求解设计”，观察负载点如何沿等电阻圆/等电导圆移动到圆心。</li>
+<li>关闭动画后点击任一步骤，只看该元件造成的轨迹。</li>
+<li>把拓扑改为 T 或 π，比较轨迹长度、Q 与带宽。</li>
+<li>在“教材库”搜索 <code>Smith chart</code>、<code>smith圆图</code>、<code>反射系数</code>，打开教材页对照阅读；右侧浮动助手可随时解释选中公式。</li>
+</ol>
+<h2>4. 圆图分析（正向扫描）</h2>
+<h3>4.1 扫描参数</h3>
+<ul>
+<li>拓扑、频率、Z0、固定电感 L。</li>
+<li>每个维度的扫描步数（6–80；三维拓扑自动限制为 ≤22 以保持流畅）。</li>
+<li>C1、C2、C3 的可调范围（pF）。</li>
+<li>目标负载 R_L、X_L，用于在圆图上标记当前位置。</li>
+</ul>
+<h3>4.2 图形</h3>
+<ul>
+<li><strong>灰色密度云</strong>：每个扫描点按局部密度着色，灰色越深表示该区域可匹配点越密集。</li>
+<li><strong>青色高亮</strong>：靠近圆心的低反射系数区域。</li>
+<li><strong>橙色标记</strong>：当前负载。</li>
+<li><strong>边界线</strong>：扫描区域的外包络，便于判断目标负载是否落在可匹配范围内。</li>
+<li>鼠标悬停显示该点的 Z、Γ 与 VSWR。</li>
+</ul>
+<h3>4.3 结果</h3>
+<ul>
+<li>R/X 的最小值、最大值与 5%–95% 分位范围。</li>
+<li>有效点数量与采样点数量。</li>
+<li>五种拓扑的带宽对比与“应用”按钮。</li>
+<li>自动生成的扫描结论：目标负载是否在范围内、应调整 L 还是扩大电容范围。</li>
+</ul>
+<h3>4.4 常见问题</h3>
+<ul>
+<li><strong>点击运行扫描没有反应</strong>：检查电感 L 是否为正数、扫描范围是否有效；错误会显示在“扫描结论”区域，并保留上一次成功结果。</li>
+<li><strong>灰色区域很少</strong>：扫描范围太窄或步数太少；增大电容范围或步数。</li>
+<li><strong>目标负载不在灰色区域</strong>：更换拓扑、调整固定电感或改用三元件网络。</li>
+</ul>
+<h2>5. 耐压分析</h2>
+<p>输入拓扑、频率、功率、负载、L/C1/C2/C3 与元件额定电压。输出：</p>
+<ul>
+<li>源开路峰值电压、输入峰值电压、负载峰值电压；</li>
+<li>每个元件的峰值电压、RMS 电压、峰值电流、RMS 电流；</li>
+<li>额定电压下的安全系数（额定/峰值），并用颜色区分安全、临界、不足；</li>
+<li>工程建议：降额、C0G/NP0、电感饱和电流、RMS 电流与温升。</li>
+</ul>
+<p>计算使用完整网络节点法，包含 50Ω 源阻抗的负载效应；失配会在节点产生额外驻波电压。</p>
+<h2>6. 教材库</h2>
+<h3>6.1 添加教材</h3>
+<ul>
+<li>把 PDF 放入项目或安装目录的 <code>TextBook/</code>，或放入用户数据目录 <code>data/library/books/</code>。</li>
+<li>也可以点击“添加教材”直接上传 PDF、TXT、Markdown、TeX。</li>
+<li>点击“重建索引”可强制重新扫描全部文件；正常启动只处理新增或修改过的文件。</li>
+</ul>
+<p>教材文件不随软件仓库发布，用户可自行补充；软件只读取本地文件，不上传教材。</p>
+<h3>6.2 索引与 OCR</h3>
+<ul>
+<li>有文字层的 PDF：逐页提取文字，建立全文索引。</li>
+<li>扫描版 PDF：页面标记为“需要 OCR”。首次索引会自动 OCR 每本书的前几页，使目录可搜索。</li>
+<li>“OCR 本页”对当前页运行 RapidOCR（离线，中文/英文），结果写入索引与页面文本框。</li>
+<li>“OCR 本书”可在后台对指定页码范围批量 OCR；进度显示在教材库状态栏。</li>
+<li>视觉模型：即使不 OCR，也可以把页面图片发给支持图像理解的模型阅读。</li>
+</ul>
+<h3>6.3 搜索</h3>
+<ul>
+<li>输入关键词即时搜索，支持中文、英文、代码符号与公式片段。</li>
+<li>模糊搜索：英文拼写错误会做编辑距离纠正；中文长词会自动拆分二字词提高召回。</li>
+<li>AI 语义搜索：把自然语言问题改写成中英文关键词后再检索；结果按本地得分排序。</li>
+<li>可按教材过滤，结果按“书名 + 页码”分组，每本书最多显示 4 个命中页。</li>
+<li>命中片段用高亮标记；点击结果跳到对应页，并在页面图片上叠加命中矩形。</li>
+</ul>
+<h3>6.4 阅读与定位</h3>
+<ul>
+<li>页面渲染：上一页/下一页、页码跳转、放大/缩小/适应宽度。</li>
+<li>文本面板：显示文字层或 OCR 文本；没有文字时提示 OCR 或用视觉模型读图。</li>
+<li>译文面板：英文教材可一键翻译为学术中文；中文教材可翻译为英文；译文按页缓存，避免重复计费。</li>
+<li>目录：若 PDF 自带书签，左侧显示目录，点击跳转。</li>
+<li>引用：搜索结果与 AI 引用都带有页码与矩形，打开后自动定位。</li>
+</ul>
+<h3>6.5 与 AI 协作</h3>
+<ul>
+<li>在教材页点击“问此页”，浮动助手会自动携带书名、页码与该页文本。</li>
+<li>对扫描页，助手可以请求页面截图并交给视觉模型。</li>
+<li>智能体回答中的教材引用会生成缩略图；点击“打开教材页”回到教材库定位。</li>
+</ul>
+<h2>7. 文档中心</h2>
+<p>文档分为四个独立域，均可全文搜索：</p>
+<ol>
+<li><strong>软件功能文档</strong>：本文件，覆盖每个界面与操作。</li>
+<li><strong>代码参考文档</strong>：由源码 AST 自动生成，列出每个模块、类、函数、参数、默认值、返回类型、异常、局部变量、模块常量与前端函数；代码更新后自动同步。</li>
+<li><strong>AI 大模型接口</strong>：厂商目录、协议、能力矩阵、视觉、工具调用、价格、缓存、用量与更新机制。</li>
+<li><strong>MCP 协议接口</strong>：stdio / Streamable HTTP / legacy SSE、工具 schema、资源、提示模板与客户端配置。</li>
+</ol>
+<h3>7.1 搜索与“上一个/下一个”</h3>
+<ul>
+<li>顶部搜索框输入任意字词，文档正文即时高亮所有匹配。</li>
+<li>右侧显示“第 n / 共 m 个”，<code>上一个</code>、<code>下一个</code> 在匹配之间跳转并滚动到可见位置。</li>
+<li>“全部文档”搜索会跨四个域返回结果，点击结果自动打开对应文档并定位到段落。</li>
+<li>“AI 模糊搜索”把自然语言问题扩展为中英文关键词后再检索；没有配置模型时自动退回本地模糊匹配。</li>
+</ul>
+<h3>7.2 选中即问</h3>
+<p>在文档中选中文字后，右侧浮动助手会显示“解释选中内容”快捷按钮；也可以直接提问，助手会携带当前文档标题与选中段落。</p>
+<h2>8. 设置</h2>
+<h3>8.1 模型服务</h3>
+<ul>
+<li><strong>服务商</strong>：内置 20 家国内外主流厂商（OpenAI、Anthropic、Google、DeepSeek、阿里云百炼、智谱、Moonshot、百度千帆、腾讯混元、字节火山方舟、MiniMax、零一万物、阶跃星辰、百川、讯飞星火、SiliconFlow、OpenRouter、xAI、Mistral、Groq）。</li>
+<li><strong>协议</strong>：OpenAI 兼容、Anthropic Messages、完全自定义 URL。切换协议会自动填入对应的 Base URL。</li>
+<li><strong>模型</strong>：从厂商目录选择，或手动输入新模型 ID。</li>
+<li><strong>API Key</strong>：仅保存在本机 <code>data/config.json</code>，界面只显示前后各 4 位。</li>
+<li><strong>温度 / 最大输出 tokens / 思考模式 / 思考预算</strong>：按模型能力填写；不支持思考的模型请保持关闭。</li>
+</ul>
+<h3>8.2 模型详情</h3>
+<p>每个模型可单独设置并保存：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>上下文长度</td>
+<td>计算上下文占用率</td>
+</tr>
+<tr>
+<td>最大输出</td>
+<td>限制回复长度</td>
+</tr>
+<tr>
+<td>图像理解 / 音频输入</td>
+<td>决定是否发送图片或音频内容</td>
+</tr>
+<tr>
+<td>Tool Calls / JSON Output / Reasoning / Responses API / Anthropic API / FIM</td>
+<td>能力标记，界面用于提示与路由</td>
+</tr>
+<tr>
+<td>输入价格（缓存命中/未命中）、输出价格</td>
+<td>计算本轮费用</td>
+</tr>
+<tr>
+<td>峰时/谷时价格</td>
+<td>支持分时计费</td>
+</tr>
+<tr>
+<td>并发限制</td>
+<td>展示厂商限制，便于容量规划</td>
+</tr>
+<tr>
+<td>币种</td>
+<td>CNY / USD</td>
+</tr>
+</tbody>
+</table>
+<h3>8.3 目录更新</h3>
+<ul>
+<li><strong>从官方目录更新</strong>：读取 models.dev 公开目录与当前厂商的 <code>/models</code> 接口，合并模型列表；保留用户手工填写的能力与价格。</li>
+<li><strong>读取官方公告</strong>：抓取厂商公开的模型/价格页面，提取模型 ID 候选；失败的厂商会列出原因，不影响其他厂商。</li>
+<li><strong>用 AI 校对更新</strong>：把当前目录与抓取到的公告摘要交给已配置的模型，要求输出严格 JSON 补丁。界面会明确提示“AI 可能出错，请逐项核对”。</li>
+<li><strong>回滚</strong>：每次更新前自动备份，可一键恢复上一版目录。</li>
+<li>更新结果写入用户数据目录，不修改程序内置文件；升级软件不会丢失用户覆盖。</li>
+</ul>
+<h3>8.4 用量统计</h3>
+<ul>
+<li>本轮：输入、输出、缓存命中、上下文占用、费用、耗时。</li>
+<li>今日 / 近 7 天 / 全部：请求数、token 总量、缓存命中率、费用。</li>
+<li>用量日志保存在 <code>data/usage.jsonl</code>，可清空。</li>
+</ul>
+<h3>8.5 MCP 配置</h3>
+<p>设置页与“关于”页都可以复制 MCP 客户端配置。默认使用 stdio：</p>
+<p><pre><code>{
+  &quot;mcp&quot;: {
+    &quot;servers&quot;: {
+      &quot;impedance-matching-ai&quot;: {
+        &quot;type&quot;: &quot;stdio&quot;,
+        &quot;command&quot;: &quot;python&quot;,
+        &quot;args&quot;: [&quot;&lt;项目路径&gt;/app/run_mcp.py&quot;]
+      }
+    }
+  }
+}</code></pre></p>
+<h2>9. 独立使用与 MCP</h2>
+<ul>
+<li><strong>独立软件</strong>：不配置任何模型也能完成设计、扫描、耐压、报告、教材与文档检索。</li>
+<li><strong>MCP 服务器</strong>：把同一套计算与教材检索能力暴露给 ZCode、Claude Code、Codex、Cursor、Cherry Studio 等客户端。</li>
+<li><strong>HTTP / SSE</strong>：<code>python app/run_mcp.py --http 8790</code>，端点 <code>/mcp</code>（Streamable HTTP）与 <code>/sse</code>（legacy SSE）。</li>
+</ul>
+<h2>10. 故障排查</h2>
+<table>
+<thead>
+<tr>
+<th>现象</th>
+<th>排查</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型列表为空</td>
+<td>检查 Base URL、API Key、网络与代理；点击“测试连接”查看具体 HTTP 错误</td>
+</tr>
+<tr>
+<td>附件解析失败</td>
+<td>文件可能损坏或为旧版 <code>.doc</code>/<code>.ppt</code> 二进制；仍会保存，可尝试另存为 PDF/DOCX 或截图后发送</td>
+</tr>
+<tr>
+<td>扫描版 PDF 搜不到</td>
+<td>页面没有文字层；点击“OCR 本页/本书”，或配置视觉模型</td>
+</tr>
+<tr>
+<td>OCR 很慢</td>
+<td>RapidOCR 在 CPU 上约 1–3 秒/页；批量 OCR 在后台运行，可继续使用其他板块</td>
+</tr>
+<tr>
+<td>翻译失败</td>
+<td>未配置模型、Key 无效或该页无文字；先 OCR 再翻译</td>
+</tr>
+<tr>
+<td>上下文占用过高</td>
+<td>减少附件或改用长上下文模型；在设置中调大上下文长度</td>
+</tr>
+<tr>
+<td>MCP 客户端看不到工具</td>
+<td>检查客户端配置路径、Python 路径与 <code>run_mcp.py</code> 是否存在；查看客户端日志</td>
+</tr>
+<tr>
+<td>一键更新后模型异常</td>
+<td>在设置中点击“回滚目录”，恢复上一版备份</td>
+</tr>
+</tbody>
+</table>
+<div class="footer">Impedance Matching AI v4.3.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
+</main></div></body></html>

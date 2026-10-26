@@ -1,0 +1,1226 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MCP 协议接口 · Impedance Matching AI</title>
+<link rel="stylesheet" href="manual.css">
+<script>
+window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},svg:{fontCache:"global"},
+options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
+</script>
+<script src="vendor/mathjax/tex-svg-full.js"></script>
+</head><body><div class="layout"><aside>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.3.0</small></div></div>
+<nav><a class="" href="index.html">文档首页</a>
+<a class="" href="features.zh.html">软件功能文档</a>
+<a class="" href="code.zh.html">代码参考文档</a>
+<a class="" href="ai.zh.html">AI 大模型接口</a>
+<a class="active" href="mcp.zh.html">MCP 协议接口</a>
+<a class="" href="features.en.html">Application Guide (EN)</a>
+<a class="" href="code.en.html">Code Reference (EN)</a>
+<a class="" href="ai.en.html">AI Interface (EN)</a>
+<a class="" href="mcp.en.html">MCP Protocol (EN)</a>
+<a class="" href="教材库说明.html">教材库与数据库</a>
+<a class="" href="安装与卸载说明.html">安装与卸载</a></nav></aside><main>
+<div class="top"><span class="tag">离线文档</span><a href="index.html">← 返回文档首页</a></div>
+<h1>MCP 协议接口</h1>
+<blockquote>
+<p>本软件同时是一个标准 MCP 服务器：同一套计算与教材检索工具既服务于内置智能体，也能被 ZCode、Claude Code、Codex、Cursor、Cherry Studio 等 MCP 客户端调用。</p>
+</blockquote>
+<h2>1. 启动</h2>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>命令</th>
+<th>端点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>stdio</td>
+<td><code>python app/run_mcp.py</code></td>
+<td>标准输入/输出，换行分隔 JSON-RPC</td>
+</tr>
+<tr>
+<td>Streamable HTTP</td>
+<td><code>python app/run_mcp.py --http 8790</code></td>
+<td><code>POST http://127.0.0.1:8790/mcp</code></td>
+</tr>
+<tr>
+<td>legacy HTTP+SSE</td>
+<td>同上</td>
+<td><code>GET /sse</code> + <code>POST /messages?sessionId=...</code></td>
+</tr>
+<tr>
+<td>健康检查</td>
+<td>同上</td>
+<td><code>GET /health</code></td>
+</tr>
+</tbody>
+</table>
+<p>安装版使用同目录的 <code>ImpedanceMatchingAI_MCP.exe --mcp</code>，避免桌面窗口的 Windows 子系统吞掉 stdio。</p>
+<h2>2. 客户端配置</h2>
+<h3>ZCode / Claude Desktop</h3>
+<p><pre><code>{
+  &quot;mcp&quot;: {
+    &quot;servers&quot;: {
+      &quot;impedance-matching-ai&quot;: {
+        &quot;type&quot;: &quot;stdio&quot;,
+        &quot;command&quot;: &quot;python&quot;,
+        &quot;args&quot;: [&quot;D:/path/to/app/run_mcp.py&quot;],
+        &quot;env&quot;: {
+          &quot;PYTHONUNBUFFERED&quot;: &quot;1&quot;,
+          &quot;PYTHONIOENCODING&quot;: &quot;utf-8&quot;
+        }
+      }
+    }
+  }
+}</code></pre></p>
+<h3>Claude Code</h3>
+<p><pre><code>claude mcp add impedance-matching-ai -- python D:/path/to/app/run_mcp.py</code></pre></p>
+<h3>HTTP 客户端</h3>
+<p><pre><code>{
+  &quot;mcpServers&quot;: {
+    &quot;impedance-matching-ai&quot;: {
+      &quot;type&quot;: &quot;http&quot;,
+      &quot;url&quot;: &quot;http://127.0.0.1:8790/mcp&quot;
+    }
+  }
+}</code></pre></p>
+<h2>3. 协议版本</h2>
+<p>支持 <code>2024-11-05</code>、<code>2025-03-26</code>、<code>2025-06-18</code>；初始化时按客户端请求协商，未知版本回退到 <code>2025-06-18</code>。</p>
+<p>服务器能力：<code>tools</code>、<code>resources</code>、<code>prompts</code>、<code>logging</code>。不支持批量 JSON-RPC、服务端主动采样与资源订阅。</p>
+<h2>4. 传输细节</h2>
+<h3>stdio</h3>
+<ul>
+<li>每行一个 JSON-RPC 消息；同时兼容 <code>Content-Length</code> 分帧。</li>
+<li>只有 JSON-RPC 写入 stdout；日志写入 stderr。</li>
+<li>收到 <code>shutdown</code>/<code>exit</code> 后结束进程。</li>
+</ul>
+<h3>Streamable HTTP</h3>
+<ul>
+<li><code>POST /mcp</code>，可选 <code>Mcp-Session-Id</code>；首次 <code>initialize</code> 会返回新的会话 ID。</li>
+<li><code>Accept: text/event-stream</code> 时返回单条 SSE 事件，否则返回 JSON。</li>
+<li><code>DELETE /mcp</code> 结束会话。</li>
+<li><code>GET /mcp</code> 返回 405（不支持服务端主动推送）。</li>
+</ul>
+<h3>legacy SSE</h3>
+<ul>
+<li><code>GET /sse</code> 返回 <code>event: endpoint</code>，内容为 <code>/messages?sessionId=...</code>。</li>
+<li>客户端把 JSON-RPC 发到该 endpoint；响应通过 SSE 的 <code>message</code> 事件返回。</li>
+<li>每 15 秒发送一次 <code>: keepalive</code>。</li>
+</ul>
+<h3>安全</h3>
+<ul>
+<li>只绑定 <code>127.0.0.1</code>。</li>
+<li>校验 <code>Origin</code>，只允许 <code>127.0.0.1</code>、<code>localhost</code>、<code>::1</code>。</li>
+<li>请求体上限 4 MB。</li>
+<li>不接受跨站写操作。</li>
+</ul>
+<h2>5. 资源</h2>
+<table>
+<thead>
+<tr>
+<th>URI</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>impedance://catalog</code></td>
+<td>五种拓扑的适用条件、结构、公式</td>
+</tr>
+<tr>
+<td><code>impedance://knowledge</code></td>
+<td>内置微波匹配知识库（Markdown）</td>
+</tr>
+<tr>
+<td><code>impedance://status</code></td>
+<td>版本、模型、MCP 与教材目录状态</td>
+</tr>
+</tbody>
+</table>
+<h2>6. 提示模板</h2>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>参数</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>design_match</code></td>
+<td><code>frequency_mhz</code>、<code>load</code>、<code>topology</code></td>
+<td>生成一次完整匹配设计请求</td>
+</tr>
+<tr>
+<td><code>explain_topology</code></td>
+<td><code>topology</code></td>
+<td>解释某种拓扑的原理与适用条件</td>
+</tr>
+<tr>
+<td><code>troubleshoot</code></td>
+<td><code>problem</code></td>
+<td>排查无解、VSWR 偏高、带宽不足</td>
+</tr>
+</tbody>
+</table>
+<h2>7. 教材与文档工具</h2>
+<ul>
+<li><code>search_textbooks</code>：全库全文/模糊搜索，返回书名、页码、命中片段、矩形与缩略图 URL。</li>
+<li><code>read_textbook_page</code>：读取指定页文字、OCR 行与译文；没有文字时可请求视觉截图。</li>
+<li><code>translate_textbook_page</code>：按页翻译并缓存。</li>
+<li><code>search_docs</code>：检索四类文档（功能、代码、AI 接口、MCP）。</li>
+<li><code>get_code_reference</code>：按模块/函数名返回源码生成的签名与说明。</li>
+</ul>
+<p>工具返回统一包含 <code>ok</code>、<code>summary</code>；失败时包含 <code>error_code</code>、<code>message</code>、<code>hint</code>。</p>
+<h2>8. 错误码</h2>
+<table>
+<thead>
+<tr>
+<th>code</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-32700</code></td>
+<td>JSON 解析错误</td>
+</tr>
+<tr>
+<td><code>-32600</code></td>
+<td>非法请求</td>
+</tr>
+<tr>
+<td><code>-32601</code></td>
+<td>方法不存在</td>
+</tr>
+<tr>
+<td><code>-32602</code></td>
+<td>参数错误</td>
+</tr>
+<tr>
+<td><code>-32603</code></td>
+<td>服务器内部错误</td>
+</tr>
+<tr>
+<td><code>-32000</code></td>
+<td>会话不存在或已过期</td>
+</tr>
+<tr>
+<td><code>bad_arguments</code></td>
+<td>工具参数不是合法 JSON/对象</td>
+</tr>
+<tr>
+<td><code>unknown_tool</code></td>
+<td>工具名不存在</td>
+</tr>
+<tr>
+<td><code>internal_error</code></td>
+<td>工具执行异常</td>
+</tr>
+</tbody>
+</table>
+<h2>9. 工具参考</h2>
+<p>以下表格由 <code>tools.TOOL_SPECS</code> 实时生成，包含每个工具的参数、类型、必填项、默认值与枚举。工具数量、参数和内置智能体看到的 schema 完全一致。</p>
+<h2>工具参考 / Live tool reference</h2>
+<p>下表由 <code>tools.TOOL_SPECS</code> 实时生成，与内置智能体和 MCP 客户端看到的 schema 完全一致。</p>
+<h3><code>design_matching_network</code></h3>
+<p>设计微波阻抗匹配网络并返回元件值。输入频率(MHz)、负载实部/虚部(Ω)、拓扑。topology=auto 会自动比较 5 种拓扑并选优。L_uh、c3_pf 省略时自动选择实用值。返回 L(nH/µH)、C1/C2/C3(pF)、Zin、VSWR、S11、带宽、Q 值和设计步骤。适用于：为某个负载求匹配电容/电感、检查 L/T/π 网络是否可行。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>topology</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>auto, l_right, l_left, t, pi1, pi2</code></td>
+<td>拓扑；auto 表示自动选型</td>
+</tr>
+<tr>
+<td><code>frequency_mhz</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td>工作频率，MHz</td>
+</tr>
+<tr>
+<td><code>load_r</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td>负载电阻实部，Ω，必须&gt;0</td>
+</tr>
+<tr>
+<td><code>load_x</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td>负载电抗虚部，Ω，默认0</td>
+</tr>
+<tr>
+<td><code>z0</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td>系统阻抗，Ω，默认50</td>
+</tr>
+<tr>
+<td><code>L_uh</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td>固定电感，µH；省略则自动选取</td>
+</tr>
+<tr>
+<td><code>c3_pf</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td>固定电容 C3，pF；T/π 型可省略</td>
+</tr>
+<tr>
+<td><code>power_w</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td>用于效率/耐压估算的功率，W，默认1</td>
+</tr>
+</tbody>
+</table>
+<h3><code>scan_matching_range</code></h3>
+<p>正向扫描：固定 L（以及可选 C3 范围），遍历可调电容范围，返回该拓扑能匹配的负载阻抗范围 Rmin/Rmax/Xmin/Xmax 与采样点。用于回答“这个网络能匹配哪些负载”。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>topology</code></td>
+<td><code>string</code></td>
+<td>是</td>
+<td><code>l_right, l_left, t, pi1, pi2</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>frequency_mhz</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>L_uh</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>z0</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>50</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>c1_range_pf</code></td>
+<td><code>array</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>c2_range_pf</code></td>
+<td><code>array</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>c3_range_pf</code></td>
+<td><code>array</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>steps</code></td>
+<td><code>integer</code></td>
+<td>否</td>
+<td><code>40</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>include_points</code></td>
+<td><code>boolean</code></td>
+<td>否</td>
+<td><code>False</code></td>
+<td>是否返回圆图采样点（可能较大）</td>
+</tr>
+</tbody>
+</table>
+<h3><code>evaluate_network</code></h3>
+<p>用完整网络节点法复核给定元件值：返回 Zin、VSWR、S11、回波损耗、各节点电压、各元件峰值电压/电流、负载获得功率与效率。用于验证设计或分析失配。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>topology</code></td>
+<td><code>string</code></td>
+<td>是</td>
+<td><code>l_right, l_left, t, pi1, pi2</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>frequency_mhz</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_r</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_x</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>L_uh</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C1_pF</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C2_pF</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C3_pF</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>z0</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>50</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>power_w</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>1</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3><code>convert_impedance_admittance</code></h3>
+<p>阻抗↔导纳换算。mode=z2y 时输入 real/imag 为 Z；mode=y2z 时输入为 Y。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mode</code></td>
+<td><code>string</code></td>
+<td>是</td>
+<td><code>z2y, y2z</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>real</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>imag</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3><code>compute_voltage_stress</code></h3>
+<p>计算匹配网络各元件的耐压/电流应力。输入功率(power_w)、频率、负载与元件值，返回源/负载/各元件峰值电压、RMS、峰值电流及可选额定电压安全系数。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>topology</code></td>
+<td><code>string</code></td>
+<td>是</td>
+<td><code>l_right, l_left, t, pi1, pi2</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>frequency_mhz</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_r</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_x</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>L_uh</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C1_pF</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C2_pF</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C3_pF</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>power_w</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>10</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>z0</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>50</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>rated_voltage</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td>元件额定电压峰值，V</td>
+</tr>
+</tbody>
+</table>
+<h3><code>analyze_bandwidth</code></h3>
+<p>固定元件值扫频，返回 VSWR 合格频段、分数带宽与 VSWR 曲线采样。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>topology</code></td>
+<td><code>string</code></td>
+<td>是</td>
+<td><code>l_right, l_left, t, pi1, pi2</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>frequency_mhz</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_r</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_x</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>L_uh</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C1_pF</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C2_pF</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C3_pF</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>z0</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>50</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>vswr_limit</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>2.0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>span</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0.6</code></td>
+<td>扫频范围 ±span×f0</td>
+</tr>
+</tbody>
+</table>
+<h3><code>compare_topologies</code></h3>
+<p>对给定频率与负载自动比较 5 种拓扑，返回可行方案、元件值、带宽、Q 与推荐排序。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>frequency_mhz</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_r</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_x</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>z0</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>50</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3><code>get_topology_guide</code></h3>
+<p>查询 5 种匹配拓扑的原理、适用条件、电路结构、公式与元件清单。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>topology</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>l_right, l_left, t, pi1, pi2</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3><code>get_smith_trajectory</code></h3>
+<p>返回设计后 Smith 圆图轨迹（反射系数采样点），用于绘图或检查每段元件移动方向。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>topology</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>auto, l_right, l_left, t, pi1, pi2</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>frequency_mhz</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_r</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_x</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>z0</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>50</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>L_uh</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>c3_pf</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3><code>search_knowledge</code></h3>
+<p>检索本地微波匹配知识库（圆图、L/T/π 网络、Q 与带宽、寄生、耐压、选型等）。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>query</code></td>
+<td><code>string</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>limit</code></td>
+<td><code>integer</code></td>
+<td>否</td>
+<td><code>4</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3><code>validate_design</code></h3>
+<p>工程校验：检查 VSWR、元件值是否过小/过大、是否可实现，并给出风险清单与结论。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>topology</code></td>
+<td><code>string</code></td>
+<td>是</td>
+<td><code>l_right, l_left, t, pi1, pi2</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>frequency_mhz</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_r</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_x</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>L_uh</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C1_pF</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C2_pF</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>C3_pF</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>z0</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>50</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>power_w</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>1</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3><code>export_design_report</code></h3>
+<p>完成设计并导出 Markdown 或 HTML 报告（含参数、元件表、验证、圆图轨迹、灵敏度）。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>topology</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>auto, l_right, l_left, t, pi1, pi2</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>frequency_mhz</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_r</code></td>
+<td><code>number</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_x</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>z0</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>50</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>L_uh</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>c3_pf</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>power_w</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>1</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>format</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>html, md</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>note</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3><code>search_textbooks</code></h3>
+<p>在本地教材库中全文/模糊搜索（PDF、OCR 结果、TXT/Markdown）。返回书名、页码、命中片段、页面高亮矩形与缩略图 URL。支持中文、英文、代码与公式片段。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>query</code></td>
+<td><code>string</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>doc_id</code></td>
+<td><code>integer</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td>限定某本教材，省略表示全库</td>
+</tr>
+<tr>
+<td><code>limit</code></td>
+<td><code>integer</code></td>
+<td>否</td>
+<td><code>12</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>fuzzy</code></td>
+<td><code>boolean</code></td>
+<td>否</td>
+<td><code>True</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>with_rects</code></td>
+<td><code>boolean</code></td>
+<td>否</td>
+<td><code>True</code></td>
+<td>是否返回页面高亮矩形</td>
+</tr>
+</tbody>
+</table>
+<h3><code>read_textbook_page</code></h3>
+<p>读取教材指定页的文字层或 OCR 文本，并返回页码、缩略图与引用信息。扫描页没有文字时，可返回页面截图供支持视觉的模型阅读。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>doc_id</code></td>
+<td><code>integer</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>page</code></td>
+<td><code>integer</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>lang</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>zh, en</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>include_image</code></td>
+<td><code>boolean</code></td>
+<td>否</td>
+<td><code>True</code></td>
+<td>无文字层时是否附页面截图</td>
+</tr>
+</tbody>
+</table>
+<h3><code>translate_textbook_page</code></h3>
+<p>把教材某页翻译为学术中文或英文；译文按页缓存，避免重复计费。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>doc_id</code></td>
+<td><code>integer</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>page</code></td>
+<td><code>integer</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>target_lang</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>zh, en</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3><code>search_docs</code></h3>
+<p>检索软件内置的四类文档：features 软件功能、code 代码参考、ai 模型接口、mcp 协议接口。返回分类、段落、行号与高亮片段。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>query</code></td>
+<td><code>string</code></td>
+<td>是</td>
+<td><code>—</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>category</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>features, code, ai, mcp</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>lang</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>zh, en</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>fuzzy</code></td>
+<td><code>boolean</code></td>
+<td>否</td>
+<td><code>True</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>limit</code></td>
+<td><code>integer</code></td>
+<td>否</td>
+<td><code>30</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3><code>get_code_reference</code></h3>
+<p>返回由源码 AST 生成的代码参考：模块说明、模块常量、函数的完整签名、参数类型/默认值/作用、返回类型、异常与局部变量。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>默认/枚举</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>module</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td>模块名，如 engine、llm、library</td>
+</tr>
+<tr>
+<td><code>function</code></td>
+<td><code>string</code></td>
+<td>否</td>
+<td><code>—</code></td>
+<td>可选：只看某个函数</td>
+</tr>
+</tbody>
+</table>
+<h3><code>get_library_status</code></h3>
+<p>查询教材库索引状态：书籍数量、已索引页、OCR 页、待 OCR 页与文件列表。</p>
+<h3><code>get_system_status</code></h3>
+<p>查询软件版本、LLM 配置、MCP 运行状态与教材目录。</p>
+<h3><code>list_presets</code></h3>
+<p>列出常用频段/负载演示预设（Wi-Fi、433MHz、UHF RFID、WLAN 等）。</p>
+<div class="footer">Impedance Matching AI v4.3.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
+</main></div></body></html>

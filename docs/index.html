@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>文档首页 · Impedance Matching AI</title>
+<link rel="stylesheet" href="manual.css">
+<script>
+window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},svg:{fontCache:"global"},
+options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
+</script>
+<script src="vendor/mathjax/tex-svg-full.js"></script>
+</head><body><div class="layout"><aside>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.3.0</small></div></div>
+<nav><a class="active" href="index.html">文档首页</a>
+<a class="" href="features.zh.html">软件功能文档</a>
+<a class="" href="code.zh.html">代码参考文档</a>
+<a class="" href="ai.zh.html">AI 大模型接口</a>
+<a class="" href="mcp.zh.html">MCP 协议接口</a>
+<a class="" href="features.en.html">Application Guide (EN)</a>
+<a class="" href="code.en.html">Code Reference (EN)</a>
+<a class="" href="ai.en.html">AI Interface (EN)</a>
+<a class="" href="mcp.en.html">MCP Protocol (EN)</a>
+<a class="" href="教材库说明.html">教材库与数据库</a>
+<a class="" href="安装与卸载说明.html">安装与卸载</a></nav></aside><main>
+<div class="top"><span class="tag">离线文档</span><a href="index.html">← 返回文档首页</a></div>
+
+<h1>Impedance Matching AI 离线说明书</h1>
+<p class="lead">v4.3.0 · 微波阻抗匹配、Smith 圆图、教材检索与 MCP 服务</p>
+<blockquote>本软件是独立开源项目，不绑定任何平台或活动。所有计算、绘图、教材索引与 MCP 服务都在本机完成；只有 AI 对话会把当前问题与用户主动选择的附件发送给用户配置的模型服务商。</blockquote>
+<h2>文档分类</h2>
+<a class="card" href="features.zh.html"><b>软件功能文档</b><small>每个界面、输入框、按钮、输出指标与 Smith 圆图学习流程</small></a><a class="card" href="features.en.html"><b>软件功能文档 (English)</b><small>English edition</small></a><a class="card" href="code.zh.html"><b>代码参考文档</b><small>模块、函数、参数、返回值、局部变量与前端函数</small></a><a class="card" href="code.en.html"><b>代码参考文档 (English)</b><small>English edition</small></a><a class="card" href="ai.zh.html"><b>AI 大模型接口</b><small>厂商、协议、能力矩阵、视觉、价格、缓存与用量</small></a><a class="card" href="ai.en.html"><b>AI 大模型接口 (English)</b><small>English edition</small></a><a class="card" href="mcp.zh.html"><b>MCP 协议接口</b><small>stdio / HTTP / SSE、工具 schema、资源与提示模板</small></a><a class="card" href="mcp.en.html"><b>MCP 协议接口 (English)</b><small>English edition</small></a><a class="card" href="教材库说明.html"><b>教材库与数据库</b><small>如何添加教材、OCR、数据库位置与备份</small></a><a class="card" href="安装与卸载说明.html"><b>安装与卸载</b><small>安装路径、快捷方式、彻底卸载与数据清理</small></a>
+<h2>界面截图</h2>
+<figure><img src="assets/screenshot_design.png" alt="匹配设计"><figcaption>匹配设计</figcaption></figure><figure><img src="assets/screenshot_scan.png" alt="圆图分析"><figcaption>圆图分析</figcaption></figure><figure><img src="assets/screenshot_stress.png" alt="耐压分析"><figcaption>耐压分析</figcaption></figure><figure><img src="assets/screenshot_library.png" alt="教材库"><figcaption>教材库</figcaption></figure><figure><img src="assets/screenshot_docs.png" alt="文档中心"><figcaption>文档中心</figcaption></figure><figure><img src="assets/screenshot_settings.png" alt="模型设置"><figcaption>模型设置</figcaption></figure><figure><img src="assets/screenshot_agent.png" alt="AI 智能体"><figcaption>AI 智能体</figcaption></figure>
+<h2>快速开始</h2>
+<ol>
+<li>双击 <code>ImpedanceMatchingAI.exe</code> 打开软件。</li>
+<li>在“设置 → 模型服务”中选择厂商、填写自己的 API Key；不配置模型也可使用全部本地计算。</li>
+<li>在“教材库”点击“添加教材”，或把 PDF/DOCX/PPTX 放进 <code>TextBook/</code>。</li>
+<li>在“文档中心”全文搜索本说明书，或使用右侧浮动 AI 边看边问。</li>
+</ol>
+
+<div class="footer">Impedance Matching AI v4.3.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
+</main></div></body></html>

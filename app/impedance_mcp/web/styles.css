@@ -1149,7 +1149,7 @@ code, pre, .mono { font-family: "Cascadia Code", Consolas, "SFMono-Regular", mon
 
 /* LaTeX / MathJax */
 .math-inline { white-space: nowrap; }
-.math-display { margin: 12px 0; overflow-x: auto; overflow-y: hidden; text-align: center; }
+.math-display { display: block; margin: 12px 0; overflow-x: auto; overflow-y: hidden; text-align: center; }
 .md mjx-container, .docs-content mjx-container, .bubble mjx-container { max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 .md mjx-container[display="true"], .docs-content mjx-container[display="true"] { margin: 10px 0 !important; }
 mjx-container[jax="SVG"] { color: inherit; }

@@ -395,7 +395,7 @@
       const item = mathItems[Number(index)];
       if (!item) return "";
       return item.display
-        ? `<div class="math-display">${escapeHtml(item.raw)}</div>`
+        ? `<span class="math-display">${escapeHtml(item.raw)}</span>`
         : `<span class="math-inline">${escapeHtml(item.raw)}</span>`;
     });
     html = html.replace(/@@CODEBLOCK(\d+)@@/g, (match, index) => codeBlocks[Number(index)] || "");
@@ -618,7 +618,7 @@
       ? `已配置 ${llm.key_hint || ""}（留空不修改）`
       : "填写该服务商的 API Key";
     $("#setTemp").value = llm.temperature != null ? llm.temperature : 0.25;
-    $("#setMaxTokens").value = llm.max_tokens || 4096;
+    $("#setMaxTokens").value = llm.max_tokens || 16384;
     $("#setReasoning").value = llm.reasoning_effort || "";
     $("#setThinkingBudget").value = llm.thinking_budget || 0;
     populateModels(providerId, llm.model || "");
@@ -1607,8 +1607,14 @@
       auto_fixed: autoFixed,
     };
     if (!autoFixed || overrides.L_uh !== undefined) {
-      const value = overrides.L_uh !== undefined ? overrides.L_uh : $("#inL").value;
-      if (value !== "" && Number(value) > 0) payload.L_uh = Number(value);
+      if (overrides.L_uh !== undefined) {
+        if (overrides.L_uh !== "" && Number(overrides.L_uh) > 0) {
+          payload.L_uh = Number(overrides.L_uh);
+        }
+      } else {
+        const value = $("#inL").value;
+        if (value !== "" && Number(value) > 0) payload.L_uh = Number(value) / 1000;
+      }
     }
     if (TOPO_HAS_C3[topology] && (!autoFixed || overrides.c3_pf !== undefined)) {
       const value = overrides.c3_pf !== undefined ? overrides.c3_pf : $("#inC3").value;
@@ -1727,7 +1733,7 @@
     $("#inR").value = design.load ? design.load.r : 20;
     $("#inX").value = design.load ? design.load.x : 0;
     if (design.components) {
-      $("#inL").value = Number(design.components.L_uH).toFixed(5);
+      $("#inL").value = (Number(design.components.L_uH) * 1000).toFixed(3);
       $("#inC3").value = Number(design.components.C3_pF).toFixed(4);
     }
     setTopology(design.topology && design.topology !== "auto" ? design.topology : "auto");
@@ -1815,7 +1821,7 @@
     }
 
     if (design.components) {
-      $("#inL").value = Number(design.components.L_uH).toFixed(5);
+      $("#inL").value = (Number(design.components.L_uH) * 1000).toFixed(3);
       $("#inC3").value = Number(design.components.C3_pF).toFixed(4);
     }
     $("#designModeTag").textContent = "Python";
@@ -1958,7 +1964,7 @@
       $("#anTopology").value = design.topology && design.topology !== "auto" ? design.topology : "l_right";
       $("#anFreq").value = design.frequency_mhz;
       $("#anZ0").value = design.z0 || 50;
-      $("#anL").value = Number(design.components.L_uH).toFixed(5);
+      $("#anL").value = (Number(design.components.L_uH) * 1000).toFixed(3);
       $("#anR").value = design.load.r;
       $("#anX").value = design.load.x;
       $("#anTopology").dispatchEvent(new Event("change"));
@@ -1981,7 +1987,7 @@
         topology,
         frequency_mhz: Number($("#anFreq").value),
         z0: Number($("#anZ0").value || 50),
-        L_uh: Number($("#anL").value),
+        L_uh: Number($("#anL").value) / 1000,
         steps: Number($("#anSteps").value || 45),
         c1_range_pf: [Number($("#anC1min").value), Number($("#anC1max").value)],
         c2_range_pf: [Number($("#anC2min").value), Number($("#anC2max").value)],
@@ -2022,12 +2028,12 @@
     const en = window.I18N && window.I18N.lang === "en";
     const topology = escapeHtml(TOPO_SHORT[result.topology] || result.topology);
     $("#scanSummary").innerHTML = en
-      ? `At <b>${fmt(result.frequency_mhz, 1)} MHz</b> and L=<b>${fmt($("#anL").value, 4)} µH</b>, ` +
+      ? `At <b>${fmt(result.frequency_mhz, 1)} MHz</b> and L=<b>${fmt($("#anL").value, 4)} nH</b>, ` +
         `<b>${topology}</b> covers approximately ` +
         `R <b>${fmt(result.r_min, 2)}–${fmt(result.r_max, 2)} Ω</b> and X <b>${fmt(result.x_min, 2)}–${fmt(result.x_max, 2)} Ω</b>; ` +
         `the centre is about <b>${fmt(centerX, 1)} ${centerY >= 0 ? "+" : "−"} j${fmt(Math.abs(centerY), 1)} Ω</b>. ` +
         `If the target load lies outside the grey region, adjust L, widen the capacitance range, or use a three-element topology.`
-      : `在 <b>${fmt(result.frequency_mhz, 1)} MHz</b>、L=<b>${fmt($("#anL").value, 4)} µH</b> 下，` +
+      : `在 <b>${fmt(result.frequency_mhz, 1)} MHz</b>、L=<b>${fmt($("#anL").value, 4)} nH</b> 下，` +
         `<b>${topology}</b> 可覆盖的负载范围约为 ` +
         `R <b>${fmt(result.r_min, 2)}–${fmt(result.r_max, 2)} Ω</b>、X <b>${fmt(result.x_min, 2)}–${fmt(result.x_max, 2)} Ω</b>；` +
         `中心约 <b>${fmt(centerX, 1)} ${centerY >= 0 ? "+" : "−"} j${fmt(Math.abs(centerY), 1)} Ω</b>。` +
@@ -2107,7 +2113,7 @@
     $("#stFreq").value = design.frequency_mhz;
     $("#stR").value = design.load.r;
     $("#stX").value = design.load.x;
-    $("#stL").value = Number(design.components.L_uH).toFixed(5);
+    $("#stL").value = (Number(design.components.L_uH) * 1000).toFixed(3);
     $("#stC1").value = Number(design.components.C1_pF).toFixed(4);
     $("#stC2").value = Number(design.components.C2_pF).toFixed(4);
     $("#stC3").value = Number(design.components.C3_pF).toFixed(4);
@@ -2126,7 +2132,7 @@
           frequency_mhz: Number($("#stFreq").value),
           load_r: Number($("#stR").value),
           load_x: Number($("#stX").value),
-          L_uh: Number($("#stL").value),
+          L_uh: Number($("#stL").value) / 1000,
           C1_pF: Number($("#stC1").value),
           C2_pF: Number($("#stC2").value),
           C3_pF: Number($("#stC3").value || 0),

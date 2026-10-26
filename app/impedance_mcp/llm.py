@@ -184,7 +184,7 @@ def _profile(cfg: Dict[str, Any]) -> Dict[str, Any]:
 
 def _output_limit(cfg: Dict[str, Any]) -> int:
     llm = cfg.get("llm", {})
-    configured = int(llm.get("max_tokens", 4096) or 4096)
+    configured = int(llm.get("max_tokens", 16384) or 16384)
     profile = _profile(cfg)
     maximum = int(profile.get("max_output", 0) or 0)
     if maximum > 0:

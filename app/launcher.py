@@ -25,6 +25,21 @@ for stream in (sys.stdout, sys.stderr):
 
 def main() -> int:
     args = list(sys.argv[1:])
+    if "--init-data" in args:
+        from impedance_mcp import config, library
+        config.ensure_dirs()
+        library.init_db()
+        for directory in (config.PROJECT_ROOT / "TextBook", config.LIBRARY_DIR / "books"):
+            directory.mkdir(parents=True, exist_ok=True)
+            readme = directory / "README.txt"
+            if not readme.exists():
+                readme.write_text(
+                    "Place textbooks here (PDF, DOCX, PPTX, XLSX, TXT, Markdown).\n"
+                    "The application indexes them locally; files are never uploaded.\n",
+                    encoding="utf-8",
+                )
+        print(f"Initialized data directory: {config.DATA_DIR}")
+        return 0
     if "--cleanup" in args:
         args = [a for a in args if a != "--cleanup"]
         from impedance_mcp.cleanup import main as cleanup_main

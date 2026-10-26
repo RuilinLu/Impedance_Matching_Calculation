@@ -14,6 +14,9 @@ Pillow>=10.0
 # vision models still work.
 rapidocr_onnxruntime>=1.2
 
+# Offline documentation build (docs/build_static.py)
+markdown>=3.5
+
 # Native Windows window (optional; --browser works without these)
 pywebview>=6.0; sys_platform == "win32"
 pythonnet>=3.0; sys_platform == "win32"

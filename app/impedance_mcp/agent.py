@@ -237,9 +237,39 @@ def run_chat(
         calls = resp.get("tool_calls") or []
         if not calls:
             final = (resp.get("content") or "").strip()
+            finish_reason = str(resp.get("finish_reason") or "")
+            # DeepSeek-style thinking models can spend the whole output budget on
+            # reasoning and return little or no visible text.  Retry once with a
+            # direct, tool-free summary request rather than showing a blank answer.
+            if (not final or finish_reason == "length") and step <= max_steps:
+                emit("status", {"state": "writing",
+                                "text": "正在补全被截断的回答…"})
+                retry_messages = api_messages + [
+                    {"role": "assistant",
+                     "content": final or "（已调用工具，但尚未形成可见回答。）"},
+                    {"role": "user",
+                     "content": ("请基于上面的工具结果，直接输出完整、可读的最终回答。"
+                                 "不要调用工具，不要输出思考过程。所有数学公式使用 LaTeX："
+                                 "行内 \\( ... \\)，独立公式 \\[ ... \\]。"
+                                 "如果上一次输出因长度被截断，请从中断处继续并补全。")},
+                ]
+                try:
+                    retry = llm.chat(cfg, retry_messages, tools=None, timeout=180)
+                    usage_total = usage.add_usage(
+                        usage_total, usage.normalize_usage(retry.get("usage") or {}))
+                    last_model = str(retry.get("model") or last_model)
+                    retry_text = (retry.get("content") or "").strip()
+                    if retry_text:
+                        final = (final + "\n\n" + retry_text).strip() if final else retry_text
+                    finish_reason = str(retry.get("finish_reason") or finish_reason)
+                except llm.LLMError:
+                    pass
+            if finish_reason == "length":
+                final = (final + "\n\n> 注意：模型输出达到最大 tokens 上限，回答可能被截断。"
+                         "请在设置中提高“最大输出 tokens”。").strip()
             if not final:
-                final = ("计算已完成。请查看上方的工具结果卡片；"
-                         "如果需要我进一步解释某个指标，可以直接问。")
+                final = ("模型在本次回答中没有返回可见文本（可能把输出预算全部用于思考）。"
+                         "请提高设置中的“最大输出 tokens”，或把问题拆小后重试。")
             emit("status", {"state": "writing", "text": "正在生成回答…"})
             for index in range(0, len(final), 6):
                 emit("token", {"text": final[index:index + 6]})

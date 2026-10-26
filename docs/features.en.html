@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Application Guide · Impedance Matching AI</title>
+<link rel="stylesheet" href="manual.css">
+<script>
+window.MathJax={tex:{inlineMath:[["\\(","\\)"]],displayMath:[["\\[","\\]"]]},svg:{fontCache:"global"},
+options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
+</script>
+<script src="vendor/mathjax/tex-svg-full.js"></script>
+</head><body><div class="layout"><aside>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.3.0</small></div></div>
+<nav><a class="" href="index.html">文档首页</a>
+<a class="" href="features.zh.html">软件功能文档</a>
+<a class="" href="code.zh.html">代码参考文档</a>
+<a class="" href="ai.zh.html">AI 大模型接口</a>
+<a class="" href="mcp.zh.html">MCP 协议接口</a>
+<a class="active" href="features.en.html">Application Guide (EN)</a>
+<a class="" href="code.en.html">Code Reference (EN)</a>
+<a class="" href="ai.en.html">AI Interface (EN)</a>
+<a class="" href="mcp.en.html">MCP Protocol (EN)</a>
+<a class="" href="教材库说明.html">教材库与数据库</a>
+<a class="" href="安装与卸载说明.html">安装与卸载</a></nav></aside><main>
+<div class="top"><span class="tag">离线文档</span><a href="index.html">← 返回文档首页</a></div>
+<h1>Application Guide</h1>
+<blockquote>
+<p>This is an independent microwave/RF teaching, calculation and simulation tool. It is not tied to any platform or event. All computation, plotting, library indexing and MCP serving happen locally. Only AI chat sends the current question and the attachments you explicitly add to the provider you configure.</p>
+</blockquote>
+<h2>1. Layout</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Contents</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Left navigation</td>
+<td>AI Agent, Design, Smith Analysis, Stress, Library, Documentation, About</td>
+<td>Each view keeps the current design context</td>
+</tr>
+<tr>
+<td>Top bar</td>
+<td>active model, MCP status, language, settings, export report</td>
+<td>Local calculation works without any model</td>
+</tr>
+<tr>
+<td>Main workspace</td>
+<td>forms, charts, documentation, textbook pages</td>
+<td>Responsive width and scrolling</td>
+</tr>
+<tr>
+<td>Floating assistant</td>
+<td>bottom-right <code>AI</code> button on every view</td>
+<td>Collapse to a button, expand for contextual questions</td>
+</tr>
+</tbody>
+</table>
+<p>The language button switches the interface between Chinese and English. Numerical values, units and textbook originals keep their standard notation.</p>
+<h3>1.1 Mathematics and LaTeX</h3>
+<p>AI answers, documentation and textbook translations render LaTeX. Use <code>\( ... \)</code> for inline math and <code>\[ ... \]</code> for display math; <code>$ ... $</code>, <code>$$ ... $$</code> and <code>\begin{equation}</code> are also accepted. The bundled offline MathJax supports fractions, roots, Greek letters, sub/superscripts, integrals, matrices, cases, <code>align</code>, <code>cases</code>, <code>boldsymbol</code> and <code>mhchem</code>.</p>
+<p>For example:</p>
+<p><span class="math-display">\[
+z = \frac{Z_L}{Z_0}, \qquad
+\Gamma = \frac{z-1}{z+1}, \qquad
+\mathrm{VSWR} = \frac{1+|\Gamma|}{1-|\Gamma|}
+\]</span></p>
+<p>An ABCD cascade:</p>
+<p><span class="math-display">\[
+\begin{bmatrix} A &amp; B \\ C &amp; D \end{bmatrix}
+=
+\begin{bmatrix} 1 &amp; j\omega L \\ 0 &amp; 1 \end{bmatrix}
+\begin{bmatrix} 1 &amp; 0 \\ j\omega C_1 &amp; 1 \end{bmatrix}
+\]</span></p>
+<p>If a formula cannot be rendered, the original LaTeX text is preserved instead of disappearing.</p>
+<h2>2. AI Agent</h2>
+<ul>
+<li><code>Enter</code> sends, <code>Shift+Enter</code> inserts a newline.</li>
+<li>Tool cards show the tool name, arguments, latency and a result summary.</li>
+<li>All numerical conclusions about frequency, impedance, component values, VSWR, bandwidth and voltage stress come from local tools; the model explains them.</li>
+<li>Each answer reports input/output tokens, cache hit rate, context usage, cost and latency.</li>
+</ul>
+<h3>2.1 Any file, clipboard and drag-and-drop</h3>
+<p>Click the paperclip, drop files onto the composer, or press <code>Ctrl+V</code>. Extensions are no longer restricted.</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Handling</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PDF</td>
+<td>Text layer; scanned pages can be OCR'ed or rendered for a vision model</td>
+</tr>
+<tr>
+<td>DOCX / PPTX / XLSX</td>
+<td>Paragraphs, slide text, worksheet cells</td>
+</tr>
+<tr>
+<td>TXT / MD / TEX / CSV / source code</td>
+<td>MATLAB, C, C++, Python, Verilog and other text files</td>
+</tr>
+<tr>
+<td>Images</td>
+<td>Local OCR plus the original image when the model supports vision</td>
+</tr>
+<tr>
+<td>Audio / video / archives / other binaries</td>
+<td>Stored and described; readable metadata or archive listing is sent</td>
+</tr>
+</tbody>
+</table>
+<p>Plain text on the clipboard becomes a temporary <code>.txt</code> attachment. Code-like text is named according to the detected language. Attachments can be removed before sending.</p>
+<h3>2.2 Vision</h3>
+<p>If “Image understanding” is enabled in the model profile, images and scanned pages are sent as OpenAI <code>image_url</code> or Anthropic <code>image</code> blocks. Without vision support, only OCR text is sent and the UI says so.</p>
+<h3>2.3 Textbook citations</h3>
+<p>The agent can call <code>search_textbooks</code>, <code>read_textbook_page</code>, <code>translate_textbook_page</code> and <code>search_docs</code>. Textbook citations include the title, page, matched snippet, a page thumbnail or crop, and an “Open textbook page” button that jumps to the library and highlights the match.</p>
+<h3>2.4 Floating assistant</h3>
+<p>The floating assistant is available on every view and carries context automatically:</p>
+<ul>
+<li>current design: topology, frequency, load, components, VSWR;</li>
+<li>current textbook: title, page, selected text;</li>
+<li>current document: category, heading, selected paragraph.</li>
+</ul>
+<p>It shares the model configuration and usage accounting with the main agent but keeps a separate conversation.</p>
+<h2>3. Design</h2>
+<h3>3.1 Inputs</h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Unit</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frequency</td>
+<td>MHz</td>
+<td>operating frequency f0</td>
+</tr>
+<tr>
+<td>System impedance</td>
+<td>Ω</td>
+<td>reference Z0, usually 50</td>
+</tr>
+<tr>
+<td>R_L</td>
+<td>Ω</td>
+<td>load resistance, &gt; 0</td>
+</tr>
+<tr>
+<td>X_L</td>
+<td>Ω</td>
+<td>load reactance, negative for capacitive loads</td>
+</tr>
+<tr>
+<td>Topology</td>
+<td>—</td>
+<td>auto, L-right, L-left, T, π-I, π-II</td>
+</tr>
+<tr>
+<td>Auto fixed elements</td>
+<td>—</td>
+<td>choose practical L and C3 automatically</td>
+</tr>
+<tr>
+<td>L</td>
+<td>µH</td>
+<td>fixed series inductance when auto is off</td>
+</tr>
+<tr>
+<td>C3</td>
+<td>pF</td>
+<td>third capacitor for T/π topologies</td>
+</tr>
+</tbody>
+</table>
+<h3>3.2 Outputs</h3>
+<ul>
+<li>KPIs: VSWR, S11 (dB), VSWR&lt;2 bandwidth (%), design Q.</li>
+<li>Smith chart: load, match point, animated trajectory, play/pause/reset/speed.</li>
+<li>Matching steps: element, series/shunt, start/end impedance, explanation; click a step to show only the trajectory up to it.</li>
+<li>Topology diagram and component values.</li>
+<li>VSWR bandwidth sweep and threshold.</li>
+<li>±5% component tolerance sensitivity.</li>
+<li>Engineering warnings: tiny/large components, parasitics, self-resonance, high Q.</li>
+<li>Alternative topologies with component values, bandwidth, Q and ranking.</li>
+</ul>
+<h3>3.3 Formulas</h3>
+<ul>
+<li><code>z = Z/Z0</code>, <code>Γ = (z−1)/(z+1)</code>.</li>
+<li><code>VSWR = (1+|Γ|)/(1−|Γ|)</code>, <code>S11(dB) = 20log10|Γ|</code>, return loss <code>RL = −S11</code>.</li>
+<li>L-network Q: <code>Q = √(R_high/R_low − 1)</code>.</li>
+<li>Series elements move along constant-resistance circles; shunt elements move along constant-conductance circles. Series inductance moves up, series capacitance down; shunt capacitance up, shunt inductance down.</li>
+<li>Every analytical solution is re-evaluated with a full nodal analysis of Zin, VSWR, S11 and element voltages/currents.</li>
+</ul>
+<h3>3.4 Smith-chart learning path</h3>
+<ol>
+<li>Enter a load such as <code>2.4 GHz, 20+j5 Ω</code>.</li>
+<li>Solve and watch the load move to the centre.</li>
+<li>Pause and click individual steps to isolate each element.</li>
+<li>Switch between L, T and π to compare trajectory length, Q and bandwidth.</li>
+<li>Search the library for <code>Smith chart</code>, <code>reflection coefficient</code> or <code>反射系数</code> and read the textbook page beside the chart; use the floating assistant to explain formulas.</li>
+</ol>
+<h2>4. Smith Analysis (forward scan)</h2>
+<ul>
+<li>Inputs: topology, frequency, Z0, fixed L, grid steps, C1/C2/C3 ranges, target load.</li>
+<li>Grey density cloud: darker grey means more matchable loads in that region.</li>
+<li>Cyan highlight: points close to the centre (low reflection).</li>
+<li>Orange marker: current load.</li>
+<li>Boundary envelope: shows whether the target load is inside the matchable region.</li>
+<li>Hover shows Z, Γ and VSWR.</li>
+</ul>
+<p>Results: R/X min/max and 5–95% percentiles, valid point count, sampled point count, five-topology bandwidth comparison, and an automatic conclusion.</p>
+<p>If “Run scan” appears unresponsive, check that L is positive and the ranges are valid; errors are shown in the conclusion panel and the previous successful result is kept.</p>
+<h2>5. Stress</h2>
+<p>Inputs: topology, frequency, power, load, L/C1/C2/C3 and rated voltage. Outputs: source open-circuit peak, input peak, load peak, per-element peak/RMS voltage and current, safety factor (rated/peak), and engineering advice. The calculation uses the full nodal model including the 50 Ω source.</p>
+<h2>6. Textbook Library</h2>
+<h3>6.1 Adding books</h3>
+<p>Put PDFs in <code>TextBook/</code> (project or installation folder) or <code>data/library/books/</code>, or click “Add textbook”. TXT, Markdown and TeX are also accepted. “Rebuild index” forces a full rescan; normal startup only processes new or modified files.</p>
+<p>Textbooks are not distributed with the repository. The software reads local files only and never uploads them.</p>
+<h3>6.2 Indexing and OCR</h3>
+<ul>
+<li>Text-layer PDFs are indexed page by page.</li>
+<li>Scanned PDFs are flagged as “OCR needed”; the first pages of each book are OCR'ed automatically so the table of contents becomes searchable.</li>
+<li>“OCR this page” runs RapidOCR locally (Chinese/English).</li>
+<li>“OCR this book” queues a page range in the background.</li>
+<li>A vision model can read page images even without OCR.</li>
+</ul>
+<h3>6.3 Search</h3>
+<ul>
+<li>Instant full-text search for Chinese, English, code symbols and formula fragments.</li>
+<li>Fuzzy search corrects English typos and splits long Chinese terms into bigrams.</li>
+<li>AI semantic search expands a natural-language question into Chinese/English keywords, then ranks locally.</li>
+<li>Filter by book; results are grouped by book and page (up to four pages per book).</li>
+<li>Matches are highlighted in the snippet and as rectangles on the page image.</li>
+</ul>
+<h3>6.4 Reading</h3>
+<ul>
+<li>Previous/next page, page jump, zoom in/out/fit width.</li>
+<li>Text panel: text layer or OCR result; if empty, OCR or use vision.</li>
+<li>Translation panel: one-click academic Chinese/English translation, cached per page to avoid repeated cost.</li>
+<li>PDF outline when available.</li>
+<li>Search results and AI citations open the exact page and highlight the match.</li>
+</ul>
+<h3>6.5 Working with the AI</h3>
+<ul>
+<li>“Ask about this page” sends the title, page and text to the floating assistant.</li>
+<li>For scanned pages, the assistant can request a page image for a vision model.</li>
+<li>Citations in answers include a thumbnail; “Open textbook page” returns to the library at the right page.</li>
+</ul>
+<h2>7. Documentation Centre</h2>
+<p>Four searchable domains:</p>
+<ol>
+<li><strong>Application guide</strong> — this document.</li>
+<li><strong>Code reference</strong> — generated from the live AST: modules, classes, functions, parameters, defaults, returns, exceptions, local variables, module constants and front-end functions.</li>
+<li><strong>AI model interface</strong> — providers, protocols, capability matrix, vision, tools, pricing, cache and updates.</li>
+<li><strong>MCP protocol</strong> — stdio / Streamable HTTP / legacy SSE, tool schemas, resources, prompts and client configuration.</li>
+</ol>
+<p>Search highlights every occurrence in the current document and provides “previous / next” navigation with an <code>n / m</code> counter. “All documents” searches across the four domains. “AI fuzzy search” expands natural language into keywords and falls back to local fuzzy matching when no model is configured.</p>
+<p>Select text and use the floating assistant to explain it with the current document and section as context.</p>
+<h2>8. Settings</h2>
+<h3>8.1 Model service</h3>
+<ul>
+<li>20 built-in providers: OpenAI, Anthropic, Google, DeepSeek, Alibaba DashScope, Zhipu, Moonshot, Baidu Qianfan, Tencent Hunyuan, ByteDance Ark, MiniMax, 01.AI, StepFun, Baichuan, iFlytek Spark, SiliconFlow, OpenRouter, xAI, Mistral, Groq.</li>
+<li>Protocol: OpenAI-compatible, Anthropic Messages, or a fully custom URL.</li>
+<li>Model: catalog selection or a custom model ID.</li>
+<li>API key: stored only in local <code>data/config.json</code>, displayed as the first/last four characters.</li>
+<li>Temperature, maximum output tokens, reasoning mode and thinking budget.</li>
+</ul>
+<h3>8.2 Model profile</h3>
+<p>Context length, maximum output, image/audio input, tool calls, JSON output, reasoning, Responses API, Anthropic API, FIM, input price with/without cache, output price, peak/off-peak prices, concurrency and currency. These values drive context usage and cost accounting.</p>
+<h3>8.3 Catalog updates</h3>
+<ul>
+<li><strong>Update from official catalog</strong>: reads models.dev and the current provider's <code>/models</code> endpoint; user overrides are preserved.</li>
+<li><strong>Read official announcements</strong>: fetches public model/pricing pages and extracts candidate model IDs; failures are listed per provider.</li>
+<li><strong>AI-assisted update</strong>: sends the current catalog and announcement excerpts to the configured model and asks for a strict JSON patch. The UI warns that AI output may be wrong and must be reviewed.</li>
+<li><strong>Rollback</strong>: every update is backed up; one click restores the previous catalog.</li>
+</ul>
+<h3>8.4 Usage</h3>
+<p>Per-request and daily/7-day/all-time totals: requests, tokens, cache hit rate, cost. The log is <code>data/usage.jsonl</code>.</p>
+<h3>8.5 MCP configuration</h3>
+<p>Copy the stdio configuration from Settings or About:</p>
+<p><pre><code>{
+  &quot;mcp&quot;: {
+    &quot;servers&quot;: {
+      &quot;impedance-matching-ai&quot;: {
+        &quot;type&quot;: &quot;stdio&quot;,
+        &quot;command&quot;: &quot;python&quot;,
+        &quot;args&quot;: [&quot;&lt;project&gt;/app/run_mcp.py&quot;]
+      }
+    }
+  }
+}</code></pre></p>
+<h2>9. Standalone and MCP modes</h2>
+<ul>
+<li>Standalone: design, scan, stress, reports, library and documentation work without any model.</li>
+<li>MCP server: exposes the same tools to ZCode, Claude Code, Codex, Cursor, Cherry Studio and other clients.</li>
+<li>HTTP/SSE: <code>python app/run_mcp.py --http 8790</code> provides <code>/mcp</code> and <code>/sse</code>.</li>
+</ul>
+<h2>10. Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Check</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No models listed</td>
+<td>Base URL, API key, network/proxy; use “Test connection” for the HTTP error</td>
+</tr>
+<tr>
+<td>Attachment not parsed</td>
+<td>File may be corrupt or legacy binary <code>.doc</code>/<code>.ppt</code>; it is still stored; export to PDF/DOCX or send a screenshot</td>
+</tr>
+<tr>
+<td>Scanned PDF not searchable</td>
+<td>No text layer; OCR the page/book or configure a vision model</td>
+</tr>
+<tr>
+<td>OCR is slow</td>
+<td>RapidOCR takes about 1–3 s per page on CPU; batch OCR runs in the background</td>
+</tr>
+<tr>
+<td>Translation fails</td>
+<td>Model not configured, key invalid, or the page has no text; OCR first</td>
+</tr>
+<tr>
+<td>Context usage too high</td>
+<td>Remove attachments or use a longer-context model; adjust the profile</td>
+</tr>
+<tr>
+<td>MCP client sees no tools</td>
+<td>Check client config, Python path and <code>run_mcp.py</code>; inspect client logs</td>
+</tr>
+<tr>
+<td>Model broken after update</td>
+<td>Use “Rollback catalog” in Settings</td>
+</tr>
+</tbody>
+</table>
+<div class="footer">Impedance Matching AI v4.3.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
+</main></div></body></html>
