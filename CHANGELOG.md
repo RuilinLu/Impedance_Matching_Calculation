@@ -1,5 +1,27 @@
 # Changelog
 
+## v4.3.0 — 2026-10-26
+
+### 新增
+- **原生 Windows 窗口**：主程序改为 pywebview + WebView2，GUI 子系统，无控制台、无系统浏览器；帮助文档/报告在原生子窗口打开。
+- **双 exe 打包**：`ImpedanceMCP.exe`（GUI）与 `ImpedanceMCP_MCP.exe`（console MCP）共享同一个 `_internal`，MCP stdio stdout 保持纯净。
+- **一键彻底卸载**：开始菜单/可选桌面快捷方式 + `unins000.exe`；先关闭运行中进程，再删除所有用户数据、API Key、上传、报告、WebView2 缓存、MCP 条目、快捷方式与注册表项，不保留数据。
+- **WebView2 自动安装**：安装器检测缺失时静默安装 Evergreen Runtime。
+- 新增 `desktop.py`、`cleanup.py`，launcher 支持 `--browser` 调试回退与 `--cleanup`。
+
+### 变更
+- MCP 配置、界面复制配置、安装器 ZCode 写入统一指向 `ImpedanceMCP_MCP.exe`。
+- 版本号 v4.3.0；安装包约 57 MB；便携 GUI 与便携 MCP 各约 34 MB。
+- 文档、PDF、DOCX、帮助中心同步原生窗口与彻底卸载说明。
+
+### 修复
+- 卸载时运行中的 GUI/WebView2 锁定文件，导致安装目录或用户数据残留；现在卸载器先 `taskkill /F /T`，cleanup 带重试。
+- 帮助中心中文文件名导致 HTTP `Content-Disposition` 非 latin-1、响应 500/截断；RFC 5987 ASCII 头 + 回归测试保持修复。
+
+### 说明
+- 32 位 Windows（x86 OS）不支持；需要 Windows 10/11 x64。
+- 共享 Microsoft Edge WebView2 Runtime 是系统组件，不随本软件删除。
+
 ## v4.2.0 — 2026-10-26
 
 ### 新增

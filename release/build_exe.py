@@ -1,30 +1,34 @@
-"""Build the standalone Windows executable(s) and the installer payload.
+"""Build the native Windows GUI, the console MCP executable and installer payload.
 
 Usage (from the project root):
     python release/build_exe.py
 
 Produces:
-    dist/ImpedanceMCP_Portable.exe          one-file portable
-    release/ImpedanceMCP_v4.2.0_Portable.exe
+    dist/ImpedanceMCP_Portable.exe          one-file native GUI (no browser)
+    release/ImpedanceMCP_v4.3.0_Portable.exe
+    dist/ImpedanceMCP_MCP_Portable.exe      one-file MCP stdio console
+    release/ImpedanceMCP_v4.3.0_Portable_MCP.exe
     dist/ImpedanceMCP/                      one-folder app (installer payload)
-    release/ImpedanceMCP_v4.2.0_App/
-    release/ImpedanceMCP_v4.2.0_Windows.exe (portable copy, kept for convenience)
+    release/ImpedanceMCP_v4.3.0_App/
+        ImpedanceMCP.exe                    native window (Windows subsystem)
+        ImpedanceMCP_MCP.exe                MCP stdio/HTTP (console subsystem)
 
-The one-folder build is what the Inno Setup installer packages: it avoids the
-self-extracting one-file behaviour that some antivirus engines treat as
-suspicious, and starts faster.
+The one-folder build is what Inno Setup packages.  Two executables share one
+_internal directory: the GUI is windowed so double-clicking never opens a
+console or a browser, while the console binary keeps stdout/stdin available for
+MCP clients.
 """
 
 from __future__ import annotations
 
 import shutil
-import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "4.2.0"
+VERSION = "4.3.0"
 ICON = ROOT / "release" / "icon.ico"
 VERSION_FILE = ROOT / "release" / "version_info.txt"
+SPEC = ROOT / "release" / "ImpedanceMCP.spec"
 
 
 def _safe(path: Path) -> str:
@@ -34,9 +38,20 @@ def _safe(path: Path) -> str:
     return str(resolved)
 
 
-def _common(name: str) -> list:
+def _pyi(args: list) -> None:
+    from PyInstaller.__main__ import run as pyinstaller_run
+    print("PyInstaller " + " ".join(args))
+    try:
+        pyinstaller_run(args)
+    except SystemExit as exc:
+        if exc.code not in (0, None):
+            raise
+
+
+def _common(name: str, windowed: bool, entry: Path) -> list:
     cmd = [
-        "--noconfirm", "--clean", "--console",
+        "--noconfirm", "--clean", "--onefile",
+        "--windowed" if windowed else "--console",
         "--name", name,
         "--paths", _safe(ROOT / "app"),
         "--add-data", f"{_safe(ROOT / 'app' / 'impedance_mcp' / 'web')};impedance_mcp/web",
@@ -47,8 +62,13 @@ def _common(name: str) -> list:
         "--hidden-import", "PIL",
         "--hidden-import", "PIL.Image",
         "--hidden-import", "openpyxl",
+        "--hidden-import", "webview",
+        "--hidden-import", "webview.platforms.edgechromium",
+        "--hidden-import", "webview.platforms.winforms",
+        "--hidden-import", "clr",
+        "--hidden-import", "pythonnet",
         "--exclude-module", "tkinter",
-        _safe(ROOT / "app" / "launcher.py"),
+        _safe(entry),
     ]
     if ICON.exists():
         cmd += ["--icon", _safe(ICON)]
@@ -57,16 +77,41 @@ def _common(name: str) -> list:
     return cmd
 
 
-def build(name: str, onefile: bool) -> None:
-    from PyInstaller.__main__ import run as pyinstaller_run
-    cmd = _common(name)
-    cmd.insert(3, "--onefile" if onefile else "--onedir")
-    print("PyInstaller " + " ".join(cmd))
-    try:
-        pyinstaller_run(cmd)
-    except SystemExit as exc:
-        if exc.code not in (0, None):
-            raise
+def build_portable_gui() -> Path:
+    _pyi(_common("ImpedanceMCP_Portable", True, ROOT / "app" / "launcher.py"))
+    portable = ROOT / "dist" / "ImpedanceMCP_Portable.exe"
+    if not portable.exists():
+        raise SystemExit("one-file GUI build missing")
+    dst = ROOT / "release" / f"ImpedanceMCP_v{VERSION}_Portable.exe"
+    shutil.copy2(portable, dst)
+    shutil.copy2(portable, ROOT / "release" / f"ImpedanceMCP_v{VERSION}_Windows.exe")
+    return dst
+
+
+def build_portable_mcp() -> Path:
+    _pyi(_common("ImpedanceMCP_MCP_Portable", False, ROOT / "app" / "run_mcp.py"))
+    portable = ROOT / "dist" / "ImpedanceMCP_MCP_Portable.exe"
+    if not portable.exists():
+        raise SystemExit("one-file MCP build missing")
+    dst = ROOT / "release" / f"ImpedanceMCP_v{VERSION}_Portable_MCP.exe"
+    shutil.copy2(portable, dst)
+    return dst
+
+
+def build_onedir() -> Path:
+    if not SPEC.exists():
+        raise SystemExit(f"spec missing: {SPEC}")
+    _pyi([str(SPEC), "--noconfirm", "--clean"])
+    app_dir = ROOT / "dist" / "ImpedanceMCP"
+    if not (app_dir / "ImpedanceMCP.exe").exists():
+        raise SystemExit("one-folder GUI build missing")
+    if not (app_dir / "ImpedanceMCP_MCP.exe").exists():
+        raise SystemExit("one-folder MCP build missing")
+    dst_app = ROOT / "release" / f"ImpedanceMCP_v{VERSION}_App"
+    if dst_app.exists():
+        shutil.rmtree(dst_app)
+    shutil.copytree(app_dir, dst_app)
+    return dst_app
 
 
 def main() -> int:
@@ -74,26 +119,18 @@ def main() -> int:
         import PyInstaller  # noqa: F401
     except ImportError as exc:
         raise SystemExit("PyInstaller is not installed: pip install pyinstaller") from exc
+    try:
+        import webview  # noqa: F401
+    except ImportError as exc:
+        raise SystemExit("pywebview is not installed: pip install pywebview") from exc
 
-    build("ImpedanceMCP_Portable", onefile=True)
-    portable = ROOT / "dist" / "ImpedanceMCP_Portable.exe"
-    dst_portable = ROOT / "release" / f"ImpedanceMCP_v{VERSION}_Portable.exe"
-    if not portable.exists():
-        raise SystemExit("one-file build missing")
-    shutil.copy2(portable, dst_portable)
-    shutil.copy2(portable, ROOT / "release" / f"ImpedanceMCP_v{VERSION}_Windows.exe")
+    portable = build_portable_gui()
+    portable_mcp = build_portable_mcp()
+    app_dir = build_onedir()
 
-    build("ImpedanceMCP", onefile=False)
-    app_dir = ROOT / "dist" / "ImpedanceMCP"
-    dst_app = ROOT / "release" / f"ImpedanceMCP_v{VERSION}_App"
-    if not (app_dir / "ImpedanceMCP.exe").exists():
-        raise SystemExit("one-folder build missing")
-    if dst_app.exists():
-        shutil.rmtree(dst_app)
-    shutil.copytree(app_dir, dst_app)
-
-    print(f"\nPortable: {dst_portable} ({dst_portable.stat().st_size / 1024 / 1024:.1f} MB)")
-    print(f"App dir : {dst_app}")
+    print(f"\nPortable GUI: {portable} ({portable.stat().st_size / 1024 / 1024:.1f} MB)")
+    print(f"Portable MCP: {portable_mcp} ({portable_mcp.stat().st_size / 1024 / 1024:.1f} MB)")
+    print(f"App dir     : {app_dir}")
     return 0
 
 

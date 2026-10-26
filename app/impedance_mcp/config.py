@@ -40,7 +40,7 @@ else:
     HELP_DIR = PROJECT_ROOT / "docs"
 
 
-VERSION = "4.2.0"
+VERSION = "4.3.0"
 RELEASE_DATE = "2026-10-26"
 TEAM = [
     {"name": "卢瑞林", "role": "项目负责人 / 算法与 MCP 架构", "initials": "LRL"},
@@ -283,15 +283,29 @@ def llm_status(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     }
 
 
-def _mcp_launch() -> tuple:
+def mcp_launch() -> tuple:
+    """Return the console executable that speaks MCP over stdio.
+
+    The GUI executable is built as a Windows-subsystem binary, so MCP clients
+    must launch the sibling console binary.  Source mode uses run_mcp.py.
+    """
     if FROZEN:
-        return str(Path(sys.executable).resolve()), ["--mcp"]
+        exe = Path(sys.executable).resolve()
+        for name in ("ImpedanceMCP_MCP.exe", "ImpedanceMCP.exe"):
+            candidate = exe.with_name(name)
+            if candidate.exists():
+                return str(candidate), ["--mcp"]
+        return str(exe), ["--mcp"]
     return sys.executable, [str(PROJECT_ROOT / "app" / "run_mcp.py")]
+
+
+def _mcp_launch() -> tuple:
+    return mcp_launch()
 
 
 def status() -> Dict[str, Any]:
     cfg = load_config()
-    command, args = _mcp_launch()
+    command, args = mcp_launch()
     return {
         "name": "智配芯生 · ImpedanceMCP",
         "version": VERSION,

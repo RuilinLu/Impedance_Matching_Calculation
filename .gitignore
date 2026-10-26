@@ -54,3 +54,9 @@ release/*.pdf
 # ---- Generated app payload ----
 release/*_App/
 release/mcp_home/
+
+# Track the installer payload spec
+!release/ImpedanceMCP.spec
+
+# Native WebView2 cache
+webview/

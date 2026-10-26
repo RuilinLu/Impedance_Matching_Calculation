@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "impedance-mcp"
-version = "4.2.0"
+version = "4.3.0"
 description = "智配芯生 · ImpedanceMCP — microwave impedance-matching calculation, simulation and MCP tools"
 readme = { text = "智配芯生 · ImpedanceMCP — microwave impedance-matching AI agent and MCP toolkit", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -15,14 +15,19 @@ authors = [
   { name = "Zhiyi Lin" },
   { name = "Yunlei Zhang" },
 ]
-dependencies = ["numpy>=1.24"]
+dependencies = [
+  "numpy>=1.24",
+  "pywebview>=6.0; sys_platform == 'win32'",
+  "pythonnet>=3.0; sys_platform == 'win32'",
+]
 
 [project.optional-dependencies]
 attachments = ["pypdf>=4.0", "openpyxl>=3.1", "Pillow>=10.0"]
 
 [project.scripts]
 impedance-mcp = "impedance_mcp.mcp_server:main"
-impedance-app = "impedance_mcp.web_server:main"
+impedance-app = "impedance_mcp.desktop:main"
+impedance-web = "impedance_mcp.web_server:main"
 
 [tool.setuptools]
 packages = ["impedance_mcp"]

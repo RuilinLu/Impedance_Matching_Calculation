@@ -19,10 +19,7 @@ from . import config
 
 
 def _launch_spec() -> Tuple[str, List[str]]:
-    exe = Path(sys.executable).resolve()
-    if getattr(sys, "frozen", False):
-        return str(exe), ["--mcp"]
-    return str(exe), [str(config.PROJECT_ROOT / "app" / "run_mcp.py")]
+    return config.mcp_launch()
 
 
 def _backup(path: Path) -> Path:
@@ -119,7 +116,10 @@ def main(argv: List[str]) -> int:
     result = configure(targets)
     for name, item in result["results"].items():
         status = "OK" if item.get("ok") else "SKIP"
-        print(f"[{status}] {name}: {item.get('path') or item.get('reason')}")
+        try:
+            print(f"[{status}] {name}: {item.get('path') or item.get('reason')}")
+        except Exception:
+            pass
     return 0
 
 

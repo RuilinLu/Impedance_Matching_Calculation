@@ -1,6 +1,6 @@
 # 智配芯生 · ImpedanceMCP
 
-**微波阻抗匹配智能计算与仿真软件 · v4.2.0**
+**微波阻抗匹配智能计算与仿真软件 · v4.3.0**
 
 **一个可独立运行的桌面软件 + 一个标准 MCP 服务器 + 一个支持 214 家国内外模型服务商的 AI 智能体。**
 
@@ -19,9 +19,9 @@
 
 | 形态 | 入口 | 用途 |
 |---|---|---|
-| **独立软件** | 安装后双击桌面 `ImpedanceMCP`；或便携版 `ImpedanceMCP_v4.2.0_Portable.exe` | 不连任何 AI、不需要 MCP，直接做匹配设计、圆图、扫描、耐压、报告 |
-| **MCP 服务器** | `ImpedanceMCP.exe --mcp` | stdio 接入 Claude Code / Codex / ZCode / Cursor / Claude Desktop |
-| **MCP 服务器（HTTP/SSE）** | `ImpedanceMCP.exe --mcp --http 8790` | Streamable HTTP + legacy SSE，接入 Cherry Studio / 远程 MCP 客户端 |
+| **独立软件** | 安装后双击桌面 `ImpedanceMCP`；或便携版 `ImpedanceMCP_v4.3.0_Portable.exe` | 不连任何 AI、不需要 MCP，直接做匹配设计、圆图、扫描、耐压、报告 |
+| **MCP 服务器** | `ImpedanceMCP_MCP.exe --mcp` | stdio 接入 Claude Code / Codex / ZCode / Cursor / Claude Desktop |
+| **MCP 服务器（HTTP/SSE）** | `ImpedanceMCP_MCP.exe --mcp --http 8790` | Streamable HTTP + legacy SSE，接入 Cherry Studio / 远程 MCP 客户端 |
 | **AI 智能体** | 独立软件内的「AI 智能体」页 | 在 214 家服务商中选择模型，用自己的 Key 对话、调用 15 个工具 |
 
 > 也就是说：**它自己能运行、自己会算；同时又能被别的 AI 软件当作工具调用。**
@@ -51,38 +51,51 @@
 ### 3.1 安装程序（推荐）
 
 ```text
-双击 release/ImpedanceMCP_Setup_v4.2.0.exe
+双击 release/ImpedanceMCP_Setup_v4.3.0.exe
 ```
 
 安装程序会：
 
-- 检测 Windows x64、磁盘空间、VC++ 运行库；
+- 检测 Windows x64、磁盘空间、VC++ 运行库、Microsoft Edge WebView2 Runtime；
+- 缺少 WebView2 时自动静默安装（原生窗口需要；不会打开系统浏览器）；
 - 支持修改安装目录；
 - 可选创建桌面/开始菜单快捷方式；
 - 可选写入 ZCode MCP 配置（自动备份原配置）；
-- 安装后桌面快捷方式指向 `ImpedanceMCP.exe`，双击即打开软件。
+- 安装后桌面快捷方式指向 `ImpedanceMCP.exe`，双击即打开**原生窗口**。
 
 安装后的目录：
 
 ```text
-{安装目录}\ImpedanceMCP.exe       主程序（双击打开；--mcp 进 MCP）
-{安装目录}\_internal\             运行时
+{安装目录}\ImpedanceMCP.exe       主程序（原生窗口；双击即用）
+{安装目录}\ImpedanceMCP_MCP.exe   MCP 控制台程序（stdio / HTTP+SSE）
+{安装目录}\_internal\             运行时（含 WebView2 桥接）
 {安装目录}\docs\                  内置帮助（HTML/PDF）
 {安装目录}\classic\               原版经典界面（可选）
+{安装目录}\unins000.exe           一键卸载程序（清除全部数据）
 ```
 
-用户数据：`%LOCALAPPDATA%\ImpedanceMCP\data`。
+用户数据：`%LOCALAPPDATA%\ImpedanceMCP\`（配置、API Key、上传、报告、WebView2 缓存）。
 
-**便携版**（不安装，直接运行）：
+**一键彻底卸载**：
+
+- 开始菜单「一键卸载 ImpedanceMCP（清除全部数据）」；
+- 或运行 `{安装目录}\unins000.exe`；
+- 或在安装时勾选“桌面一键卸载快捷方式”。
+
+卸载会删除：程序文件、`%LOCALAPPDATA%\ImpedanceMCP`、`%APPDATA%\ImpedanceMCP`、所有用户的同名数据目录、API Key、上传/报告、WebView2 用户缓存、MCP 客户端中的 `impedance-matching` 条目、开始菜单/桌面快捷方式、应用注册表项和 Inno 卸载注册项。**不会保留任何用户数据。**
+共享的 Microsoft Edge WebView2 Runtime 属于系统组件，不随本软件删除，以免影响其他应用。
+
+**便携版**（原生窗口，不安装）：
 
 ```text
-双击 release/ImpedanceMCP_v4.2.0_Portable.exe
+双击 release/ImpedanceMCP_v4.3.0_Portable.exe
+release/ImpedanceMCP_v4.3.0_Portable_MCP.exe   # 便携版 MCP 控制台
 ```
 
 **源码运行**（需要 Python 3.10+）：
 
 ```bat
-pip install numpy pypdf openpyxl Pillow
+pip install numpy pypdf openpyxl Pillow pywebview pythonnet
 start_app.bat
 ```
 
@@ -90,6 +103,7 @@ start_app.bat
 
 ```bat
 python app\run_app.py
+python app\run_app.py --browser   # 仅调试：退回本地浏览器界面
 ```
 
 ### 3.2 原版 MATLAB 软件
@@ -151,21 +165,22 @@ API Key 只保存在本机，exe 为 `%LOCALAPPDATA%\ImpedanceMCP\data\config.js
 
 ## 4. 独立运行 vs MCP：它到底能不能“自己打开”？
 
-**能。**
+**能，而且不是命令行 + 浏览器。**
 
-- 安装版：双击桌面/开始菜单 `ImpedanceMCP`，或 `{安装目录}\ImpedanceMCP.exe`；
-- 便携版：双击 `ImpedanceMCP_v4.2.0_Portable.exe`；
+- 安装版：双击桌面/开始菜单 `ImpedanceMCP`，打开的是一个带标题栏、图标和任务栏入口的**原生 Windows 窗口**；
+- 便携版：双击 `ImpedanceMCP_v4.3.0_Portable.exe`，同样是原生窗口；
+- 主程序是 Windows GUI 子系统，不会弹出命令行窗口，也不会调用 Edge/Chrome 打开本地网址；
+- 界面由内置 WebView2 在窗口内渲染，数据仍由本机 `127.0.0.1` 服务提供；
 - 不需要 AI、不需要 MCP、不需要联网，直接做设计、圆图、扫描、耐压、报告；
 - 页面里的「AI 智能体」是可选的；不配置模型也能用所有计算功能；
 - 原版 `Impedance_Matching.exe` 仍然保留，可从右上角「打开原版」启动。
 
-所以它是：
-
 ```text
-独立可运行软件  +  MCP 服务器  +  可选 AI 智能体
+原生桌面窗口  +  MCP 服务器  +  可选 AI 智能体
 ```
 
-不是“只能通过 ZCode 才能用”的插件。
+`ImpedanceMCP_MCP.exe` 是独立的控制台程序，只供 MCP 客户端调用；双击主程序不会出现它。
+只有开发调试时才使用 `ImpedanceMCP.exe --browser` 退回浏览器界面。
 
 ---
 
@@ -204,7 +219,7 @@ API Key 只保存在本机，exe 为 `%LOCALAPPDATA%\ImpedanceMCP\data\config.js
     "servers": {
       "impedance-matching": {
         "type": "stdio",
-        "command": "C:\\path\\to\\ImpedanceMCP.exe",
+        "command": "C:\\path\\to\\ImpedanceMCP_MCP.exe",
         "args": ["--mcp"],
         "timeoutMs": 120000
       }
@@ -239,7 +254,7 @@ API Key 只保存在本机，exe 为 `%LOCALAPPDATA%\ImpedanceMCP\data\config.js
 
 ```toml
 [mcp_servers.impedance-matching]
-command = "C:\\path\\to\\ImpedanceMCP.exe"
+command = "C:\\path\\to\\ImpedanceMCP_MCP.exe"
 args = ["--mcp"]
 startup_timeout_sec = 30
 tool_timeout_sec = 120
@@ -248,7 +263,7 @@ tool_timeout_sec = 120
 ### 5.5 Claude Code
 
 ```bat
-claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP.exe" --mcp
+claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP_MCP.exe" --mcp
 ```
 
 ### 5.6 Claude Desktop
@@ -259,7 +274,7 @@ claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP.exe" --mcp
 {
   "mcpServers": {
     "impedance-matching": {
-      "command": "C:\\path\\to\\ImpedanceMCP.exe",
+      "command": "C:\\path\\to\\ImpedanceMCP_MCP.exe",
       "args": ["--mcp"]
     }
   }
@@ -271,7 +286,7 @@ claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP.exe" --mcp
 先启动：
 
 ```bat
-ImpedanceMCP.exe --mcp --http 8790
+ImpedanceMCP_MCP.exe --mcp --http 8790
 ```
 
 在客户端 MCP 设置中添加 SSE：
@@ -350,7 +365,7 @@ GET    http://127.0.0.1:8790/health       状态
 
 ### 6.4 报告
 
-点击右上角「导出报告」生成 HTML；在浏览器中 `Ctrl+P` 可另存为 PDF。
+点击右上角「导出报告」生成 HTML，并在原生子窗口打开；按 `Ctrl+P` 可另存为 PDF。
 报告包含：设计任务、拓扑图、元件表、节点法复核、Smith 圆图、带宽曲线、步骤、灵敏度、风险提示、团队信息。
 
 ![报告](docs/assets/screenshot_report.png)
@@ -407,15 +422,16 @@ S11(dB) = 20 log10 |Γ|
 
 ### 8.1 测试用例
 
-`app/tests/` 包含四类测试：
+`app/tests/` 包含五类测试：
 
 - `test_engine.py`：5 拓扑、频段、随机负载、扫描、带宽、耐压、报告；
 - `test_mcp_protocol.py`：initialize、15 工具、resources、prompts、错误处理；
 - `test_physics.py`：**独立 ABCD 级联矩阵** vs 节点法、正向扫描逐点反算、轨迹连续性、功率守恒、VSWR 关系；
-- `test_web_help.py`：帮助文档 HTTP 头（中文文件名 UTF-8 编码）与安装说明白名单。
+- `test_web_help.py`：帮助文档 HTTP 头（中文文件名 UTF-8 编码）与安装说明白名单；
+- `test_cleanup.py`：一键卸载的 MCP 条目识别、JSON/TOML 精确删除。
 
 ```text
-Ran 26 tests ... OK
+Ran 29 tests ... OK
 ```
 
 所有成功设计的 `VSWR < 1.001`，`|Zin − 50| < 0.01 Ω`。
@@ -446,7 +462,7 @@ Ran 11 tests ... OK
 
 - Streamable HTTP：`POST /mcp` + `Mcp-Session-Id`，15 个工具、设计调用通过；
 - Legacy SSE：`GET /sse` + `POST /messages`，initialize / tools/list 通过；
-- 独立 exe：`--mcp` 15 个工具、双击启动 Web UI 与计算均通过。
+- 独立 exe：`--mcp` 15 个工具、双击启动原生窗口与计算均通过。
 
 ### 8.5 安装程序与内置帮助
 
@@ -455,7 +471,7 @@ Ran 11 tests ... OK
 - 可选经典界面文件复制通过；
 - `--configure-mcp zcode` 自动写入并备份配置通过；
 - 安装后 `ImpedanceMCP.exe` 独立运行、MCP、214 服务商、`/help/用户手册.html`、设计计算通过；
-- 卸载清理通过；
+- 一键卸载：运行中的程序被关闭，程序目录、`%LOCALAPPDATA%`/`%APPDATA%` 数据、API Key、上传/报告、WebView2 缓存、MCP 配置、快捷方式和注册表项全部清除；
 - 帮助中心包含用户手册、MCP 兼容性、计算正确性审计、技术白皮书、架构、比赛说明、安装与杀毒说明。
 
 安装与杀毒说明见 [`docs/安装与杀毒软件说明.md`](docs/安装与杀毒软件说明.md)。
@@ -475,7 +491,9 @@ Ran 11 tests ... OK
 │  │  ├─ llm.py             # OpenAI 兼容 + Anthropic + Azure 适配
 │  │  ├─ providers.py       # 服务商目录加载
 │  │  ├─ providers.json     # 214 家服务商与模型（来自 models.dev）
-│  │  ├─ configure_mcp.py   # 一键写入 ZCode/Claude/Codex 配置
+│  │  ├─ desktop.py         # 原生 WebView2 窗口（无浏览器、无控制台）
+  │  ├─ cleanup.py         # 一键彻底卸载：数据/配置/MCP/注册表
+  │  ├─ configure_mcp.py   # 一键写入 ZCode/Claude/Codex 配置
 │  │  ├─ attachments.py     # PDF/DOCX/XLSX 附件解析
 │  │  ├─ reports.py         # HTML/Markdown 报告
 │  │  ├─ matlab_bridge.py   # MATLAB R2025b / 原版 exe
@@ -490,7 +508,7 @@ Ran 11 tests ... OK
 │  │  ├─ test_engine.py
 │  │  ├─ test_mcp_protocol.py
 │  │  └─ test_physics.py    # ABCD/扫描/轨迹/功率独立审计
-│  ├─ launcher.py           # exe 统一入口（默认 UI，--mcp 进 MCP）
+│  ├─ launcher.py           # 统一入口（默认原生窗口，--browser 调试）
 │  ├─ run_app.py
 │  └─ run_mcp.py
 ├─ docs/                    # 用户手册、MCP、审计、白皮书、架构、比赛、安装/杀毒
@@ -547,7 +565,7 @@ A：这是物理限制，不是程序错误。固定电容拓扑无法匹配强�
 A：说明手动指定的 L 太大。打开“自动选值”，或把 L 减小到 1–10 nH 量级。
 
 **Q：ZCode 看不到工具？**
-A：确认 `~/.zcode/cli/config.json` 的 `mcp.servers` 中有 `impedance-matching`，路径存在，然后**完全退出并重启 ZCode**。可先用 `ImpedanceMCP.exe --mcp` 或 `python app\run_mcp.py` 手动验证。
+A：确认 `~/.zcode/cli/config.json` 的 `mcp.servers` 中有 `impedance-matching`，路径存在，然后**完全退出并重启 ZCode**。可先用 `ImpedanceMCP_MCP.exe --mcp` 或 `python app\run_mcp.py` 手动验证。
 
 **Q：能不能用本地 Ollama / LM Studio？**
 A：当前安全策略拒绝本机/内网地址，避免 SSRF 风险；请通过公网网关或反向代理。云服务商目录已覆盖 214 家。
@@ -568,7 +586,7 @@ A：当前安全策略拒绝本机/内网地址，避免 SSRF 风险；请通过
 
 **联系**：radarlurui@gmail.com ｜ Lu_Skywalker2915@sjtu.edu.cn
 **GitHub**：<https://github.com/RuilinLu/Impedance_Matching_Calculation>
-**v4.2.0 Release**：<https://github.com/RuilinLu/Impedance_Matching_Calculation/releases/tag/v4.2.0>
+**v4.3.0 Release**：<https://github.com/RuilinLu/Impedance_Matching_Calculation/releases/tag/v4.3.0>
 
 ---
 

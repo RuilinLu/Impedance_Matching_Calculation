@@ -253,7 +253,7 @@ def build() -> Path:
         ["300 组随机设计", "VSWR 全部 1.000000"],
         ["MATLAB R2025b 交叉", "5/5 通过，Zin 偏差 0.0"],
         ["MCP 协议", "11/11 通过"],
-        ["物理 + Web 帮助审计", "7/7 通过（总 26/26）"],
+        ["物理 + Web + 卸载审计", "10/10 通过（总 29/29）"],
         ["浏览器视觉", "AI/设计/分析/耐压/设置/关于/报告逐页检查"],
         ["报告一致性", "报告与界面使用同一组精确元件值"],
     ], widths=[7.0, 9.0])
@@ -279,7 +279,7 @@ def build() -> Path:
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     r = p.add_run("仓库：https://github.com/RuilinLu/Impedance_Matching_Calculation\n"
-                  "版本 v4.0.0 ｜ 2026-10-26 ｜ 团队：卢瑞林、卢柯吉、林芷伊、张昀蕾\n"
+                  "版本 v4.3.0 ｜ 2026-10-26 ｜ 团队：卢瑞林、卢柯吉、林芷伊、张昀蕾\n"
                   "上海交通大学集成电路学院（信息与电子工程学院）")
     cn(r, 9, False, MUTED)
 

@@ -35,6 +35,13 @@ def _inline_disposition(name: str) -> str:
     return f"inline; filename=\"document{suffix}\"; filename*=UTF-8''{quoted}"
 
 
+def _write_stderr(text: str) -> None:
+    try:
+        sys.stderr.write(text)
+    except Exception:
+        pass
+
+
 def _json_bytes(payload: Any) -> bytes:
     return json.dumps(payload, ensure_ascii=False).encode("utf-8")
 
@@ -85,7 +92,7 @@ class Handler(BaseHTTPRequestHandler):
         return data
 
     def log_message(self, fmt: str, *args: Any) -> None:  # noqa: A003
-        sys.stderr.write("[web] " + (fmt % args) + "\n")
+        _write_stderr("[web] " + (fmt % args) + "\n")
 
     # -- routing ----------------------------------------------------------
     def do_GET(self) -> None:  # noqa: N802
@@ -129,7 +136,7 @@ class Handler(BaseHTTPRequestHandler):
         except BrokenPipeError:
             return
         except Exception as exc:  # noqa: BLE001
-            sys.stderr.write(traceback.format_exc())
+            _write_stderr(traceback.format_exc())
             return self._error(str(exc), status=500, code="server_error")
 
     def do_HEAD(self) -> None:  # noqa: N802
@@ -177,7 +184,7 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as exc:
             return self._error(str(exc), status=400, code="bad_request")
         except Exception as exc:  # noqa: BLE001
-            sys.stderr.write(traceback.format_exc())
+            _write_stderr(traceback.format_exc())
             return self._error(str(exc), status=500, code="server_error")
 
     # -- static -----------------------------------------------------------
@@ -452,7 +459,7 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
         except Exception as exc:  # noqa: BLE001
-            sys.stderr.write(traceback.format_exc())
+            _write_stderr(traceback.format_exc())
             try:
                 emit("error", {"message": f"智能体运行失败：{exc}",
                                "hint": "请查看终端日志，或检查模型服务配置。"})

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Start the ImpedanceMCP desktop shell (local web UI + AI agent + REST API)."""
+"""Start ImpedanceMCP in a native window (or `--browser` for the legacy UI)."""
 
 from __future__ import annotations
 
@@ -16,7 +16,11 @@ for stream in (sys.stdout, sys.stderr):
     except Exception:
         pass
 
-from impedance_mcp.web_server import main  # noqa: E402
+if "--browser" in sys.argv or "--web" in sys.argv:
+    from impedance_mcp.web_server import main  # noqa: E402
+    sys.argv = [a for a in sys.argv if a not in ("--browser", "--web")]
+else:
+    from impedance_mcp.desktop import main  # noqa: E402
 
 if __name__ == "__main__":
     raise SystemExit(main())

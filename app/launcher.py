@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 """Single launcher used by the Windows executable and by `python app/launcher.py`.
 
-    ImpedanceMCP.exe                 -> start the standalone web app
-    ImpedanceMCP.exe --mcp           -> start the MCP stdio server
-    ImpedanceMCP.exe --mcp --http 8790 -> start the MCP HTTP server
+    ImpedanceMCP.exe                    -> native desktop window (WebView2)
+    ImpedanceMCP.exe --browser          -> legacy local browser UI (debug only)
+    ImpedanceMCP_MCP.exe --mcp          -> MCP stdio server
+    ImpedanceMCP_MCP.exe --mcp --http 8790 -> MCP HTTP/SSE server
 """
 
 from __future__ import annotations
@@ -24,6 +25,10 @@ for stream in (sys.stdout, sys.stderr):
 
 def main() -> int:
     args = list(sys.argv[1:])
+    if "--cleanup" in args:
+        args = [a for a in args if a != "--cleanup"]
+        from impedance_mcp.cleanup import main as cleanup_main
+        return cleanup_main(args)
     if "--configure-mcp" in args:
         i = args.index("--configure-mcp")
         targets = [a for a in args[i + 1:] if not a.startswith("--")]
@@ -33,8 +38,12 @@ def main() -> int:
         args = [a for a in args if a != "--mcp"]
         from impedance_mcp.mcp_server import main as mcp_main
         return mcp_main(args)
-    from impedance_mcp.web_server import main as web_main
-    return web_main(args)
+    if "--browser" in args or "--web" in args:
+        args = [a for a in args if a not in ("--browser", "--web")]
+        from impedance_mcp.web_server import main as web_main
+        return web_main(args)
+    from impedance_mcp.desktop import main as desktop_main
+    return desktop_main(args)
 
 
 if __name__ == "__main__":

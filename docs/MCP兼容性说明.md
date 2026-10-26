@@ -1,6 +1,6 @@
 # MCP 客户端兼容性说明
 
-**版本：v4.2.0 ｜ 更新日期：2026-10-26**
+**版本：v4.3.0 ｜ 更新日期：2026-10-26**
 
 ---
 
@@ -42,10 +42,10 @@
 ImpedanceMCP.exe
 
 :: 2) stdio MCP（Claude Code / Codex / ZCode / Cursor）
-ImpedanceMCP.exe --mcp
+ImpedanceMCP_MCP.exe --mcp
 
 :: 3) Streamable HTTP + legacy SSE
-ImpedanceMCP.exe --mcp --http 8790
+ImpedanceMCP_MCP.exe --mcp --http 8790
 ```
 
 源码方式：
@@ -99,7 +99,7 @@ HTTP 端点：
 {
   "mcpServers": {
     "impedance-matching": {
-      "command": "C:\\path\\to\\ImpedanceMCP.exe",
+      "command": "C:\\path\\to\\ImpedanceMCP_MCP.exe",
       "args": ["--mcp"]
     }
   }
@@ -111,7 +111,7 @@ HTTP 端点：
 推荐：
 
 ```bat
-claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP.exe" --mcp
+claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP_MCP.exe" --mcp
 ```
 
 或项目根目录 `.mcp.json`：
@@ -120,7 +120,7 @@ claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP.exe" --mcp
 {
   "mcpServers": {
     "impedance-matching": {
-      "command": "C:\\path\\to\\ImpedanceMCP.exe",
+      "command": "C:\\path\\to\\ImpedanceMCP_MCP.exe",
       "args": ["--mcp"]
     }
   }
@@ -133,7 +133,7 @@ claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP.exe" --mcp
 
 ```toml
 [mcp_servers.impedance-matching]
-command = "C:\\path\\to\\ImpedanceMCP.exe"
+command = "C:\\path\\to\\ImpedanceMCP_MCP.exe"
 args = ["--mcp"]
 startup_timeout_sec = 30
 tool_timeout_sec = 120
@@ -149,7 +149,7 @@ tool_timeout_sec = 120
     "servers": {
       "impedance-matching": {
         "type": "stdio",
-        "command": "C:\\path\\to\\ImpedanceMCP.exe",
+        "command": "C:\\path\\to\\ImpedanceMCP_MCP.exe",
         "args": ["--mcp"],
         "timeoutMs": 120000
       }
@@ -168,7 +168,7 @@ tool_timeout_sec = 120
 {
   "mcpServers": {
     "impedance-matching": {
-      "command": "C:\\path\\to\\ImpedanceMCP.exe",
+      "command": "C:\\path\\to\\ImpedanceMCP_MCP.exe",
       "args": ["--mcp"]
     }
   }
@@ -179,7 +179,7 @@ tool_timeout_sec = 120
 
 1. 先启动 HTTP/SSE 模式：
    ```bat
-   ImpedanceMCP.exe --mcp --http 8790
+   ImpedanceMCP_MCP.exe --mcp --http 8790
    ```
 2. 设置 → MCP 服务器 → 添加：
    - 类型：`SSE`
@@ -187,7 +187,7 @@ tool_timeout_sec = 120
 3. 保存后应看到 15 个工具。
 
 如果 Cherry Studio 当前版本只支持 stdio，也可以添加：
-- 命令：`C:\path\to\ImpedanceMCP.exe`
+- 命令：`C:\path\to\ImpedanceMCP_MCP.exe`
 - 参数：`--mcp`
 
 ### 4.7 Chatbox
@@ -259,16 +259,16 @@ Chatbox 的 MCP 支持随版本变化：
 | Streamable HTTP `POST /mcp` + `Mcp-Session-Id` | 通过 |
 | SSE-only 响应 | 通过 |
 | Legacy SSE `/sse` + `/messages` | 通过 |
-| 独立 exe `--mcp` | 通过 |
-| 独立 exe 双击运行（Web UI + 计算） | 通过 |
-| Python 引擎 / MCP 协议回归 | 19/19 |
+| MCP 控制台 exe `--mcp` | 通过 |
+| 原生 GUI 双击运行（窗口 + 计算） | 通过 |
+| Python 全量回归（含卸载清理） | 29/29 |
 
 ---
 
 ## 8. 故障排查
 
 1. **客户端看不到工具**：
-   - 先运行 `ImpedanceMCP.exe --mcp`，看终端是否报错；
+   - 先运行 `ImpedanceMCP_MCP.exe --mcp`，看终端是否报错；
    - 确认配置中的路径是绝对路径；
    - 重启客户端（大多数客户端只在启动时读取 MCP 配置）；
    - 查看客户端 MCP 日志。

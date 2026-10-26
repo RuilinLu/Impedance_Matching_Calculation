@@ -112,7 +112,7 @@ a { color: var(--brand); text-decoration: none; }
       <h2>安装、启动、界面、设计、分析、MCP 与常见问题</h2>
       <div class="rule"></div>
       <div class="meta">
-        <div><b>版本</b>　v4.2.0　｜　<b>更新日期</b>　2026-10-26</div>
+        <div><b>版本</b>　v4.3.0　｜　<b>更新日期</b>　2026-10-26</div>
         <div><b>开发者</b>　卢瑞林、卢柯吉、林芷伊、张昀蕾</div>
         <div><b>项目</b>　智配芯生 · ImpedanceMCP 微波阻抗匹配智能计算与仿真软件</div>
       </div>
@@ -191,7 +191,7 @@ a { color: var(--brand); text-decoration: none; }
 <li><a href="#q6c2-000x-pf">Q6：C2 只有 0.00x pF？</a></li>
 <li><a href="#q7">Q7：端口被占用？</a></li>
 <li><a href="#q8zcode">Q8：ZCode 看不到工具？</a></li>
-<li><a href="#q9">Q9：浏览器打不开 / 白屏？</a></li>
+<li><a href="#q9">Q9：原生窗口打不开 / 白屏？</a></li>
 <li><a href="#q10">Q10：报告中文乱码？</a></li>
 </ul>
 </li>
@@ -203,7 +203,7 @@ a { color: var(--brand); text-decoration: none; }
 </section>
 <main class="content">
 <h1 id="impedancemcp">智配芯生 · ImpedanceMCP 用户手册</h1>
-<p><strong>版本：v4.2.0 ｜ 更新日期：2026-10-26</strong></p>
+<p><strong>版本：v4.3.0 ｜ 更新日期：2026-10-26</strong></p>
 <p>开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾
 上海交通大学集成电路学院（信息与电子工程学院）
 “智绘芯生，AI 赋能” AI 教与学活动周 · 赛道一（AI 智能体）</p>
@@ -212,7 +212,7 @@ a { color: var(--brand); text-decoration: none; }
 <p>智配芯生 · ImpedanceMCP 是一套面向微波工程学习与设计的阻抗匹配软件。它由三部分组成：</p>
 <ol>
 <li><strong>经典 MATLAB 内核</strong>：原版 <code>Impedance_Matching.exe</code>（V3.0，App Designer + RF Toolbox），保留原有 L/T/π 五种拓扑、Smith 圆图动画与耐压分析。</li>
-<li><strong>Python 智能外壳</strong>：现代化 Web 界面、独立计算内核、多模型对话、附件解析、报告导出。</li>
+<li><strong>Python 智能外壳</strong>：原生窗口、独立计算内核、多模型对话、附件解析、报告导出。</li>
 <li><strong>MCP 服务器</strong>：把匹配计算、扫描、复核、耐压、报告等能力封装成 15 个标准工具，可被 ZCode、Claude、Cursor 等任意 MCP 客户端调用。</li>
 </ol>
 <blockquote>
@@ -223,11 +223,12 @@ a { color: var(--brand); text-decoration: none; }
 <h2 id="2">2. 安装与启动</h2>
 <h3 id="21">2.1 安装程序（推荐）</h3>
 <h4 id="awindows-pythonmatlab">方式 A：Windows 安装程序（无需 Python/MATLAB）</h4>
-<pre><code class="language-text">双击 release/ImpedanceMCP_Setup_v4.2.0.exe
+<pre><code class="language-text">双击 release/ImpedanceMCP_Setup_v4.3.0.exe
 </code></pre>
 <p>安装程序会：</p>
 <ul>
-<li>检测 Windows 10/11 x64、磁盘空间、VC++ 运行库；</li>
+<li>检测 Windows 10/11 x64、磁盘空间、VC++ 运行库、Microsoft Edge WebView2 Runtime；</li>
+<li>缺少 WebView2 时自动静默安装（原生窗口需要，不会打开系统浏览器）；</li>
 <li>支持自定义安装目录；</li>
 <li>可选桌面/开始菜单快捷方式；</li>
 <li>可选写入 ZCode MCP 配置（自动备份原配置）；</li>
@@ -235,13 +236,29 @@ a { color: var(--brand); text-decoration: none; }
 <li>安装完成后，桌面快捷方式指向 <code>ImpedanceMCP.exe</code>。</li>
 </ul>
 <p>安装后：</p>
-<pre><code class="language-text">{安装目录}\ImpedanceMCP.exe       双击打开软件；--mcp 进 MCP
+<pre><code class="language-text">{安装目录}\ImpedanceMCP.exe       双击打开原生窗口（无命令行、无浏览器）
+{安装目录}\ImpedanceMCP_MCP.exe   MCP 控制台程序（--mcp / --mcp --http 8790）
 {安装目录}\docs\                  内置帮助（用户手册/审计/MCP/安装说明）
 {安装目录}\classic\               原版 MATLAB 经典界面（可选）
+{安装目录}\unins000.exe           一键卸载程序（删除全部数据）
 </code></pre>
-<p>用户数据保存在 <code>%LOCALAPPDATA%\ImpedanceMCP\data\</code>（配置、上传、报告）。</p>
+<p>用户数据保存在 <code>%LOCALAPPDATA%\ImpedanceMCP\</code>（配置、API Key、上传、报告、WebView2 缓存）。</p>
+<h4 id="_1">一键彻底卸载</h4>
+<p>开始菜单或安装时勾选的桌面快捷方式「一键卸载 ImpedanceMCP（清除全部数据）」，
+也可以直接运行 <code>{安装目录}\unins000.exe</code>。</p>
+<p>卸载会先关闭正在运行的程序，然后删除：</p>
+<ul>
+<li>安装目录中的全部程序与内置文档；</li>
+<li><code>%LOCALAPPDATA%\ImpedanceMCP</code> 与 <code>%APPDATA%\ImpedanceMCP</code>（所有用户）；</li>
+<li>API Key、上传文件、报告、WebView2 用户缓存；</li>
+<li>ZCode / Claude / Codex / Cursor 配置中的 <code>impedance-matching</code> 条目（保留其他 MCP 服务器）；</li>
+<li>开始菜单、桌面快捷方式；</li>
+<li>应用注册表项与 Windows“应用和功能”卸载项。</li>
+</ul>
+<p><strong>不保留任何用户数据。</strong> 共享的 Microsoft Edge WebView2 Runtime 是系统组件，不随本软件删除。</p>
 <h4 id="b-exe">方式 B：便携版 exe</h4>
-<pre><code class="language-text">双击 release/ImpedanceMCP_v4.2.0_Portable.exe
+<pre><code class="language-text">双击 release/ImpedanceMCP_v4.3.0_Portable.exe          # 原生窗口
+release/ImpedanceMCP_v4.3.0_Portable_MCP.exe           # 便携版 MCP 控制台
 </code></pre>
 <p>不需要安装；帮助文档需使用安装版或在线 docs。</p>
 <h4 id="c">方式 C：源码运行</h4>
@@ -249,19 +266,20 @@ a { color: var(--brand); text-decoration: none; }
 <ul>
 <li>Windows 10/11（64 位）</li>
 <li>Python <strong>3.10 或更高</strong>（推荐 3.11–3.14）</li>
-<li>依赖：<code>numpy</code></li>
+<li>依赖：<code>numpy</code>、<code>pywebview</code>、<code>pythonnet</code></li>
 <li>可选：<code>pypdf</code>、<code>openpyxl</code>、<code>Pillow</code>（用于 PDF/XLSX/图片附件）</li>
 </ul>
 <pre><code class="language-bat">cd &quot;项目根目录&quot;
-pip install numpy pypdf openpyxl Pillow
+pip install numpy pywebview pythonnet pypdf openpyxl Pillow
 start_app.bat
 </code></pre>
 <p>或：</p>
 <pre><code class="language-bat">python app\run_app.py
+python app\run_app.py --browser   # 仅调试：退回浏览器界面
 </code></pre>
-<p>启动后默认打开 <code>http://127.0.0.1:8765/</code>。端口被占用时会自动尝试后续端口（8766–8776）。</p>
-<h4 id="_1">停止</h4>
-<p>关闭命令行窗口，或在窗口中按 <code>Ctrl+C</code>。双击 exe 启动的版本关闭命令行窗口即可。</p>
+<p>启动后打开的是一个原生 Windows 窗口；不会调用系统浏览器，也不会保留命令行窗口。</p>
+<h4 id="_2">停止</h4>
+<p>直接关闭窗口，或在源码调试时按 <code>Ctrl+C</code>。</p>
 <h3 id="22-matlab">2.2 原版 MATLAB 软件</h3>
 <p>原版 <code>Impedance_Matching.exe</code> 由 MATLAB R2023b 编译，运行需要：</p>
 <ol>
@@ -728,7 +746,7 @@ set LLM_MODEL=deepseek-chat
 <ol>
 <li>生成 HTML 报告；</li>
 <li>在新标签页打开；</li>
-<li>用浏览器 <code>Ctrl+P</code> 选择“另存为 PDF”。</li>
+<li>在原生报告窗口按 <code>Ctrl+P</code> 选择“另存为 PDF”。</li>
 </ol>
 <p>报告内容：</p>
 <ul>
@@ -758,12 +776,12 @@ set LLM_MODEL=deepseek-chat
 <tbody>
 <tr>
 <td>stdio</td>
-<td><code>ImpedanceMCP.exe --mcp</code></td>
+<td><code>ImpedanceMCP_MCP.exe --mcp</code></td>
 <td>Claude Code / Codex / ZCode / Cursor / Claude Desktop</td>
 </tr>
 <tr>
 <td>Streamable HTTP</td>
-<td><code>ImpedanceMCP.exe --mcp --http 8790</code></td>
+<td><code>ImpedanceMCP_MCP.exe --mcp --http 8790</code></td>
 <td>支持 HTTP 的客户端</td>
 </tr>
 <tr>
@@ -868,7 +886,7 @@ MATLAB 只用于“MATLAB 复核”和“打开原版 exe”。</p>
 <h3 id="q6c2-000x-pf">Q6：C2 只有 0.00x pF？</h3>
 <p>手动 L 太大。打开“自动选值”，或把 L 减小到 1–10 nH。</p>
 <h3 id="q7">Q7：端口被占用？</h3>
-<p>程序会自动尝试 8766–8776。也可以手动指定：</p>
+<p>原生窗口默认自动选择空闲端口；调试时可以手动指定：</p>
 <pre><code class="language-bat">ImpedanceMCP.exe --port 8899
 :: 或
 python app\run_app.py --port 8899
@@ -877,21 +895,21 @@ python app\run_app.py --port 8899
 <ol>
 <li>检查配置 JSON 语法；</li>
 <li>确认 <code>args</code> / exe 路径存在；</li>
-<li>先运行 <code>ImpedanceMCP.exe --mcp</code> 或 <code>python app\run_mcp.py</code>，看是否有报错；</li>
+<li>先运行 <code>ImpedanceMCP_MCP.exe --mcp</code> 或 <code>python app\run_mcp.py</code>，看是否有报错；</li>
 <li>完全退出并重启 ZCode。</li>
 </ol>
-<h3 id="q9">Q9：浏览器打不开 / 白屏？</h3>
+<h3 id="q9">Q9：原生窗口打不开 / 白屏？</h3>
 <ul>
-<li>确认命令行窗口没有报错；</li>
-<li>尝试 <code>http://127.0.0.1:8765/</code>；</li>
-<li>清除浏览器缓存或换 Edge/Chrome；</li>
-<li>查看终端日志。</li>
+<li>确认已安装 Microsoft Edge WebView2 Runtime（安装程序会自动安装）；</li>
+<li>重新运行安装程序修复；</li>
+<li>源码调试可用 <code>python app\run_app.py --browser</code> 排除窗口层问题；</li>
+<li>查看源码终端日志。</li>
 </ul>
 <h3 id="q10">Q10：报告中文乱码？</h3>
-<p>报告使用 UTF-8；浏览器应自动识别。若用旧版编辑器打开，请选择 UTF-8。</p>
+<p>报告使用 UTF-8；WebView2 与浏览器都会自动识别。若用旧版编辑器打开，请选择 UTF-8。</p>
 <hr />
 <h2 id="11">11. 版本与团队</h2>
-<p><strong>版本</strong>：v4.2.0
+<p><strong>版本</strong>：v4.3.0
 <strong>更新日期</strong>：2026-10-26
 <strong>仓库</strong>：<a href="https://github.com/RuilinLu/Impedance_Matching_Calculation">https://github.com/RuilinLu/Impedance_Matching_Calculation</a></p>
 <table>
@@ -925,7 +943,7 @@ python app\run_app.py --port 8899
 <blockquote>
 <p>本软件用于教学、科研与工程估算；正式产品请用实际元件模型与实测数据复核。</p>
 </blockquote>
-<div class="doc-end">智配芯生 · ImpedanceMCP v4.2.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
+<div class="doc-end">智配芯生 · ImpedanceMCP v4.3.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
 上海交通大学集成电路学院（信息与电子工程学院）</div>
 </main>
 </body></html>

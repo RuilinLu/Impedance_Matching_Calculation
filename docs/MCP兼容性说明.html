@@ -112,7 +112,7 @@ a { color: var(--brand); text-decoration: none; }
       <h2>stdio / Streamable HTTP / legacy SSE · 客户端矩阵与配置</h2>
       <div class="rule"></div>
       <div class="meta">
-        <div><b>版本</b>　v4.2.0　｜　<b>更新日期</b>　2026-10-26</div>
+        <div><b>版本</b>　v4.3.0　｜　<b>更新日期</b>　2026-10-26</div>
         <div><b>开发者</b>　卢瑞林、卢柯吉、林芷伊、张昀蕾</div>
         <div><b>项目</b>　智配芯生 · ImpedanceMCP 微波阻抗匹配智能计算与仿真软件</div>
       </div>
@@ -151,7 +151,7 @@ a { color: var(--brand); text-decoration: none; }
 </section>
 <main class="content">
 <h1 id="mcp">MCP 客户端兼容性说明</h1>
-<p><strong>版本：v4.2.0 ｜ 更新日期：2026-10-26</strong></p>
+<p><strong>版本：v4.3.0 ｜ 更新日期：2026-10-26</strong></p>
 <hr />
 <h2 id="1">1. 先给结论</h2>
 <p><strong>MCP 是一个开放协议，不是所有 AI 软件都实现了它。</strong></p>
@@ -226,10 +226,10 @@ a { color: var(--brand); text-decoration: none; }
 ImpedanceMCP.exe
 
 :: 2) stdio MCP（Claude Code / Codex / ZCode / Cursor）
-ImpedanceMCP.exe --mcp
+ImpedanceMCP_MCP.exe --mcp
 
 :: 3) Streamable HTTP + legacy SSE
-ImpedanceMCP.exe --mcp --http 8790
+ImpedanceMCP_MCP.exe --mcp --http 8790
 </code></pre>
 <p>源码方式：</p>
 <pre><code class="language-bat">python app\run_app.py            :: 独立运行
@@ -333,7 +333,7 @@ python app\run_mcp.py --http 8790 :: HTTP/SSE MCP
 <pre><code class="language-json">{
   &quot;mcpServers&quot;: {
     &quot;impedance-matching&quot;: {
-      &quot;command&quot;: &quot;C:\\path\\to\\ImpedanceMCP.exe&quot;,
+      &quot;command&quot;: &quot;C:\\path\\to\\ImpedanceMCP_MCP.exe&quot;,
       &quot;args&quot;: [&quot;--mcp&quot;]
     }
   }
@@ -341,13 +341,13 @@ python app\run_mcp.py --http 8790 :: HTTP/SSE MCP
 </code></pre>
 <h3 id="42-claude-code">4.2 Claude Code</h3>
 <p>推荐：</p>
-<pre><code class="language-bat">claude mcp add impedance-matching -- &quot;C:\path\to\ImpedanceMCP.exe&quot; --mcp
+<pre><code class="language-bat">claude mcp add impedance-matching -- &quot;C:\path\to\ImpedanceMCP_MCP.exe&quot; --mcp
 </code></pre>
 <p>或项目根目录 <code>.mcp.json</code>：</p>
 <pre><code class="language-json">{
   &quot;mcpServers&quot;: {
     &quot;impedance-matching&quot;: {
-      &quot;command&quot;: &quot;C:\\path\\to\\ImpedanceMCP.exe&quot;,
+      &quot;command&quot;: &quot;C:\\path\\to\\ImpedanceMCP_MCP.exe&quot;,
       &quot;args&quot;: [&quot;--mcp&quot;]
     }
   }
@@ -356,7 +356,7 @@ python app\run_mcp.py --http 8790 :: HTTP/SSE MCP
 <h3 id="43-openai-codex-cli">4.3 OpenAI Codex CLI</h3>
 <p>文件：<code>~/.codex/config.toml</code></p>
 <pre><code class="language-toml">[mcp_servers.impedance-matching]
-command = &quot;C:\\path\\to\\ImpedanceMCP.exe&quot;
+command = &quot;C:\\path\\to\\ImpedanceMCP_MCP.exe&quot;
 args = [&quot;--mcp&quot;]
 startup_timeout_sec = 30
 tool_timeout_sec = 120
@@ -368,7 +368,7 @@ tool_timeout_sec = 120
     &quot;servers&quot;: {
       &quot;impedance-matching&quot;: {
         &quot;type&quot;: &quot;stdio&quot;,
-        &quot;command&quot;: &quot;C:\\path\\to\\ImpedanceMCP.exe&quot;,
+        &quot;command&quot;: &quot;C:\\path\\to\\ImpedanceMCP_MCP.exe&quot;,
         &quot;args&quot;: [&quot;--mcp&quot;],
         &quot;timeoutMs&quot;: 120000
       }
@@ -384,7 +384,7 @@ tool_timeout_sec = 120
 <pre><code class="language-json">{
   &quot;mcpServers&quot;: {
     &quot;impedance-matching&quot;: {
-      &quot;command&quot;: &quot;C:\\path\\to\\ImpedanceMCP.exe&quot;,
+      &quot;command&quot;: &quot;C:\\path\\to\\ImpedanceMCP_MCP.exe&quot;,
       &quot;args&quot;: [&quot;--mcp&quot;]
     }
   }
@@ -394,14 +394,14 @@ tool_timeout_sec = 120
 <ol>
 <li>先启动 HTTP/SSE 模式：
    <code>bat
-   ImpedanceMCP.exe --mcp --http 8790</code></li>
+   ImpedanceMCP_MCP.exe --mcp --http 8790</code></li>
 <li>设置 → MCP 服务器 → 添加：
    - 类型：<code>SSE</code>
    - URL：<code>http://127.0.0.1:8790/sse</code></li>
 <li>保存后应看到 15 个工具。</li>
 </ol>
 <p>如果 Cherry Studio 当前版本只支持 stdio，也可以添加：
-- 命令：<code>C:\path\to\ImpedanceMCP.exe</code>
+- 命令：<code>C:\path\to\ImpedanceMCP_MCP.exe</code>
 - 参数：<code>--mcp</code></p>
 <h3 id="47-chatbox">4.7 Chatbox</h3>
 <p>Chatbox 的 MCP 支持随版本变化：</p>
@@ -483,16 +483,16 @@ tool_timeout_sec = 120
 <td>通过</td>
 </tr>
 <tr>
-<td>独立 exe <code>--mcp</code></td>
+<td>MCP 控制台 exe <code>--mcp</code></td>
 <td>通过</td>
 </tr>
 <tr>
-<td>独立 exe 双击运行（Web UI + 计算）</td>
+<td>原生 GUI 双击运行（窗口 + 计算）</td>
 <td>通过</td>
 </tr>
 <tr>
-<td>Python 引擎 / MCP 协议回归</td>
-<td>19/19</td>
+<td>Python 全量回归（含卸载清理）</td>
+<td>29/29</td>
 </tr>
 </tbody>
 </table>
@@ -500,7 +500,7 @@ tool_timeout_sec = 120
 <h2 id="8">8. 故障排查</h2>
 <ol>
 <li><strong>客户端看不到工具</strong>：
-   - 先运行 <code>ImpedanceMCP.exe --mcp</code>，看终端是否报错；
+   - 先运行 <code>ImpedanceMCP_MCP.exe --mcp</code>，看终端是否报错；
    - 确认配置中的路径是绝对路径；
    - 重启客户端（大多数客户端只在启动时读取 MCP 配置）；
    - 查看客户端 MCP 日志。</li>
@@ -532,7 +532,7 @@ tool_timeout_sec = 120
 <blockquote>
 <p>一句话：<strong>MCP 是标准，但不是“万能插头”；本软件把标准该做的部分做全了，并把独立运行和 214 家模型服务商选择也做好了。</strong></p>
 </blockquote>
-<div class="doc-end">智配芯生 · ImpedanceMCP v4.2.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
+<div class="doc-end">智配芯生 · ImpedanceMCP v4.3.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
 上海交通大学集成电路学院（信息与电子工程学院）</div>
 </main>
 </body></html>

@@ -1,15 +1,16 @@
 # Security Policy
 
 **Project:** 智配芯生 · ImpedanceMCP
-**Version:** 4.2.0
+**Version:** 4.3.0
 **Contacts:** radarlurui@gmail.com ｜ Lu_Skywalker2915@sjtu.edu.cn
 
 ## Supported versions
 
 | Version | Supported |
 |---|---|
-| 4.2.x | Yes |
-| 4.1.x | Security fixes only |
+| 4.3.x | Yes |
+| 4.2.x | Security fixes only |
+| 4.1.x | No |
 | 4.0.x | No |
 | V3.0 MATLAB App | Classic interface only |
 
@@ -36,6 +37,12 @@ Please do not open a public issue for an unpatched vulnerability.
 - Uploaded files are limited to 25 MB and stored under the local data directory.
 - No telemetry, analytics, or automatic upload of designs is implemented.
 - The installer does not modify PATH, browser settings, or startup entries.
+- The desktop UI runs in a native WebView2 window; no external browser is
+  launched and no console window is shown.
+- The one-click uninstaller stops running instances, then removes program
+  files, all profiles' `%LOCALAPPDATA%`/`%APPDATA%` ImpedanceMCP data, API keys,
+  uploads, reports, WebView2 cache, matching MCP client entries, shortcuts and
+  app-specific registry keys. Shared Microsoft WebView2 Runtime is not removed.
 
 ## Code signing and antivirus
 

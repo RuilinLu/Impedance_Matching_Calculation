@@ -48,7 +48,7 @@
     analysis: ["圆图分析", "正向扫描可匹配范围，比较拓扑与带宽"],
     stress: ["耐压分析", "峰值电压、RMS 电流与安全系数"],
     help: ["帮助文档", "用户手册 · 计算审计 · MCP 兼容性 · 安装与排查"],
-    about: ["关于与团队", "智配芯生 · ImpedanceMCP v4.2.0"],
+    about: ["关于与团队", "智配芯生 · ImpedanceMCP v4.3.0"],
   };
 
   const HELP_DOCS = [
@@ -157,8 +157,23 @@
     return data;
   }
 
+  function openDocument(url) {
+    let target;
+    try { target = new URL(url, window.location.href).href; } catch (e) { target = url; }
+    // Native build: ask the WebView2 shell for a real child window.
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.open_window) {
+      try {
+        Promise.resolve(window.pywebview.api.open_window(target)).then((opened) => {
+          if (!opened) window.open(target, "_blank", "noopener");
+        }).catch(() => window.open(target, "_blank", "noopener"));
+        return;
+      } catch (e) { /* fall through to browser */ }
+    }
+    window.open(target, "_blank", "noopener");
+  }
+
   function downloadUrl(url) {
-    window.open(url, "_blank", "noopener");
+    openDocument(url);
   }
 
   async function copyText(text) {
@@ -1679,7 +1694,7 @@
     loadHelpDoc(currentHelp);
     $("#helpSearch").addEventListener("input", (e) => renderHelpList(e.target.value));
     $("#helpOpen").addEventListener("click", () => {
-      window.open(`/help/${encodeURIComponent(currentHelp.file)}`, "_blank", "noopener");
+      openDocument(`/help/${encodeURIComponent(currentHelp.file)}`);
     });
     $("#helpPrint").addEventListener("click", () => {
       const frame = $("#helpFrame");

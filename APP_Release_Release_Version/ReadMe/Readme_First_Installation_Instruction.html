@@ -69,7 +69,7 @@ tr:nth-child(even) td{background:#fbfdff}
     <h1>安装指南与目录说明</h1>
     <p>智配芯生 · ImpedanceMCP — 微波阻抗匹配智能计算与仿真软件</p>
     <div class="meta">
-      <span><b>版本</b> v4.2.0</span>
+      <span><b>版本</b> v4.3.0</span>
       <span><b>更新</b> 2026-10-26</span>
       <span><b>开发者</b> 卢瑞林、卢柯吉、林芷伊、张昀蕾</span>
       <span><b>赛道</b> 赛道一 · AI 智能体</span>
@@ -89,8 +89,8 @@ tr:nth-child(even) td{background:#fbfdff}
       <div class="card">
         <h4>A. 安装程序（推荐）</h4>
         <p>双击安装，检测系统/VC++，可选安装目录、桌面快捷方式、ZCode MCP 配置；安装后双击桌面 ImpedanceMCP 即用，不需要 Python。</p>
-        <span class="file">ImpedanceMCP_Setup_v4.2.0.exe</span>
-        <p style="margin-top:6px">便携版：<span class="file">ImpedanceMCP_v4.2.0_Portable.exe</span> · 源码：<span class="file">start_app.bat</span></p>
+        <span class="file">ImpedanceMCP_Setup_v4.3.0.exe</span>
+        <p style="margin-top:6px">便携版：<span class="file">ImpedanceMCP_v4.3.0_Portable.exe</span> · 源码：<span class="file">start_app.bat</span></p>
       </div>
       <div class="card">
         <h4>B. 原版安装包（经典界面）</h4>
@@ -112,13 +112,17 @@ tr:nth-child(even) td{background:#fbfdff}
     <h2>2. 安装程序（推荐）</h2>
     <ol class="steps">
       <li>确认 Windows 10/11 <b>x64</b>（32 位 Windows 不支持）。</li>
-      <li>双击 <code>ImpedanceMCP_Setup_v4.2.0.exe</code>，按向导选择安装目录。</li>
+      <li>双击 <code>ImpedanceMCP_Setup_v4.3.0.exe</code>，按向导选择安装目录。</li>
       <li>按需勾选：桌面快捷方式、开始菜单、帮助文档、<b>为 ZCode 写入 MCP 配置</b>、原版经典界面。</li>
-      <li>安装程序会检测 VC++ 运行库，缺失时自动安装；MATLAB Runtime 只影响原版经典界面，新版不需要。</li>
-      <li>安装完成后双击桌面 <code>ImpedanceMCP</code>（或安装目录的 <code>ImpedanceMCP.exe</code>）打开软件。</li>
+      <li>安装程序会检测 VC++ 运行库与 Microsoft Edge WebView2 Runtime，缺失时自动安装；MATLAB Runtime 只影响原版经典界面，新版不需要。</li>
+      <li>安装完成后双击桌面 <code>ImpedanceMCP</code>（或安装目录的 <code>ImpedanceMCP.exe</code>）打开<b>原生窗口</b>；不会出现命令行或浏览器。</li>
       <li>首次使用 AI：设置 → 选择服务商与模型（214 家，无默认）→ 填自己的 API Key → 测试连接。</li>
     </ol>
-    <p>便携版：双击 <code>ImpedanceMCP_v4.2.0_Portable.exe</code>，无需安装。源码方式：安装 Python 3.10+ 后运行 <code>start_app.bat</code>。</p>
+    <div class="alert warn">
+      <b>一键彻底卸载：</b>开始菜单「一键卸载 ImpedanceMCP（清除全部数据）」或安装目录 <code>unins000.exe</code>。
+      会先关闭运行中的程序，再删除程序、用户数据、API Key、上传/报告、WebView2 缓存、MCP 配置、快捷方式和注册表项，不保留数据。
+    </div>
+    <p>便携版：双击 <code>ImpedanceMCP_v4.3.0_Portable.exe</code>（原生窗口），无需安装。MCP 用 <code>ImpedanceMCP_MCP.exe --mcp</code>。源码方式：安装 Python 3.10+ 与 pywebview/pythonnet 后运行 <code>start_app.bat</code>。</p>
 
     <div class="alert info">
       <b>不需要 MATLAB 也能用新版：</b>默认 Python 内核完成全部计算、绘图、报告与 MCP 工具。
@@ -152,7 +156,7 @@ tr:nth-child(even) td{background:#fbfdff}
     <div class="tree">
 <span class="f">项目根目录/</span>
 ├─ <span class="f">app/</span>
-│  ├─ <span class="f">impedance_mcp/</span>          <span class="c"># Python 计算内核 / MCP / 智能体 / Web</span>
+│  ├─ <span class="f">impedance_mcp/</span>          <span class="c"># Python 计算内核 / MCP / 智能体 / 原生窗口</span>
 │  │  ├─ <span class="p">engine.py</span>            <span class="c"># 五种拓扑 + 节点法 + 扫描 + 带宽 + 耐压</span>
 │  │  ├─ <span class="p">tools.py</span>             <span class="c"># 15 个 MCP 工具</span>
 │  │  ├─ <span class="p">mcp_server.py</span>        <span class="c"># MCP stdio / HTTP / SSE</span>
@@ -163,7 +167,7 @@ tr:nth-child(even) td{background:#fbfdff}
 │  │  └─ <span class="f">web/</span>                <span class="c"># 前端界面</span>
 │  ├─ <span class="f">matlab/</span>                 <span class="c"># MATLAB 解析解 + 批处理入口</span>
 │  ├─ <span class="f">tests/</span>                  <span class="c"># 自动化测试</span>
-│  ├─ <span class="p">run_app.py</span>              <span class="c"># 启动 Web 外壳</span>
+│  ├─ <span class="p">run_app.py</span>              <span class="c"># 启动原生窗口</span>
 │  └─ <span class="p">run_mcp.py</span>              <span class="c"># 启动 MCP 服务</span>
 ├─ <span class="f">docs/</span>                     <span class="c"># 用户手册 / 技术白皮书 / 比赛说明 / 架构说明</span>
 ├─ <span class="f">APP_Release_Release_Version/</span>
@@ -175,8 +179,9 @@ tr:nth-child(even) td{background:#fbfdff}
 ├─ <span class="e">start_app.bat</span>               <span class="c"># 一键启动新版</span>
 ├─ <span class="e">start_mcp.bat</span>               <span class="c"># 一键启动 MCP</span>
 ├─ <span class="f">release/</span>
-│  ├─ <span class="e">ImpedanceMCP_Setup_v4.2.0.exe</span>      <span class="c"># 安装程序（推荐）</span>
-│  └─ <span class="e">ImpedanceMCP_v4.2.0_Portable.exe</span>   <span class="c"># 便携版（可选）</span>
+│  ├─ <span class="e">ImpedanceMCP_Setup_v4.3.0.exe</span>      <span class="c"># 安装程序（推荐）</span>
+│  ├─ <span class="e">ImpedanceMCP_v4.3.0_Portable.exe</span>   <span class="c"># 原生窗口便携版</span>
+│  └─ <span class="e">ImpedanceMCP_v4.3.0_Portable_MCP.exe</span> <span class="c"># 便携 MCP</span>
 ├─ <span class="p">README.md</span>                   <span class="c"># 总说明</span>
 ├─ <span class="p">requirements.txt</span>            <span class="c"># Python 依赖</span>
 ├─ <span class="p">mcp.example.json</span>            <span class="c"># MCP 配置示例</span>
@@ -212,7 +217,7 @@ tr:nth-child(even) td{background:#fbfdff}
       <tr><th>检查项</th><th>正常表现</th><th>异常处理</th></tr>
       <tr><td>Python</td><td><code>python --version</code> 显示 3.10+</td><td>重装并勾选 Add to PATH</td></tr>
       <tr><td>numpy</td><td><code>python -c "import numpy"</code> 无报错</td><td><code>pip install numpy</code></td></tr>
-      <tr><td>新版界面</td><td>浏览器打开 127.0.0.1:8765，状态栏显示模型/MATLAB/MCP</td><td>检查命令行报错；换端口</td></tr>
+      <tr><td>新版界面</td><td>双击后打开原生窗口，状态栏显示模型/MATLAB/MCP</td><td>检查命令行报错；换端口</td></tr>
       <tr><td>模型服务</td><td>设置里选择服务商/模型，填写 Key，「测试连接」返回模型名与延迟</td><td>检查厂商、Key、Base URL、模型</td></tr>
       <tr><td>原版 exe</td><td>点击「打开原版」出现经典界面</td><td>安装 Runtime + VC++</td></tr>
       <tr><td>MCP</td><td>ZCode 中出现 <code>mcp__impedance-matching__*</code></td><td>检查 JSON 路径；重启 ZCode</td></tr>
@@ -236,7 +241,7 @@ tr:nth-child(even) td{background:#fbfdff}
     <div class="footer">
       <b>开发者：</b>卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
       上海交通大学集成电路学院（信息与电子工程学院）· “智绘芯生，AI 赋能” AI 教与学活动周 · 赛道一<br>
-      版本 v4.2.0 ｜ 更新日期 2026-10-26 ｜ 仓库：github.com/RuilinLu/Impedance_Matching_Calculation
+      版本 v4.3.0 ｜ 更新日期 2026-10-26 ｜ 仓库：github.com/RuilinLu/Impedance_Matching_Calculation
     </div>
   </div>
 </div>
