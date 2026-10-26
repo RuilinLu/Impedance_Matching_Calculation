@@ -24,7 +24,7 @@ DOCS = ROOT / "docs"
 ASSETS = DOCS / "assets"
 TEAM = "卢瑞林、卢柯吉、林芷伊、张昀蕾"
 DATE = "2026-10-26"
-VERSION = "v4.0.0"
+VERSION = "v4.1.0"
 
 CHROME_CANDIDATES = [
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -275,8 +275,11 @@ def main() -> None:
          "subtitle": "赛道一 · AI 智能体 · 创作背景、创新点、操作指南与团队",
          "kicker": "Competition", "desc": "5 分钟演示路线、创新点、技术实现与团队分工。"},
         {"slug": "软件架构说明", "md": "软件架构说明.md", "title": "软件架构说明",
-         "subtitle": "V4.0 目录结构、模块职责、数据流与测试",
-         "kicker": "Architecture", "desc": "从 V3 App Designer 到 V4 MCP 外壳的完整结构。"},
+         "subtitle": "V4.1 目录结构、模块职责、数据流与测试",
+         "kicker": "Architecture", "desc": "从 V3 App Designer 到 V4.1 独立软件 + MCP 外壳的完整结构。"},
+        {"slug": "MCP兼容性说明", "md": "MCP兼容性说明.md", "title": "MCP 客户端兼容性说明",
+         "subtitle": "stdio / Streamable HTTP / legacy SSE · 客户端矩阵与配置",
+         "kicker": "MCP Compatibility", "desc": "Claude Code、Codex、ZCode、Cursor、Cherry Studio、Chatbox 等接入与限制。"},
     ]
     built = []
     chrome = find_chrome()

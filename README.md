@@ -1,9 +1,11 @@
 # 智配芯生 · ImpedanceMCP
 
-**微波阻抗匹配智能计算与仿真软件 · v4.0.0**
+**微波阻抗匹配智能计算与仿真软件 · v4.1.0**
 
-把「Smith 圆图 + L/T/π 匹配网络 + DeepSeek 智能体 + MCP 标准接口」放进同一个桌面外壳：
-既能像传统射频软件一样精确算元件，也能让 ZCode / Claude / 任意 MCP 客户端直接调用你的仿真能力。
+**一个可独立运行的桌面软件 + 一个标准 MCP 服务器 + 一个支持 214 家国内外模型服务商的 AI 智能体。**
+
+它把「Smith 圆图 + L/T/π 匹配网络 + 节点法复核 + 大模型工具调用 + MCP 标准接口」放进同一个桌面外壳：
+既能像传统射频软件一样独立完成设计，也能让 ZCode / Claude Code / Codex / Cursor / Cherry Studio 等 MCP 客户端直接调用你的仿真能力。
 
 > 上海交通大学集成电路学院（信息与电子工程学院）
 > “智绘芯生，AI 赋能” AI 教与学活动周 · 赛道一（AI 智能体）
@@ -13,32 +15,32 @@
 
 ---
 
-## 1. 这是什么
+## 1. 三合一：软件 + MCP + 智能体
 
-原有软件是基于 MATLAB App Designer 的微波阻抗匹配计算器（`Impedance_Matching.exe`，V3.0）。
-V4.0 **保留原 exe 作为经典计算内核**，并在外面增加了一层完整的智能外壳：
+| 形态 | 入口 | 用途 |
+|---|---|---|
+| **独立软件** | 双击 `ImpedanceMCP_v4.1.0_Windows.exe` 或 `start_app.bat` | 不连任何 AI、不需要 MCP，直接做匹配设计、圆图、扫描、耐压、报告 |
+| **MCP 服务器** | `ImpedanceMCP.exe --mcp` | stdio 接入 Claude Code / Codex / ZCode / Cursor / Claude Desktop |
+| **MCP 服务器（HTTP/SSE）** | `ImpedanceMCP.exe --mcp --http 8790` | Streamable HTTP + legacy SSE，接入 Cherry Studio / 远程 MCP 客户端 |
+| **AI 智能体** | 独立软件内的「AI 智能体」页 | 在 214 家服务商中选择模型，用自己的 Key 对话、调用 15 个工具 |
 
-| 层 | 内容 |
-|---|---|
-| 表现层 | 现代化 Web UI：AI 对话、Smith 圆图动画、五种拓扑、带宽/灵敏度/耐压、报告 |
-| 智能体层 | DeepSeek 工具调用、PDF/DOCX/XLSX 附件解析、本地微波知识库 |
-| 协议层 | **MCP（Model Context Protocol）stdio / HTTP**，15 个工具、3 个资源、3 个提示模板 |
-| 计算层 | Python 计算内核（默认，毫秒级）+ MATLAB R2025b 批处理复核 + 原版 `Impedance_Matching.exe` |
-
-这意味着它不再只是一个“点按钮出结果”的程序，而是可以被智能体调用的**微波仿真 MCP 服务器**。
+> 也就是说：**它自己能运行、自己会算；同时又能被别的 AI 软件当作工具调用。**
+> 不是“只能挂在 MCP 上”的半成品。
 
 ---
 
 ## 2. 核心亮点
 
 - **15 个 MCP 工具**：设计、正向扫描、网络复核、阻抗/导纳换算、耐压、带宽、拓扑对比、知识库、校验、报告、启动原版 exe、状态查询、预设。
+- **三种 MCP 传输**：stdio、Streamable HTTP、legacy HTTP+SSE；支持 MCP 2024-11-05 / 2025-03-26 / 2025-06-18。
+- **214 家模型服务商目录**：来自开源项目 [models.dev](https://github.com/sst/models.dev)，国内国外都有；**不设默认厂商、不设默认模型、不内置任何 Key**。
+- **特殊协议适配**：OpenAI 兼容、Anthropic Messages 原生（Claude）、Azure OpenAI（`api-key` + 部署名）。
 - **五种拓扑**：L 型（左/右）、T 型、π 型Ⅰ/Ⅱ；支持 `topology="auto"` 自动比较选优。
-- **解析解 + 节点法双重校验**：每个设计都会用完整网络节点分析重新计算 `Zin / VSWR / S11`，不是“只套公式”。
+- **解析解 + 节点法双重校验**：每个设计都会用完整网络节点分析重新计算 `Zin / VSWR / S11`。
 - **Smith 圆图动画**：串联沿等电阻圆、并联沿等电导圆，逐步演示负载 → 源端的匹配路径。
 - **工程分析**：VSWR<2 带宽、±5% 元件容差灵敏度、峰值电压/电流应力、安全系数。
-- **AI 智能体**：自然语言提问 → 自动调用本地工具 → 用微波工程语言解释结果；支持附件。
 - **报告导出**：一键生成 HTML / Markdown 报告（含圆图、带宽、灵敏度、风险）。
-- **离线可用**：除 DeepSeek 对话外，所有计算、绘图、MCP 工具均在本机运行，不需要联网。
+- **离线可用**：除 AI 对话外，所有计算、绘图、MCP 工具均在本机运行。
 
 ![AI 智能体](docs/assets/screenshot_agent.png)
 
@@ -46,24 +48,34 @@ V4.0 **保留原 exe 作为经典计算内核**，并在外面增加了一层完
 
 ## 3. 安装与启动
 
-### 3.1 使用新版智能外壳（推荐）
+### 3.1 独立软件（推荐）
 
-需要：
+**方式 A：exe（无需 Python）**
 
-- Windows 10/11
-- Python **3.10+**（本项目在 Python 3.14 上开发与测试）
-- Python 包：`numpy`
-- 可选：`pypdf`（PDF 附件）、`openpyxl`（XLSX 附件）、`Pillow`（图片尺寸）
+```text
+双击 release/ImpedanceMCP_v4.1.0_Windows.exe
+```
+
+- 默认启动本地 Web 界面并打开浏览器；
+- 端口 8765，被占用会自动尝试 8766–8776；
+- 用户数据保存在 `%LOCALAPPDATA%\ImpedanceMCP\data\`（配置、上传、报告）。
+
+**方式 B：源码**
+
+需要 Python 3.10+：
 
 ```bat
 pip install numpy pypdf openpyxl Pillow
 start_app.bat
 ```
 
-启动后浏览器会自动打开 `http://127.0.0.1:8765/`。
-如果端口被占用，程序会自动尝试 8766–8776。
+或：
 
-### 3.2 使用原版 MATLAB 软件（经典界面）
+```bat
+python app\run_app.py
+```
+
+### 3.2 原版 MATLAB 软件
 
 原版 `Impedance_Matching.exe` 由 MATLAB R2023b 编译，运行需要：
 
@@ -72,46 +84,118 @@ start_app.bat
 
 两种安装方式：
 
-- **方式 A（推荐，最省事）**：直接安装
+- **方式 A（推荐）**：直接安装
   `APP_Release_Release_Version/Main_Installation/MyAppInstaller_mcr.exe`。
-  **这个安装包已经内置 MATLAB Runtime**（工程配置 `package.mcr=true`），安装它即可，不需要再单独装 Runtime。
-- **方式 B（便携 exe）**：如果只想用
-  `.../for_redistribution_files_only/Impedance_Matching.exe`，
-  则需要先安装 `Problem_Solution/VC_redist.x64.exe` 和
+  **该安装包已内置 MATLAB Runtime**（工程配置 `package.mcr=true`），安装它即可，不需要再单独装 Runtime。
+- **方式 B（便携 exe）**：只使用
+  `.../for_redistribution_files_only/Impedance_Matching.exe` 时，
+  需要先安装 `Problem_Solution/VC_redist.x64.exe` 和
   `Problem_Solution/MATLAB_Runtime_R2023b_Update_10_win64.zip` 中的 Runtime。
 
-> 新版智能外壳的 **Python 计算内核不依赖 MATLAB Runtime**；Runtime 只影响“打开原版 exe”和“MATLAB R2025b 复核”两个功能。
+> 新版独立软件和 MCP 的 Python 内核**不依赖 MATLAB Runtime**；Runtime 只影响“打开原版 exe”和“MATLAB R2025b 复核”。
 
-### 3.3 配置 DeepSeek
+### 3.3 配置模型服务（无默认厂商）
 
 打开右上角「设置」：
 
-- 服务预设：`上海交大模型平台` 或 `DeepSeek 官方`
-- 模型：`deepseek-chat`（默认，支持工具调用）/ `deepseek-reasoner`
-- API Key：只保存在本机 `data/config.json`，不会写入仓库
-- 点击「测试连接」验证
+1. 在「服务商」下拉框选择厂商（214 家，常用厂商在顶部；也可选“自定义 OpenAI 兼容服务”）；
+2. Base URL 会自动填入，也可以手动修改；
+3. 在「模型 ID」选择该厂商的模型，或使用「自定义模型 ID」填写任意模型名；
+4. 填写你在该厂商控制台申请的 API Key；
+5. 点击「测试连接」。
 
-也可以使用环境变量（优先级高于配置文件）：
+**没有默认服务商、没有默认模型、没有内置 Key。** 软件不会替用户选择厂商。
+
+目录覆盖（部分）：
+
+- 国内：DeepSeek、阿里云百炼（通义千问）、智谱 GLM、月之暗面 Kimi、硅基流动、火山引擎方舟（豆包）、MiniMax、阶跃星辰、商汤 SenseNova、魔搭 ModelScope、腾讯 TokenHub 等；
+- 国外：OpenAI、Anthropic Claude、Google Gemini、xAI Grok、Mistral、Groq、Cohere、Together AI、DeepInfra、Perplexity、OpenRouter、NVIDIA NIM、Fireworks 等；
+- 自定义：任意 OpenAI 兼容服务。
+
+DeepSeek 用户可以直接在“DeepSeek 深度求索”下选择，例如：
+
+- `deepseek-flash`
+- `deepseek-v4-flash`
+- `deepseek-v4-pro`
+
+模型列表来自 models.dev；如果服务商新增了模型，使用「自定义模型 ID」填写即可。
+
+环境变量（可选，不设默认厂商）：
 
 ```bat
-set DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
-set DEEPSEEK_API_KEY=sk-...
+set LLM_BASE_URL=https://api.deepseek.com/v1
+set LLM_API_KEY=sk-...
+set LLM_MODEL=deepseek-chat
 ```
 
-交大平台：
-
-```bat
-set SJTU_LLM_BASE_URL=https://models.sjtu.edu.cn/api/v1
-set SJTU_LLM_API_KEY=...
-```
+API Key 只保存在本机，exe 为 `%LOCALAPPDATA%\ImpedanceMCP\data\config.json`，源码为 `data/config.json`，不会进入仓库。
 
 ---
 
-## 4. 接入 ZCode / 任意 MCP 客户端
+## 4. 独立运行 vs MCP：它到底能不能“自己打开”？
 
-### 4.1 ZCode
+**能。**
 
-把下面这段加入 `~/.zcode/cli/config.json` 的 `mcp.servers`（本项目已为本机自动写入）：
+- 双击 `ImpedanceMCP_v4.1.0_Windows.exe`：打开独立 Web 界面；
+- 不需要 AI、不需要 MCP、不需要联网，直接做设计、圆图、扫描、耐压、报告；
+- 页面里的「AI 智能体」是可选的；不配置模型也能用所有计算功能；
+- 原版 `Impedance_Matching.exe` 仍然保留，可从右上角「打开原版」启动。
+
+所以它是：
+
+```text
+独立可运行软件  +  MCP 服务器  +  可选 AI 智能体
+```
+
+不是“只能通过 ZCode 才能用”的插件。
+
+---
+
+## 5. MCP 客户端兼容性
+
+### 5.1 先说结论
+
+**MCP 是开放标准，但不是所有 AI 软件都实现了它。**
+
+- 本软件遵循 MCP 标准，覆盖 **stdio / Streamable HTTP / legacy SSE** 三种传输；
+- Claude Code、Claude Desktop、Codex、ZCode、Cursor、Cherry Studio 等支持 MCP 的客户端可以接入；
+- 本身没有 MCP 入口的聊天软件（例如某些旧版 Chatbox、DeepSeek 官方 App 的某些版本）**无法加载任何 MCP 服务器**——这是客户端限制，不是服务器协议问题；
+- 不能承诺“市面上所有 AI 软件都完美适配”，但可以把标准该做的部分做全，并保留独立运行能力。
+
+详细矩阵、各客户端配置、故障排查见：
+**[docs/MCP兼容性说明.md](docs/MCP兼容性说明.md)**
+
+### 5.2 客户端矩阵（摘要）
+
+| 客户端 | MCP | 推荐传输 | 配置 |
+|---|---|---|---|
+| Claude Code | 是 | stdio | `.mcp.json` 或 `claude mcp add` |
+| Claude Desktop | 是 | stdio | `claude_desktop_config.json` |
+| OpenAI Codex CLI | 是 | stdio | `~/.codex/config.toml` |
+| ZCode | 是 | stdio | `~/.zcode/cli/config.json` |
+| Cursor | 是 | stdio | `.cursor/mcp.json` |
+| Cherry Studio | 是（较新版本） | stdio / SSE | UI 添加 |
+| Chatbox | 取决于版本 | SSE / HTTP | 较新版本支持 |
+| DeepSeek 官方 App / Harness | 取决于版本 | — | 无 MCP 入口则无法加载 |
+
+### 5.3 ZCode 配置（本机已写入）
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "impedance-matching": {
+        "type": "stdio",
+        "command": "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe",
+        "args": ["--mcp"],
+        "timeoutMs": 120000
+      }
+    }
+  }
+}
+```
+
+源码方式：
 
 ```json
 {
@@ -120,13 +204,8 @@ set SJTU_LLM_API_KEY=...
       "impedance-matching": {
         "type": "stdio",
         "command": "C:\\Python314\\python.exe",
-        "args": [
-          "D:\\path\\to\\app\\run_mcp.py"
-        ],
-        "env": {
-          "PYTHONUNBUFFERED": "1",
-          "PYTHONIOENCODING": "utf-8"
-        },
+        "args": ["D:\\path\\to\\app\\run_mcp.py"],
+        "env": {"PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"},
         "timeoutMs": 120000
       }
     }
@@ -134,34 +213,69 @@ set SJTU_LLM_API_KEY=...
 }
 ```
 
-重启 ZCode 后，智能体就能看到 `mcp__impedance-matching__*` 工具。
-可以直接对它说：
+重启 ZCode 后，工具会以 `mcp__impedance-matching__*` 的形式出现。
 
-> 用 impedance-matching 工具设计 2.4 GHz、20+j5 Ω 的匹配网络，并分析 ±5% 容差和 10 W 耐压。
+### 5.4 Codex CLI
 
-### 4.2 手动测试 MCP
+`~/.codex/config.toml`：
 
-```bat
-python app\run_mcp.py
+```toml
+[mcp_servers.impedance-matching]
+command = "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe"
+args = ["--mcp"]
+startup_timeout_sec = 30
+tool_timeout_sec = 120
 ```
 
-发送一行 JSON-RPC 即可（stdio，换行分隔）：
+### 5.5 Claude Code
+
+```bat
+claude mcp add impedance-matching -- "C:\path\to\ImpedanceMCP_v4.1.0_Windows.exe" --mcp
+```
+
+### 5.6 Claude Desktop
+
+`%APPDATA%\Claude\claude_desktop_config.json`：
 
 ```json
-{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}
-{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}
+{
+  "mcpServers": {
+    "impedance-matching": {
+      "command": "C:\\path\\to\\ImpedanceMCP_v4.1.0_Windows.exe",
+      "args": ["--mcp"]
+    }
+  }
+}
 ```
 
-### 4.3 HTTP 模式（可选）
+### 5.7 Cherry Studio / Chatbox
+
+先启动：
 
 ```bat
-python app\run_mcp.py --http 8790
+ImpedanceMCP_v4.1.0_Windows.exe --mcp --http 8790
 ```
 
-`POST http://127.0.0.1:8790/mcp`，JSON-RPC 2.0；`GET /health` 返回状态。
+在客户端 MCP 设置中添加 SSE：
+
+```text
+http://127.0.0.1:8790/sse
+```
+
+若客户端只支持 stdio，则用 exe + `--mcp`。
+
+### 5.8 HTTP 端点
+
+```text
+POST   http://127.0.0.1:8790/mcp          Streamable HTTP (Mcp-Session-Id)
+GET    http://127.0.0.1:8790/sse          legacy SSE 握手
+POST   http://127.0.0.1:8790/messages     legacy SSE 消息
+GET    http://127.0.0.1:8790/health       状态
+```
+
 默认只监听 `127.0.0.1`，不对外网开放。
 
-### 4.4 工具清单
+### 5.9 工具清单
 
 | 工具 | 作用 |
 |---|---|
@@ -186,36 +300,37 @@ python app\run_mcp.py --http 8790
 
 ---
 
-## 5. 使用界面
+## 6. 使用界面
 
-### 5.1 AI 智能体
+### 6.1 AI 智能体
 
-- 直接用自然语言描述负载与频率，智能体会调用工具并把结果渲染成元件卡片。
-- 支持附件：`.txt/.md/.csv/.json/.pdf/.docx/.xlsx/.pptx/.ipynb/.py/.m` 等（单文件 ≤25 MB）。
-- 右侧“当前设计上下文”会同步最近一次设计的元件值、VSWR、带宽和圆图缩略图。
-- 工具调用过程可见：每个工具卡会显示名称、耗时、摘要和可展开的原始返回。
+- 在设置里选择服务商、模型并填写自己的 Key；
+- 直接用自然语言描述负载与频率，智能体会调用工具并把结果渲染成元件卡片；
+- 支持附件：`.txt/.md/.csv/.json/.pdf/.docx/.xlsx/.pptx/.ipynb/.py/.m` 等（单文件 ≤25 MB）；
+- 右侧“当前设计上下文”同步最近一次设计的元件值、VSWR、带宽和圆图缩略图；
+- 工具调用过程可见：名称、耗时、摘要、可展开的原始返回。
 
-### 5.2 匹配设计
+### 6.2 匹配设计
 
-- 选择拓扑（或“自动”），输入频率、Z0、负载 R/X。
-- 打开“自动选值”时，软件会自动选择可行的 L 与 C3；关闭后可手动指定。
-- 点击「求解设计」得到解析解；右侧同时给出节点法复核的 `Zin`、`VSWR`、`S11`。
-- Smith 圆图支持播放/暂停/重置/速度调节；步骤列表可点击跳到对应路径。
-- 下方展示带宽曲线、±5% 灵敏度、元件表、工程提示、可选拓扑对比。
-- 「MATLAB 复核」会调用 MATLAB R2025b 批处理，独立复算一次（约 15–20 秒）。
-- 「扫描范围」会跳到圆图分析页并自动运行正向扫描。
+- 选择拓扑（或“自动”），输入频率、Z0、负载 R/X；
+- 自动选值可自动选择可行的 L 与 C3；关闭后可手动指定；
+- 点击「求解设计」得到解析解；右侧同时给出节点法复核的 `Zin`、`VSWR`、`S11`；
+- Smith 圆图支持播放/暂停/重置/速度；步骤列表可点击跳到对应路径；
+- 下方展示带宽曲线、±5% 灵敏度、元件表、工程提示、可选拓扑对比；
+- 「MATLAB 复核」调用 MATLAB R2025b 批处理独立复算（约 15–20 秒）；
+- 「扫描范围」跳到圆图分析页并自动运行正向扫描。
 
 ![圆图分析](docs/assets/screenshot_analysis.png)
 
-### 5.3 耐压分析
+### 6.3 耐压分析
 
-- 输入功率、额定电压，点击「从当前设计填入」可复用设计结果。
-- 表格给出各元件峰值电压、RMS 电压、峰值电流、RMS 电流和安全系数。
+- 输入功率、额定电压，点击「从当前设计填入」可复用设计结果；
+- 表格给出各元件峰值电压、RMS 电压、峰值电流、RMS 电流和安全系数；
 - 柱状图按安全系数着色：绿色 ≥2，黄色 ≥1.3，红色 <1.3。
 
 ![耐压分析](docs/assets/screenshot_stress.png)
 
-### 5.4 报告
+### 6.4 报告
 
 点击右上角「导出报告」生成 HTML；在浏览器中 `Ctrl+P` 可另存为 PDF。
 报告包含：设计任务、拓扑图、元件表、节点法复核、Smith 圆图、带宽曲线、步骤、灵敏度、风险提示、团队信息。
@@ -224,28 +339,28 @@ python app\run_mcp.py --http 8790
 
 ---
 
-## 6. 计算模型
+## 7. 计算模型
 
-### 6.1 网络与节点法
+### 7.1 网络与节点法
 
 每个拓扑都被展开成无损集总网络，用节点电压法求解：
 
-```
+```text
 Y · V = I
 ```
 
 源用 50Ω Thevenin 等效（`Vs = sqrt(8·P·50)`），负载为 `Z_L`。
 由 `Zin = V_s / I_in` 得到输入阻抗，再计算：
 
-```
+```text
 Γ = (Zin − Z0) / (Zin + Z0)
 VSWR = (1 + |Γ|) / (1 − |Γ|)
 S11(dB) = 20 log10 |Γ|
 ```
 
-元件电压/电流由节点电压直接得到，因此耐压分析包含源阻抗的负载效应，而不是简单分压估算。
+元件电压/电流由节点电压直接得到，因此耐压分析包含源阻抗的负载效应。
 
-### 6.2 五种拓扑
+### 7.2 五种拓扑
 
 | 拓扑 | 结构 | 适用 |
 |---|---|---|
@@ -257,32 +372,32 @@ S11(dB) = 20 log10 |Γ|
 
 公式与推导见 [`docs/技术白皮书.md`](docs/技术白皮书.md)。
 
-### 6.3 自动选值
+### 7.3 自动选值
 
 当用户不指定 L/C3 时，软件按可行性条件选取实用值：
 
-- L 型：由 `denom = ωL + d0 > 0` 反推最小 L，再取 1.5× 裕量。
-- T 型：令中间虚拟电阻 `R_v ≈ max(1.8R_L, 75Ω)`，反解 C3。
-- π 型Ⅰ：令源端等效电阻 `R_S ≈ min(0.45R_par, 40Ω)`，反解 C3。
+- L 型：由 `denom = ωL + d0 > 0` 反推最小 L，再取 1.5× 裕量；
+- T 型：令中间虚拟电阻 `R_v ≈ max(1.8R_L, 75Ω)`，反解 C3；
+- π 型Ⅰ：令源端等效电阻 `R_S ≈ min(0.45R_par, 40Ω)`，反解 C3；
 - π 型Ⅱ：令负载并联 C3 后的等效电阻 `R_eff ≈ min(0.45R_par, 25Ω)`，反解 C3。
 
-如果负载落在固定电容拓扑的物理不可行区（例如强容性负载），会返回明确的 `ok=false`、物理原因和替代拓扑建议。
+如果负载落在固定电容拓扑的物理不可行区，会返回明确的 `ok=false`、物理原因和替代拓扑建议。
 
 ---
 
-## 7. 正确性验证
+## 8. 正确性验证
 
-### 7.1 随机用例
+### 8.1 随机用例
 
 `app/tests/test_engine.py` 对 5 种拓扑、多个频段、随机负载做设计 + 节点法复核：
 
 ```text
-Ran 8 tests ... OK
+Ran 19 tests ... OK
 ```
 
 所有成功设计的 `VSWR < 1.001`，`|Zin − 50| < 0.01 Ω`。
 
-### 7.2 MATLAB R2025b 交叉验证
+### 8.2 MATLAB R2025b 交叉验证
 
 同一组设计分别用 Python 与 MATLAB R2025b 计算：
 
@@ -295,7 +410,7 @@ pi1      pass  py 1.000000  ml 1.000000  dz 0.0
 pi2      pass  py 1.000000  ml 1.000000  dz 0.0
 ```
 
-### 7.3 MCP 协议测试
+### 8.3 MCP 协议测试
 
 `app/tests/test_mcp_protocol.py` 覆盖 initialize、tools/list、tools/call、resources、prompts、错误处理：
 
@@ -303,9 +418,15 @@ pi2      pass  py 1.000000  ml 1.000000  dz 0.0
 Ran 11 tests ... OK
 ```
 
+### 8.4 MCP HTTP / SSE 实测
+
+- Streamable HTTP：`POST /mcp` + `Mcp-Session-Id`，15 个工具、设计调用通过；
+- Legacy SSE：`GET /sse` + `POST /messages`，initialize / tools/list 通过；
+- 独立 exe：`--mcp` 15 个工具、双击启动 Web UI 与计算均通过。
+
 ---
 
-## 8. 目录结构
+## 9. 目录结构
 
 ```text
 .
@@ -313,13 +434,15 @@ Ran 11 tests ... OK
 │  ├─ impedance_mcp/
 │  │  ├─ engine.py          # 计算内核（五种拓扑 + 节点法）
 │  │  ├─ tools.py           # 15 个 MCP 工具
-│  │  ├─ mcp_server.py      # MCP stdio / HTTP
-│  │  ├─ agent.py           # DeepSeek 工具调用智能体
-│  │  ├─ llm.py             # OpenAI 兼容客户端
+│  │  ├─ mcp_server.py      # MCP stdio / Streamable HTTP / legacy SSE
+│  │  ├─ agent.py           # 多模型工具调用智能体
+│  │  ├─ llm.py             # OpenAI 兼容 + Anthropic + Azure 适配
+│  │  ├─ providers.py       # 服务商目录加载
+│  │  ├─ providers.json     # 214 家服务商与模型（来自 models.dev）
 │  │  ├─ attachments.py     # PDF/DOCX/XLSX 附件解析
 │  │  ├─ reports.py         # HTML/Markdown 报告
 │  │  ├─ matlab_bridge.py   # MATLAB R2025b / 原版 exe
-│  │  ├─ config.py          # 配置与路径
+│  │  ├─ config.py          # 配置与路径（支持 PyInstaller 冻结）
 │  │  ├─ knowledge.py       # 本地知识库
 │  │  └─ web/               # 前端（index.html/styles.css/app.js/smith.js）
 │  ├─ matlab/
@@ -327,9 +450,15 @@ Ran 11 tests ... OK
 │  │  ├─ mw_batch_entry.m   # -batch 批处理入口
 │  │  └─ original_v3/       # V3 原版 App Designer 提取源码
 │  ├─ tests/
+│  ├─ launcher.py           # exe 统一入口（默认 UI，--mcp 进 MCP）
 │  ├─ run_app.py
 │  └─ run_mcp.py
-├─ docs/                    # 用户手册、技术白皮书、比赛说明（MD/HTML/PDF）
+├─ docs/                    # 用户手册、技术白皮书、比赛说明、架构、MCP 兼容性
+├─ release/
+│  ├─ build_exe.py          # PyInstaller 构建脚本
+│  ├─ build_providers.py    # 从 models.dev 生成服务商目录
+│  ├─ icon.ico
+│  └─ RELEASE_NOTES.md
 ├─ APP_Release_Release_Version/  # 原版安装包、Runtime、问题解决文件
 ├─ start_app.bat
 ├─ start_mcp.bat
@@ -340,30 +469,45 @@ Ran 11 tests ... OK
 
 ---
 
-## 9. 常见问题
-
-**Q：`MyAppInstaller_mcr.exe` 是否包含 MATLAB Runtime？**
-A：包含。工程配置里 `package.mcr=true`，这是 MATLAB Compiler 的“打包 Runtime”安装包，直接安装即可。
-`for_redistribution_files_only/Impedance_Matching.exe` 是便携版，需要单独安装 Runtime。
+## 10. 常见问题
 
 **Q：新版外壳为什么还需要 MATLAB？**
 A：不需要。默认 Python 内核完成全部计算；MATLAB 只用于“复核”和“打开原版 exe”。没有 MATLAB 也能使用所有 MCP 工具和 AI 对话。
 
+**Q：`MyAppInstaller_mcr.exe` 是否包含 MATLAB Runtime？**
+A：包含。工程配置 `package.mcr=true`，这是 MATLAB Compiler 的“打包 Runtime”安装包，直接安装即可。
+`for_redistribution_files_only/Impedance_Matching.exe` 是便携版，需要单独安装 Runtime。
+
+**Q：为什么设置里没有默认模型厂商？**
+A：这是刻意设计。软件内置 214 家服务商，但**不替用户选择**；你需要自己选择服务商、模型并填写自己的 API Key。这样国内外模型都可用，也不绑定任何一家。
+
+**Q：DeepSeek Flash 在哪？**
+A：选择“DeepSeek 深度求索”，模型列表中有 `deepseek-flash`、`deepseek-v4-flash` 等；如果服务商新增了模型，用「自定义模型 ID」填写即可。
+
+**Q：MCP 是不是所有 AI 软件都能用？**
+A：不是。MCP 是标准，但客户端必须实现 MCP。支持 MCP 的客户端（Claude Code / Codex / ZCode / Cursor / Cherry Studio 等）可以接入；没有 MCP 入口的聊天软件无法加载任何 MCP 服务器。详见 `docs/MCP兼容性说明.md`。
+
+**Q：这个软件能不能自己运行？**
+A：能。双击 `ImpedanceMCP_v4.1.0_Windows.exe` 即打开独立界面，不依赖 MCP、不依赖 AI 客户端。
+
 **Q：DeepSeek 报 401 / 404？**
-A：检查 API Key、Base URL 和模型 ID。交大平台用 `https://models.sjtu.edu.cn/api/v1` + `deepseek-chat`；官方用 `https://api.deepseek.com/v1`。
+A：401 是 Key 无效；404 是 Base URL、模型 ID 或 Azure 部署名不对。检查服务商控制台与设置。
 
 **Q：设计返回“无解”或 C2 为负？**
-A：这是物理限制，不是程序错误。固定电容拓扑无法匹配强容性/强感性负载；换 `topology="auto"` 或改用文中建议的拓扑。
+A：这是物理限制，不是程序错误。固定电容拓扑无法匹配强容性/强感性负载；换 `topology="auto"` 或改用建议的拓扑。
 
 **Q：C2 只有 0.00x pF？**
 A：说明手动指定的 L 太大。打开“自动选值”，或把 L 减小到 1–10 nH 量级。
 
 **Q：ZCode 看不到工具？**
-A：确认 `~/.zcode/cli/config.json` 的 `mcp.servers` 中有 `impedance-matching`，路径存在，然后重启 ZCode。可先用 `python app/run_mcp.py` 手动验证。
+A：确认 `~/.zcode/cli/config.json` 的 `mcp.servers` 中有 `impedance-matching`，路径存在，然后**完全退出并重启 ZCode**。可先用 `ImpedanceMCP.exe --mcp` 或 `python app\run_mcp.py` 手动验证。
+
+**Q：能不能用本地 Ollama / LM Studio？**
+A：当前安全策略拒绝本机/内网地址，避免 SSRF 风险；请通过公网网关或反向代理。云服务商目录已覆盖 214 家。
 
 ---
 
-## 10. 团队
+## 11. 团队
 
 | 成员 | 分工 |
 |---|---|
@@ -377,11 +521,11 @@ A：确认 `~/.zcode/cli/config.json` 的 `mcp.servers` 中有 `impedance-matchi
 
 ---
 
-## 11. 许可与致谢
+## 12. 许可与致谢
 
 - 代码：MIT License（见 `LICENSE`）
 - 原版 MATLAB App Designer 软件、`Impedance_Matching.exe` 及相关图片：由本项目团队开发，版权归团队所有。
+- 服务商/模型目录：来自开源项目 [models.dev](https://github.com/sst/models.dev)，仅包含公开的端点、模型 ID 与文档链接，不含任何密钥。
 - 感谢 MathWorks 提供的 MATLAB R2025b 与 App Designer / RF Toolbox 生态。
-- 比赛介绍页面版权归上海交通大学集成电路学院所有，本仓库仅作学习与参赛说明引用。
 
 > 本软件用于教学、科研与工程估算；正式产品请用实际元件模型、网络分析仪与实测数据复核。

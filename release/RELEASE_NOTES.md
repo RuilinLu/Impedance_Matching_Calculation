@@ -1,165 +1,157 @@
-# 智配芯生 · ImpedanceMCP v4.0.0
+# 智配芯生 · ImpedanceMCP v4.1.0
 
 **发布日期：2026-10-26** ｜ **赛道一 · AI 智能体** ｜ 上海交通大学集成电路学院（信息与电子工程学院）
 **开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾**
 
 ---
 
-## 一、这次发布做了什么
+## 一、这次更新的核心
 
-在原有 MATLAB App Designer 软件（V3.0，`Impedance_Matching.exe`）的基础上，V4.0 完成了一次“智能外壳 + MCP 服务”的升级：
+v4.1.0 把 v4.0.0 的“DeepSeek 单厂商 + stdio MCP”升级为：
 
-- **保留经典内核**：原版 exe、L/T/π 五种拓扑、Smith 圆图动画、耐压分析全部保留；
-- **新增 Python 计算内核**：解析解 + 完整网络节点法复核，毫秒级，无 MATLAB 也能运行；
-- **新增 MCP 标准服务**：15 个工具、3 个资源、3 个提示模板，ZCode / Claude / Cursor 等可直接调用；
-- **新增 DeepSeek 智能体**：自然语言 → 工具调用 → 工程解释；支持 PDF/DOCX/XLSX/PPTX/Notebook 附件；
-- **新增现代化 Web 界面**：AI 对话、五种拓扑、圆图动画、匹配范围扫描、带宽/灵敏度/耐压、HTML 报告；
-- **新增 MATLAB R2025b 复核**：一键 `-batch` 独立复算。
+> **独立可运行软件 + 标准 MCP 服务器 + 214 家国内外模型服务商可选。**
 
-一句话：**它既是一个更好用的匹配设计软件，也是一个能被 AI 智能体调用的微波仿真 MCP。**
+具体：
 
----
-
-## 二、核心亮点
-
-### 1. 15 个 MCP 工具
-
-`design_matching_network`、`scan_matching_range`、`evaluate_network`、`convert_impedance_admittance`、`compute_voltage_stress`、`analyze_bandwidth`、`compare_topologies`、`get_topology_guide`、`get_smith_trajectory`、`search_knowledge`、`validate_design`、`export_design_report`、`launch_classic_app`、`get_system_status`、`list_presets`。
-
-资源：`impedance://catalog`、`impedance://knowledge`、`impedance://status`。
-提示模板：`design_match`、`explain_topology`、`troubleshoot`。
-
-### 2. 解析解 + 节点法双重校验
-
-每个设计先用拓扑公式求元件值，再把整个网络展开成 2/3 节点导纳矩阵，独立计算 `Zin/VSWR/S11`。公式符号或单位写错会立即暴露。
-
-### 3. 五个拓扑 + 自动选型
-
-L 型（左/右）、T 型、π 型Ⅰ/Ⅱ；`topology="auto"` 会自动比较五种拓扑，优先选择元件更少、可实现性更好的方案。
-
-### 4. 工程分析
-
-- VSWR<2 带宽（±60% 扫频）；
-- ±5% 元件容差灵敏度；
-- 峰值电压/RMS 电流/安全系数；
-- 正向匹配范围扫描；
-- 工程风险提示与替代拓扑。
-
-### 5. 教学可视化
-
-Smith 圆图逐段动画、播放/暂停/重置/速度、悬停读数、步骤卡片联动；带宽曲线、灵敏度柱状图、耐压柱状图。
+1. **不再默认使用任何厂商**（包括 DeepSeek）：设置里第一项永远是“请选择模型服务商”，用户自己选厂商、模型、填自己的 Key。
+2. **内置 214 家服务商目录**（来自开源项目 models.dev）：
+   - 国内：DeepSeek、阿里云百炼（Qwen）、智谱 GLM、Kimi、硅基流动、火山引擎方舟（豆包）、MiniMax、阶跃星辰、商汤、魔搭、腾讯 TokenHub 等；
+   - 国外：OpenAI、Anthropic Claude、Google Gemini、xAI、Mistral、Groq、Cohere、Together、DeepInfra、Perplexity、OpenRouter、NVIDIA、Fireworks 等；
+   - 自定义：任意 OpenAI 兼容服务。
+3. **DeepSeek Flash 已在目录中**：选择“DeepSeek 深度求索”可看到 `deepseek-flash`、`deepseek-v4-flash`、`deepseek-v4-pro` 等模型。
+4. **MCP 三种传输**：stdio、Streamable HTTP、legacy HTTP+SSE。
+5. **独立 Windows exe**：双击运行完整界面；`--mcp` 运行 MCP；`--mcp --http 8790` 运行 HTTP/SSE。
 
 ---
 
-## 三、验证结果
+## 二、MCP：协议与客户端兼容性
+
+### 2.1 实现的协议
+
+- JSON-RPC 2.0；
+- 协议版本：2024-11-05 / 2025-03-26 / 2025-06-18；
+- 15 个工具、3 个资源、3 个提示模板；
+- `Mcp-Session-Id` 会话；
+- 日志只写 stderr，stdout 只输出协议 JSON；
+- 只监听 `127.0.0.1`，校验 Origin。
+
+### 2.2 三种传输
+
+| 传输 | 启动 | 客户端 |
+|---|---|---|
+| stdio | `ImpedanceMCP.exe --mcp` | Claude Code / Claude Desktop / Codex / ZCode / Cursor |
+| Streamable HTTP | `--mcp --http 8790` → `POST /mcp` | 支持 HTTP 的客户端 |
+| legacy HTTP+SSE | `--mcp --http 8790` → `GET /sse` | Cherry Studio / 旧版 MCP 客户端 |
+
+### 2.3 客户端矩阵（摘要）
+
+| 客户端 | MCP | 推荐传输 |
+|---|---|---|
+| Claude Code | 是 | stdio |
+| Claude Desktop | 是 | stdio |
+| OpenAI Codex CLI | 是 | stdio |
+| ZCode | 是 | stdio |
+| Cursor | 是 | stdio |
+| Cherry Studio | 是（较新版本） | stdio / SSE |
+| Chatbox | 取决于版本 | SSE / HTTP |
+| DeepSeek 官方 App / Harness | 取决于版本 | 无 MCP 入口则无法加载 |
+
+> **诚实说明**：MCP 是开放协议，但不是所有 AI 软件都实现了它。没有 MCP 入口的客户端无法加载任何 MCP 服务器，这是客户端限制，不是本服务器“协议不标准”。即使不接 MCP，双击 exe 也能独立运行完整功能。
+>
+> 完整配置与排查见 `docs/MCP兼容性说明.md`。
+
+---
+
+## 三、独立运行：它不只是 MCP
+
+- 双击 `ImpedanceMCP_v4.1.0_Windows.exe`：打开独立 Web UI；
+- 不连接 AI、不配置 MCP，也能完成五种拓扑设计、Smith 圆图、扫描、带宽、灵敏度、耐压、报告；
+- 原版 `Impedance_Matching.exe` 仍保留，可从右上角「打开原版」启动；
+- 源码方式：`pip install numpy pypdf openpyxl Pillow` + `start_app.bat`。
+
+---
+
+## 四、模型服务商配置（无默认）
+
+设置 → 模型服务：
+
+1. 选择服务商（214 家；常用在顶部）；
+2. Base URL 自动填入；
+3. 选择模型，或填写「自定义模型 ID」；
+4. 填写你自己在厂商控制台申请的 API Key；
+5. 点击「测试连接」。
+
+**没有默认厂商、没有默认模型、没有内置 Key。**
+
+特殊适配：
+
+- **Anthropic Claude**：Messages 原生协议（已适配工具调用）；
+- **Azure OpenAI**：`api-key` + 部署名 + `api-version`；
+- **Google Gemini**：OpenAI 兼容端点；
+- **其他**：OpenAI 兼容 `/chat/completions`。
+
+环境变量（可选，仍然不设默认厂商）：
+
+```bat
+set LLM_BASE_URL=https://api.deepseek.com/v1
+set LLM_API_KEY=sk-...
+set LLM_MODEL=deepseek-chat
+```
+
+---
+
+## 五、验证结果
 
 | 测试 | 结果 |
 |---|---|
-| Python 引擎回归 | **8/8 通过** |
+| Python 引擎 + MCP 协议回归 | **19/19 通过** |
 | 300 组随机设计 | **VSWR 全部 1.000000** |
 | MATLAB R2025b 交叉验证 | **5/5 通过，Zin 偏差 0.0** |
-| MCP 协议测试 | **11/11 通过** |
-| 浏览器逐页视觉验收 | AI / 设计 / 圆图分析 / 耐压 / 设置 / 关于 / 报告 |
-| 报告一致性 | 报告与界面使用同一组精确元件值 |
-
-复现：
-
-```bat
-python -m unittest app.tests.test_engine -v
-python -m unittest app.tests.test_mcp_protocol -v
-```
+| MCP stdio | initialize / tools/list / tools/call 通过 |
+| Streamable HTTP | initialize / tools/list / tools/call / DELETE 通过 |
+| Legacy SSE | endpoint / initialize / tools/list / notification 通过 |
+| 独立 exe | 双击启动 Web UI + 设计计算通过；`--mcp` 15 个工具通过 |
+| 浏览器 | AI / 设计 / 分析 / 耐压 / 设置 / 关于 / 报告逐页检查 |
 
 ---
 
-## 四、安装
+## 六、安装
 
-### 4.1 新版智能外壳
+### 6.1 独立软件
 
-```bat
-pip install numpy pypdf openpyxl Pillow
-start_app.bat
-```
+双击 `ImpedanceMCP_v4.1.0_Windows.exe`（约 32 MB，Release 附件）。
+无需 Python；用户数据在 `%LOCALAPPDATA%\ImpedanceMCP\data`。
 
-浏览器打开 `http://127.0.0.1:8765/`。Python 3.10+（开发环境 3.14）。
+源码：`start_app.bat`，Python 3.10+。
 
-### 4.2 原版 MATLAB 软件
+### 6.2 原版 MATLAB 软件
 
-| 方式 | 文件 | Runtime |
-|---|---|---|
-| 安装包（推荐） | `APP_Release_Release_Version/Main_Installation/MyAppInstaller_mcr.exe` | **已内置**，直接安装 |
-| 便携 exe | `.../for_redistribution_files_only/Impedance_Matching.exe` | 需先装 `VC_redist.x64.exe` + `MATLAB_Runtime_R2023b_Update_10_win64.zip` |
+- **安装包（推荐）**：`APP_Release_Release_Version/Main_Installation/MyAppInstaller_mcr.exe`。
+  **已内置 MATLAB Runtime**（`package.mcr=true`），直接安装即可。
+- **便携 exe**：需先装 `VC_redist.x64.exe` + `MATLAB_Runtime_R2023b_Update_10_win64.zip`。
 
-> 重要：`MyAppInstaller_mcr.exe` 的工程配置为 `package.mcr=true`，**安装包已包含 MATLAB Runtime R2023b**，不需要再单独安装 Runtime。
->
-> 由于 GitHub Release 单文件/仓库体积限制，本 Release 的附件**不包含** 974 MB 的安装包与 4.6 GB 的 Runtime ZIP；它们位于项目 `APP_Release_Release_Version` 目录中，或按安装指南从 MathWorks 下载。
-
-### 4.3 DeepSeek
-
-右上角「设置」填写 API Key：
-
-- 交大平台：`https://models.sjtu.edu.cn/api/v1` + `deepseek-chat`
-- DeepSeek 官方：`https://api.deepseek.com/v1` + `deepseek-chat`
-
-Key 只保存在本机 `data/config.json`，不会进入仓库。
-
-> **发布补充（2026-10-26）**：源码包已包含「自定义模型 ID」输入。如果 DeepSeek 推出新的 flash 模型，直接在设置中填写模型 ID 即可，不需要改代码。
+> 新版独立软件 / MCP 的 Python 内核不依赖 MATLAB Runtime；Runtime 只影响“打开原版 exe”和“MATLAB R2025b 复核”。
 
 ---
 
-## 五、MCP 接入
+## 七、本次修复
 
-把下面加入 `~/.zcode/cli/config.json` 的 `mcp.servers`，重启 ZCode：
-
-```json
-{
-  "mcp": {
-    "servers": {
-      "impedance-matching": {
-        "type": "stdio",
-        "command": "C:\\Python314\\python.exe",
-        "args": ["D:\\path\\to\\app\\run_mcp.py"],
-        "env": {"PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"},
-        "timeoutMs": 120000
-      }
-    }
-  }
-}
-```
-
-然后对智能体说：
-
-> 用 impedance-matching 工具设计 2.4 GHz、20+j5 Ω 的匹配网络，并分析 ±5% 容差和 10 W 耐压。
-
-HTTP 模式：`python app\run_mcp.py --http 8790`（仅监听 127.0.0.1）。
+- 修复 PyInstaller 冻结模式数据目录写入临时目录的问题；exe 用户数据改存 `%LOCALAPPDATA%\ImpedanceMCP\data`。
+- 修复 MCP HTTP 仅支持简单 POST 的问题，补齐 Streamable HTTP 会话与 legacy SSE。
+- 修复切换服务商时可能复用旧 Key 的问题。
+- 默认配置改为空白，不再预设任何厂商 / Base URL / 模型 / Key。
+- 移除交大平台专用配置与文档；不绑定任何校园网关。
+- 保留 v4.0.0 已修复的 L 型（右）正向扫描共轭、S11 显示、报告元件值、耐压输入电压等问题。
 
 ---
 
-## 六、本次修复
+## 八、附件
 
-- 修复 V3.0 **L 型（右）正向扫描**的共轭符号错误：旧代码使用 `1/(1/50 − jωC1)` 且未取共轭；正确形式为 `conj(1/(1/50 + jωC1))`。
-- S11 低于 −60 dB 时显示“< −60 dB（理想）”，不再出现 −321 dB 这类无意义数值。
-- 报告导出使用界面上的精确 C1/C2，避免 L 四舍五入导致报告与界面不一致。
-- 耐压界面区分“输入峰值电压”和“源开路电压”，避免把 2× 源电压误读为节点电压。
-- 修复 MATLAB `mw_design.m` 文件名与函数名不一致导致 `-batch` 调用失败；已重命名并验证。
-- 修复多页面图表在隐藏时尺寸为 0、切换后不重绘的问题。
+- `ImpedanceMCP_v4.1.0_Windows.exe`：独立软件 + MCP（双击运行；`--mcp` 进 MCP）。
+- `ImpedanceMCP_v4.1.0_Source.zip`：完整源码、文档、测试（不含大安装包/Runtime）。
+- `User_Manual_v4.1.0.pdf`、`White_Paper_v4.1.0.pdf`、`Competition_Dossier_v4.1.0.pdf`、`MCP_Compatibility_v4.1.0.pdf`、`Installation_Guide_v4.1.0.pdf`。
 
----
-
-## 七、文档
-
-- [README](https://github.com/RuilinLu/Impedance_Matching_Calculation/blob/main/README.md)
-- [用户手册（PDF）](https://github.com/RuilinLu/Impedance_Matching_Calculation/blob/main/docs/用户手册.pdf)
-- [技术白皮书（PDF）](https://github.com/RuilinLu/Impedance_Matching_Calculation/blob/main/docs/技术白皮书.pdf)
-- [比赛说明文档（PDF）](https://github.com/RuilinLu/Impedance_Matching_Calculation/blob/main/docs/比赛说明文档.pdf)
-- [软件架构说明（PDF）](https://github.com/RuilinLu/Impedance_Matching_Calculation/blob/main/docs/软件架构说明.pdf)
-- [安装指南（PDF）](https://github.com/RuilinLu/Impedance_Matching_Calculation/blob/main/APP_Release_Release_Version/ReadMe/Readme_First_Installation_Instruction.pdf)
-
----
-
-## 八、附件说明
-
-- `ImpedanceMCP_v4.0.0_Source.zip`：完整源码、文档与测试（不含 974 MB 安装包 / 4.6 GB Runtime ZIP）。
-- `用户手册.pdf`、`技术白皮书.pdf`、`比赛说明文档.pdf`、`安装指南.pdf`：可直接阅读/打印。
+> 974 MB 的 `MyAppInstaller_mcr.exe` 与 4.6 GB 的 Runtime ZIP 不放入 GitHub Release（体积限制），它们位于项目 `APP_Release_Release_Version` 目录，安装指南中有说明与下载链接。
 
 ---
 

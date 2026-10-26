@@ -1,5 +1,32 @@
 # Changelog
 
+## v4.1.0 — 2026-10-26
+
+### 新增
+- **214 家模型服务商目录**（来自开源项目 models.dev）：DeepSeek、OpenAI、Anthropic Claude、Google Gemini、阿里云百炼、智谱 GLM、Kimi、硅基流动、火山引擎方舟、MiniMax、阶跃星辰、商汤、腾讯 TokenHub、xAI、Groq、Mistral、Cohere、Together、OpenRouter、NVIDIA 等；**不设默认厂商/模型，不内置 Key**。
+- **协议适配**：OpenAI 兼容、Anthropic Messages 原生、Azure OpenAI（`api-key` + 部署名 + `api-version`）。
+- **MCP 三种传输**：stdio、Streamable HTTP（`/mcp` + `Mcp-Session-Id`）、legacy HTTP+SSE（`/sse` + `/messages`）。
+- **独立 Windows exe**：双击运行独立界面；`--mcp` 运行 stdio MCP；`--mcp --http 8790` 运行 HTTP/SSE。
+- **MCP 客户端兼容性说明**：Claude Code/Desktop、Codex、ZCode、Cursor、Cherry Studio、Chatbox 等配置示例与限制说明。
+- 设置中「自定义模型 ID」，可填写任意新模型（如未来的 DeepSeek Flash）。
+
+### 变更
+- 默认配置改为空白：不预设任何厂商、Base URL、模型或 Key。
+- 环境变量统一为通用 `LLM_BASE_URL` / `LLM_API_KEY` / `LLM_MODEL`。
+- 移除交大平台专用配置；不绑定任何校园网关。
+- MCP 状态栏改为 `stdio / HTTP / SSE · 15 个工具`。
+
+### 修复
+- 修复 PyInstaller 冻结模式下数据目录写到临时目录的问题；exe 用户数据改存 `%LOCALAPPDATA%\ImpedanceMCP\data`。
+- 修复 MCP HTTP 仅支持简单 POST 的问题，补齐 Streamable HTTP 会话与 legacy SSE。
+- 修复切换服务商时可能复用旧 Key 的问题。
+
+### 验证
+- 独立 exe：双击启动 Web UI + 设计计算通过；`--mcp` 15 个工具通过。
+- Streamable HTTP：initialize / tools/list / tools/call / DELETE 通过。
+- Legacy SSE：endpoint / initialize / tools/list / notification 通过。
+- Python 引擎 + MCP 协议回归 19/19；MATLAB 5/5；300 组随机设计 VSWR 1.000000。
+
 ## v4.0.0 — 2026-10-26
 
 ### 新增

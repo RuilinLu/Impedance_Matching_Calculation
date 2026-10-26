@@ -141,7 +141,7 @@ def build() -> Path:
         ["团队成员", "卢瑞林（负责人）、卢柯吉、林芷伊、张昀蕾"],
         ["所在学院", "上海交通大学集成电路学院（信息与电子工程学院）"],
         ["提交日期", "2026-10-26"],
-        ["版本", "v4.0.0"],
+        ["版本", "v4.1.0"],
     ], widths=[3.2, 12.8])
 
     heading(doc, "一、创作背景")
@@ -152,7 +152,7 @@ def build() -> Path:
     para(doc, "团队此前已用 MATLAB App Designer 开发了 V3.0 匹配软件（Impedance_Matching.exe），包含五种拓扑、"
               "Smith 圆图动画和耐压分析。但它仍然是一个“点按钮”的工具，不能与 AI 智能体协作。"
               "因此我们在 V3.0 基础上做了 V4.0：保留原 MATLAB 内核，增加 Python/MATLAB 双计算引擎、"
-              "MCP 标准接口、DeepSeek 智能体与现代化可视化界面，让软件既能“自己算”，也能“被 AI 调用”。",
+              "MCP 标准接口、多模型工具调用智能体与现代化可视化界面，让软件既能“自己算”，也能“被 AI 调用”。",
          first_indent=True)
 
     heading(doc, "二、作品简介")
@@ -160,8 +160,8 @@ def build() -> Path:
     for b in [
         ("会算：", "五种拓扑的解析设计 + 完整网络节点法复核；"),
         ("会画：", "Smith 圆图逐步动画、VSWR 带宽、±5% 灵敏度、耐压柱状图；"),
-        ("会讲：", "DeepSeek 调用本地工具，用微波工程语言解释结果；"),
-        ("会被调用：", "15 个 MCP 工具，ZCode / Claude / Cursor 等客户端可直接使用；"),
+        ("会讲：", "大模型调用本地工具，用微波工程语言解释结果；"),
+        ("会被调用：", "15 个 MCP 工具，支持 stdio / HTTP / SSE，ZCode / Claude Code / Codex / Cursor 等客户端可直接使用；"),
         ("会交付：", "一键导出 HTML / Markdown 报告。"),
     ]:
         bullet(doc, b[1], b[0])
@@ -176,7 +176,7 @@ def build() -> Path:
     heading(doc, "三、创新点")
     points = [
         ("1. 把“软件”变成“MCP 服务”",
-         "把匹配计算、扫描、复核、耐压、报告封装成 15 个 MCP 工具，任何智能体都能调用。"
+         "把匹配计算、扫描、复核、耐压、报告封装成 15 个 MCP 工具，任何支持 MCP 的智能体都能调用。"
          "这不是让大模型背公式，而是让大模型调用真实计算引擎，从根源上减少幻觉。"),
         ("2. 解析解 + 节点法双重校验",
          "每个设计先用拓扑公式求元件值，再把整个网络展开成节点矩阵，独立计算 Zin/VSWR/S11。"
@@ -199,15 +199,15 @@ def build() -> Path:
 
     heading(doc, "四、功能清单")
     table(doc, ["模块", "功能"], [
-        ["AI 智能体", "DeepSeek 对话、工具调用、SSE 流式、附件解析、设计卡片、上下文"],
+        ["AI 智能体", "多模型对话、工具调用、SSE 流式、附件解析、设计卡片、上下文"],
         ["匹配设计", "L 型（左/右）、T 型、π 型Ⅰ/Ⅱ、自动选型、自动 L/C3"],
         ["Smith 圆图", "网格、轨迹动画、播放/暂停/重置/速度、悬停读数"],
         ["工程分析", "VSWR 带宽、±5% 灵敏度、Q 值、风险提示、拓扑对比"],
         ["正向扫描", "可匹配 R/X 范围、点云、扫描结论"],
         ["耐压分析", "峰值/RMS 电压电流、安全系数、柱状图、建议"],
         ["报告", "HTML / Markdown，含圆图、带宽、灵敏度、风险"],
-        ["MCP", "15 工具、3 资源、3 提示模板、stdio/HTTP"],
-        ["设置", "交大/DeepSeek 预设、模型、Key、引擎、MCP 配置复制"],
+        ["MCP", "15 工具、3 资源、3 提示模板、stdio/HTTP/SSE"],
+        ["设置", "214 家服务商目录、自定义模型 ID、Key、引擎、MCP 配置复制"],
         ["经典内核", "启动原版 exe、MATLAB 复核"],
     ], widths=[3.2, 12.8])
 
@@ -240,9 +240,9 @@ def build() -> Path:
     heading(doc, "六、技术实现")
     para(doc, "计算：五种拓扑解析解；2/3 节点导纳矩阵，源 50Ω Thevenin，负载 ZL；Zin=Vs/Iin；"
               "带宽 ±60% 扫频 241 点；灵敏度元件 ±5% 重算；耐压由节点电压直接算元件应力。", first_indent=True)
-    para(doc, "MCP：JSON-RPC 2.0 over stdio；initialize / tools/list / tools/call / resources / prompts；"
+    para(doc, "MCP：JSON-RPC 2.0；stdio / Streamable HTTP / legacy SSE；initialize / tools/list / tools/call / resources / prompts；"
               "15 个工具、3 个资源、3 个提示；本地 HTTP 模式；日志写 stderr，stdout 只输出协议 JSON。", first_indent=True)
-    para(doc, "智能体：OpenAI 兼容 DeepSeek 接口；工具循环最多 5 轮；系统提示要求“先算后说”；"
+    para(doc, "智能体：OpenAI 兼容 + Anthropic 原生 + Azure 适配；工具循环最多 5 轮；系统提示要求“先算后说”；"
               "附件解析（PDF/DOCX/XLSX/PPTX/Notebook）；SSE 流式事件。", first_indent=True)
     para(doc, "前端：原生 HTML/CSS/JS，无构建步骤；Canvas 2D Smith 圆图；响应式布局；"
               "深色工程控制台主题；报告使用浅色 A4 打印样式。", first_indent=True)
@@ -261,7 +261,7 @@ def build() -> Path:
 
     heading(doc, "八、团队分工")
     table(doc, ["成员", "分工"], [
-        ["卢瑞林", "项目负责人；总体架构、Python 计算内核、MCP 协议、DeepSeek 智能体、集成与发布"],
+        ["卢瑞林", "项目负责人；总体架构、Python 计算内核、MCP 协议、多模型智能体、集成与发布"],
         ["卢柯吉", "MATLAB 计算内核、mw_design.m、MATLAB R2025b 交叉验证、原版 exe 维护"],
         ["林芷伊", "交互设计、Smith 圆图与图表可视化、UI 样式、用户手册与演示材料"],
         ["张昀蕾", "测试用例、MCP/浏览器验收、演示脚本、用户研究与反馈整理"],

@@ -112,7 +112,7 @@ a { color: var(--brand); text-decoration: none; }
       <h2>架构、计算模型、节点法、MCP 协议与验证</h2>
       <div class="rule"></div>
       <div class="meta">
-        <div><b>版本</b>　v4.0.0　｜　<b>更新日期</b>　2026-10-26</div>
+        <div><b>版本</b>　v4.1.0　｜　<b>更新日期</b>　2026-10-26</div>
         <div><b>开发者</b>　卢瑞林、卢柯吉、林芷伊、张昀蕾</div>
         <div><b>项目</b>　智配芯生 · ImpedanceMCP 微波阻抗匹配智能计算与仿真软件</div>
       </div>
@@ -143,7 +143,8 @@ a { color: var(--brand); text-decoration: none; }
 <li><a href="#42">4.2 随机用例</a></li>
 <li><a href="#43-matlab-r2025b">4.3 MATLAB R2025b 交叉验证</a></li>
 <li><a href="#44-mcp">4.4 MCP 协议测试</a></li>
-<li><a href="#45">4.5 浏览器验收</a></li>
+<li><a href="#45-mcp-httpsse-exe">4.5 MCP HTTP/SSE 与独立 exe</a></li>
+<li><a href="#46">4.6 浏览器验收</a></li>
 </ul>
 </li>
 <li><a href="#5-mcp">5. MCP 设计</a><ul>
@@ -152,6 +153,7 @@ a { color: var(--brand); text-decoration: none; }
 <li><a href="#53">5.3 工具</a></li>
 <li><a href="#54">5.4 资源与提示</a></li>
 <li><a href="#55">5.5 安全</a></li>
+<li><a href="#56">5.6 模型服务商目录与协议适配</a></li>
 </ul>
 </li>
 <li><a href="#6">6. 智能体设计</a><ul>
@@ -186,13 +188,13 @@ a { color: var(--brand); text-decoration: none; }
 </section>
 <main class="content">
 <h1 id="impedancemcp">智配芯生 · ImpedanceMCP 技术白皮书</h1>
-<p><strong>版本：v4.0.0 ｜ 更新日期：2026-10-26</strong></p>
+<p><strong>版本：v4.1.0 ｜ 更新日期：2026-10-26</strong></p>
 <p>开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾
 上海交通大学集成电路学院（信息与电子工程学院）</p>
 <hr />
 <h2 id="_1">摘要</h2>
-<p>本文介绍“智配芯生 · ImpedanceMCP”的总体架构、计算模型、MCP 协议设计、智能体工具调用机制与可视化实现。软件在保留原 MATLAB App Designer 程序（V3.0）作为经典内核的基础上，新增 Python 计算内核、完整网络节点法复核、15 个 MCP 工具、DeepSeek 智能体与现代化 Web 界面。所有设计均通过解析解与节点法双重校验；300 组随机用例的 VSWR 均为 1.000000，MATLAB R2025b 交叉验证 5/5 通过，MCP 协议测试 11/11 通过。</p>
-<p><strong>关键词</strong>：阻抗匹配；Smith 圆图；L/T/π 网络；MCP；DeepSeek；节点分析；AI 智能体</p>
+<p>本文介绍“智配芯生 · ImpedanceMCP”的总体架构、计算模型、MCP 协议设计、智能体工具调用机制与可视化实现。软件在保留原 MATLAB App Designer 程序（V3.0）作为经典内核的基础上，新增 Python 计算内核、完整网络节点法复核、15 个 MCP 工具、多模型工具调用智能体与现代化 Web 界面。所有设计均通过解析解与节点法双重校验；300 组随机用例的 VSWR 均为 1.000000，MATLAB R2025b 交叉验证 5/5 通过，MCP 协议测试 11/11 通过。</p>
+<p><strong>关键词</strong>：阻抗匹配；Smith 圆图；L/T/π 网络；MCP；多模型服务商；节点分析；AI 智能体</p>
 <hr />
 <h2 id="1">1. 背景与目标</h2>
 <p>微波阻抗匹配是射频前端、天线、功放与传输系统的基础问题。传统教学与工程实践通常依赖 Smith 圆图手工作图或 MATLAB 脚本，存在三个痛点：</p>
@@ -216,10 +218,10 @@ a { color: var(--brand); text-decoration: none; }
 │ AI 对话 · 设计表单 · Smith 圆图 · 带宽/灵敏度 · 耐压 · 报告    │
 ├──────────────────────────────────────────────────────────────┤
 │ 智能体层  agent.py                                           │
-│ DeepSeek 工具调用 · 附件解析 · 知识库检索 · SSE 流式输出       │
+│ 多模型工具调用 · 附件解析 · 知识库检索 · SSE 流式输出           │
 ├──────────────────────────────────────────────────────────────┤
 │ 协议层  mcp_server.py / web_server.py                        │
-│ MCP stdio / HTTP · 15 tools · 3 resources · 3 prompts         │
+│ MCP stdio/HTTP/SSE · 15 tools · 3 resources · 3 prompts         │
 ├──────────────────────────────────────────────────────────────┤
 │ 计算层  engine.py · matlab/mw_design.m · 原版 exe             │
 │ 解析解 · 节点法复核 · 带宽 · 灵敏度 · 耐压 · 正向扫描          │
@@ -405,7 +407,16 @@ pi2      pass  py 1.000000  ml 1.000000  dz 0.0
 <li>stdout 不能混入日志</li>
 </ul>
 <p>结果：11/11 通过。</p>
-<h3 id="45">4.5 浏览器验收</h3>
+<h3 id="45-mcp-httpsse-exe">4.5 MCP HTTP/SSE 与独立 exe</h3>
+<ul>
+<li><strong>Streamable HTTP</strong>：<code>POST /mcp</code> + <code>Mcp-Session-Id</code>，initialize / tools/list /
+  tools/call / DELETE 全部通过；SSE-only 响应通过。</li>
+<li><strong>Legacy SSE</strong>：<code>GET /sse</code> 返回 endpoint，<code>POST /messages</code> 后通过
+  <code>event: message</code> 收到 initialize / tools/list 响应。</li>
+<li><strong>独立 exe</strong>：双击启动 Web UI 并完成设计；<code>--mcp</code> 列出 15 个工具；
+  exe 用户数据写入 <code>%LOCALAPPDATA%\ImpedanceMCP\data</code>。</li>
+</ul>
+<h3 id="46">4.6 浏览器验收</h3>
 <p>在 1440×900 与 1100×900 下逐页截图检查：</p>
 <ul>
 <li>无横向溢出、无文字截断、无按钮遮挡；</li>
@@ -416,8 +427,13 @@ pi2      pass  py 1.000000  ml 1.000000  dz 0.0
 <h2 id="5-mcp">5. MCP 设计</h2>
 <h3 id="51">5.1 传输</h3>
 <ul>
-<li><strong>stdio</strong>：ZCode / Claude Desktop 等客户端启动 <code>python app/run_mcp.py</code>，按行 JSON-RPC 通信。</li>
-<li><strong>HTTP</strong>：<code>--http 8790</code>，<code>POST /mcp</code>，仅监听 <code>127.0.0.1</code>。</li>
+<li><strong>stdio</strong>：Claude Code / Claude Desktop / Codex / ZCode / Cursor 等启动
+  <code>ImpedanceMCP.exe --mcp</code> 或 <code>python app/run_mcp.py</code>，按行 JSON-RPC 通信。</li>
+<li><strong>Streamable HTTP</strong>：<code>--http 8790</code>，<code>POST /mcp</code>；服务器返回 <code>Mcp-Session-Id</code>，
+  客户端后续请求携带该头；支持 JSON 与 SSE 两种响应。</li>
+<li><strong>legacy HTTP+SSE</strong>：<code>GET /sse</code> 返回 <code>event: endpoint</code>，客户端向
+  <code>POST /messages?sessionId=...</code> 发送消息，服务器通过 SSE <code>event: message</code> 回传。</li>
+<li>全部只监听 <code>127.0.0.1</code>，并校验浏览器 <code>Origin</code>，防止 DNS rebinding。</li>
 </ul>
 <h3 id="52">5.2 能力</h3>
 <pre><code class="language-json">{
@@ -430,7 +446,7 @@ pi2      pass  py 1.000000  ml 1.000000  dz 0.0
   },
   &quot;serverInfo&quot;: {
     &quot;name&quot;: &quot;impedance-mcp&quot;,
-    &quot;version&quot;: &quot;4.0.0&quot;
+    &quot;version&quot;: &quot;4.1.0&quot;
   }
 }
 </code></pre>
@@ -537,6 +553,20 @@ pi2      pass  py 1.000000  ml 1.000000  dz 0.0
 <li>模型服务 URL 仅允许 <code>http/https</code>，并拒绝解析到本机、内网、保留地址的主机。</li>
 <li>API Key 仅保存在本机 <code>data/config.json</code>（<code>data/</code> 已被 <code>.gitignore</code> 排除）。</li>
 </ul>
+<h3 id="56">5.6 模型服务商目录与协议适配</h3>
+<p>软件内置 <code>providers.json</code>（由 <code>release/build_providers.py</code> 从开源项目 models.dev 生成），
+共 <strong>214 家</strong>服务商，包含端点、模型 ID、环境变量名与文档链接，不含任何密钥。</p>
+<ul>
+<li><strong>不设默认厂商/模型</strong>：用户必须自己选择服务商、模型并填写 API Key；</li>
+<li><strong>OpenAI 兼容</strong>：绝大多数厂商走 <code>/chat/completions</code>；</li>
+<li><strong>Anthropic 原生</strong>：<code>llm._chat_anthropic</code> 把 OpenAI 消息/工具格式转换为
+  Messages API 的 <code>tool_use</code> / <code>tool_result</code>，并把响应归一化回工具调用格式；</li>
+<li><strong>Azure OpenAI</strong>：<code>api_style="as_is"</code>，完整 URL + <code>api-key</code> 头 + 部署名；</li>
+<li><strong>Google Gemini</strong>：使用其 OpenAI 兼容端点；</li>
+<li><strong>自定义</strong>：任意 OpenAI 兼容 Base URL / 模型 / Key。</li>
+</ul>
+<p>这种分层使“MCP 工具层”与“模型厂商”彻底解耦：MCP 工具不关心用户用哪家模型，
+内置智能体也不绑定任何一家厂商。</p>
 <hr />
 <h2 id="6">6. 智能体设计</h2>
 <h3 id="61">6.1 工具循环</h3>
@@ -646,6 +676,9 @@ y = cy − R · Im(Γ)
 <li>未支持微带线、分布式匹配、多节匹配。</li>
 <li>仅做 ±5% 单因素灵敏度，未做蒙特卡洛良率分析。</li>
 <li>AI 的回答依赖模型服务；离线时只能使用本地工具与模板。</li>
+<li>不同厂商/模型的 tool calling 能力不同；不支持工具调用的模型可以聊天，但不会自动调用 MCP 工具。</li>
+<li>软件不内置任何厂商 Key，首次使用 AI 功能需要用户自行配置服务商、模型与密钥。</li>
+<li>MCP 兼容性取决于客户端是否实现 MCP；没有 MCP 入口的聊天软件无法直接加载本服务器。</li>
 </ul>
 <h3 id="92">9.2 展望</h3>
 <ul>
@@ -686,7 +719,7 @@ y = cy − R · Im(Γ)
 </table>
 <p>上海交通大学集成电路学院（信息与电子工程学院）
 “智绘芯生，AI 赋能” AI 教与学活动周 · 2026-10-26</p>
-<div class="doc-end">智配芯生 · ImpedanceMCP v4.0.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
+<div class="doc-end">智配芯生 · ImpedanceMCP v4.1.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
 上海交通大学集成电路学院（信息与电子工程学院）</div>
 </main>
 </body></html>

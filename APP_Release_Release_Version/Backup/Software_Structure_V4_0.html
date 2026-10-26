@@ -109,10 +109,10 @@ a { color: var(--brand); text-decoration: none; }
     <section class="cover">
       <span class="badge">上海交通大学集成电路学院 · AI 教与学活动周</span>
       <h1>软件架构说明</h1>
-      <h2>V4.0 目录结构、模块职责、数据流与测试</h2>
+      <h2>V4.1 目录结构、模块职责、数据流与测试</h2>
       <div class="rule"></div>
       <div class="meta">
-        <div><b>版本</b>　v4.0.0　｜　<b>更新日期</b>　2026-10-26</div>
+        <div><b>版本</b>　v4.1.0　｜　<b>更新日期</b>　2026-10-26</div>
         <div><b>开发者</b>　卢瑞林、卢柯吉、林芷伊、张昀蕾</div>
         <div><b>项目</b>　智配芯生 · ImpedanceMCP 微波阻抗匹配智能计算与仿真软件</div>
       </div>
@@ -130,11 +130,13 @@ a { color: var(--brand); text-decoration: none; }
 <li><a href="#33-mcp_serverpy">3.3 mcp_server.py：协议层</a></li>
 <li><a href="#34-agentpy">3.4 agent.py：智能体层</a></li>
 <li><a href="#35-llmpy">3.5 llm.py：模型客户端</a></li>
+<li><a href="#351-providerspy-providersjson">3.5.1 providers.py / providers.json：服务商目录</a></li>
 <li><a href="#36-attachmentspy">3.6 attachments.py：附件</a></li>
 <li><a href="#37-reportspy">3.7 reports.py：报告</a></li>
 <li><a href="#38-matlab_bridgepymatlab">3.8 matlab_bridge.py：MATLAB 桥</a></li>
 <li><a href="#39-web_serverpy-webapi">3.9 web_server.py：本地 Web/API</a></li>
 <li><a href="#310">3.10 前端</a></li>
+<li><a href="#311-launcherpy-exe">3.11 launcher.py 与独立 exe</a></li>
 </ul>
 </li>
 <li><a href="#4">4. 数据流</a><ul>
@@ -154,7 +156,7 @@ a { color: var(--brand); text-decoration: none; }
 </section>
 <main class="content">
 <h1 id="impedancemcp-v40">智配芯生 · ImpedanceMCP 软件架构说明（V4.0）</h1>
-<p><strong>版本：v4.0.0 ｜ 更新日期：2026-10-26</strong></p>
+<p><strong>版本：v4.1.0 ｜ 更新日期：2026-10-26</strong></p>
 <p>开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾
 上海交通大学集成电路学院（信息与电子工程学院）</p>
 <hr />
@@ -174,7 +176,7 @@ a { color: var(--brand); text-decoration: none; }
 <p>V4.0 新增：
 - Python 计算内核与完整网络节点法复核；
 - 15 个 MCP 工具；
-- DeepSeek 智能体与附件解析；
+- 多模型工具调用智能体与附件解析；
 - 现代化 Web UI；
 - HTML/Markdown 报告；
 - MATLAB R2025b 批处理复核；
@@ -188,13 +190,15 @@ a { color: var(--brand); text-decoration: none; }
 │  │  ├─ __init__.py
 │  │  ├─ engine.py            # 计算内核：五种拓扑 + 节点法 + 扫描 + 带宽 + 灵敏度 + 耐压
 │  │  ├─ tools.py             # 15 个 MCP 工具的定义与处理函数
-│  │  ├─ mcp_server.py        # MCP stdio / HTTP JSON-RPC 服务
-│  │  ├─ agent.py             # DeepSeek 工具调用智能体
-│  │  ├─ llm.py               # OpenAI 兼容客户端、URL 安全校验、重试
+│  │  ├─ mcp_server.py        # MCP stdio / Streamable HTTP / legacy SSE
+│  │  ├─ agent.py             # 多模型工具调用智能体
+│  │  ├─ llm.py               # OpenAI 兼容 + Anthropic + Azure 适配、URL 安全校验、重试
+│  │  ├─ providers.py         # 服务商目录加载
+│  │  ├─ providers.json       # 214 家服务商与模型（models.dev，无密钥）
 │  │  ├─ attachments.py       # PDF/DOCX/XLSX/PPTX/Notebook 文本提取
 │  │  ├─ reports.py            # HTML/Markdown 设计报告
 │  │  ├─ matlab_bridge.py     # MATLAB R2025b 批处理、原版 exe 启动
-│  │  ├─ config.py            # 配置、路径发现、MATLAB/MCR 状态
+│  │  ├─ config.py            # 配置、路径发现、PyInstaller 冻结模式
 │  │  ├─ knowledge.py         # 本地微波匹配知识库
 │  │  └─ web/
 │  │     ├─ index.html        # 单页应用结构
@@ -210,6 +214,7 @@ a { color: var(--brand); text-decoration: none; }
 │  │  ├─ test_engine.py
 │  │  └─ test_mcp_protocol.py
 │  ├─ pyproject.toml
+│  ├─ launcher.py             # exe 统一入口：默认 UI，--mcp 进 MCP
 │  ├─ run_app.py
 │  └─ run_mcp.py
 │
@@ -218,8 +223,16 @@ a { color: var(--brand); text-decoration: none; }
 │  ├─ 技术白皮书.md / .html / .pdf
 │  ├─ 比赛说明文档.md / .html / .pdf
 │  ├─ 软件架构说明.md / .html / .pdf
+│  ├─ MCP兼容性说明.md / .html / .pdf
 │  ├─ build_docs.py
 │  └─ assets/screenshot_*.png
+│
+├─ release/
+│  ├─ build_exe.py            # PyInstaller 独立 exe
+│  ├─ build_providers.py      # 从 models.dev 生成服务商目录
+│  ├─ icon.ico
+│  ├─ RELEASE_NOTES.md
+│  └─ ImpedanceMCP_v4.1.0_Windows.exe
 │
 ├─ APP_Release_Release_Version/
 │  ├─ Main_Installation/MyAppInstaller_mcr.exe   # 内置 Runtime 的安装包
@@ -320,7 +333,9 @@ a { color: var(--brand); text-decoration: none; }
 <h3 id="33-mcp_serverpy">3.3 <code>mcp_server.py</code>：协议层</h3>
 <ul>
 <li>stdio：按行 JSON-RPC 2.0；</li>
-<li>HTTP：<code>POST /mcp</code>；</li>
+<li>Streamable HTTP：<code>POST /mcp</code> + <code>Mcp-Session-Id</code>；</li>
+<li>legacy HTTP+SSE：<code>GET /sse</code> + <code>POST /messages</code>；</li>
+<li>协议版本：2024-11-05 / 2025-03-26 / 2025-06-18；</li>
 <li>方法：<code>initialize</code>、<code>tools/list</code>、<code>tools/call</code>、<code>resources/list</code>、<code>resources/read</code>、<code>prompts/list</code>、<code>prompts/get</code>、<code>ping</code>；</li>
 <li>日志只写 stderr；</li>
 <li>支持 <code>Content-Length</code> 与换行分隔两种输入。</li>
@@ -336,10 +351,20 @@ a { color: var(--brand); text-decoration: none; }
 <h3 id="35-llmpy">3.5 <code>llm.py</code>：模型客户端</h3>
 <ul>
 <li>OpenAI 兼容 <code>/chat/completions</code>；</li>
-<li>支持 DeepSeek 官方与交大平台；</li>
+<li>Anthropic Messages 原生适配（<code>tool_use</code> / <code>tool_result</code>）；</li>
+<li>Azure OpenAI（<code>api-key</code> + 部署名 + <code>api-version</code>）；</li>
+<li>214 家服务商目录来自 models.dev，不设默认厂商/模型/Key；</li>
 <li>429/5xx 重试；</li>
 <li>URL 仅允许 http/https，拒绝本机/内网/保留地址；</li>
 <li>错误信息包含 401/402/404/429 提示。</li>
+</ul>
+<h3 id="351-providerspy-providersjson">3.5.1 <code>providers.py</code> / <code>providers.json</code>：服务商目录</h3>
+<ul>
+<li><code>providers.json</code> 由 <code>release/build_providers.py</code> 从 models.dev 生成；</li>
+<li>包含 214 家服务商的 <code>api</code>、<code>api_style</code>、<code>chat_path</code>、<code>auth_header</code>、模型 ID、文档链接；</li>
+<li><strong>不含任何密钥</strong>，用户只能自己填写；</li>
+<li><code>providers.py</code> 提供 <code>all()</code> / <code>find()</code> / <code>defaults()</code>，供设置界面与 <code>save_config</code> 使用；</li>
+<li>无默认厂商/模型；UI 第一项永远是“请选择模型服务商”。</li>
 </ul>
 <h3 id="36-attachmentspy">3.6 <code>attachments.py</code>：附件</h3>
 <ul>
@@ -383,6 +408,18 @@ a { color: var(--brand); text-decoration: none; }
 <li><code>smith.js</code>：Smith 圆图类、折线图、条形图；</li>
 <li><code>app.js</code>：状态、API、SSE、Markdown 渲染、设计表单、扫描、耐压、设置、报告。</li>
 </ul>
+<h3 id="311-launcherpy-exe">3.11 <code>launcher.py</code> 与独立 exe</h3>
+<ul>
+<li><code>launcher.py</code> 是 exe 的统一入口：</li>
+<li>默认：<code>web_server.main()</code>，启动独立界面；</li>
+<li><code>--mcp</code>：<code>mcp_server.main()</code>，stdio；</li>
+<li><code>--mcp --http 8790</code>：HTTP/SSE。</li>
+<li><code>release/build_exe.py</code> 用 PyInstaller 打包：</li>
+<li>打包 <code>app/impedance_mcp/web</code> 与 <code>app/matlab/*.m</code>；</li>
+<li>隐藏导入 <code>pypdf</code> / <code>PIL</code> / <code>openpyxl</code>；</li>
+<li><code>config.py</code> 检测 <code>sys.frozen</code>，用户数据写入 <code>%LOCALAPPDATA%\ImpedanceMCP\data</code>；</li>
+<li>输出 <code>ImpedanceMCP_v4.1.0_Windows.exe</code>（约 32 MB）。</li>
+</ul>
 <hr />
 <h2 id="4">4. 数据流</h2>
 <h3 id="41">4.1 设计请求</h3>
@@ -404,8 +441,8 @@ a { color: var(--brand); text-decoration: none; }
   → SSE token/tool/design 事件
 </code></pre>
 <h3 id="43-mcp">4.3 MCP</h3>
-<pre><code class="language-text">ZCode / Claude
-  → stdio / HTTP
+<pre><code class="language-text">ZCode / Claude / Codex
+  → stdio / Streamable HTTP / legacy SSE
   → mcp_server.handle
   → tools.call_tool
   → JSON-RPC result（content + structuredContent）
@@ -470,7 +507,7 @@ python -m unittest app.tests.test_mcp_protocol -v
 </ul>
 <hr />
 <h2 id="7">7. 版本与团队</h2>
-<p><strong>v4.0.0 ｜ 2026-10-26</strong></p>
+<p><strong>v4.1.0 ｜ 2026-10-26</strong></p>
 <table>
 <thead>
 <tr>
@@ -499,7 +536,7 @@ python -m unittest app.tests.test_mcp_protocol -v
 </table>
 <p>上海交通大学集成电路学院（信息与电子工程学院）
 “智绘芯生，AI 赋能” AI 教与学活动周 · 赛道一</p>
-<div class="doc-end">智配芯生 · ImpedanceMCP v4.0.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
+<div class="doc-end">智配芯生 · ImpedanceMCP v4.1.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
 上海交通大学集成电路学院（信息与电子工程学院）</div>
 </main>
 </body></html>
