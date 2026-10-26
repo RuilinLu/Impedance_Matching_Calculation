@@ -47,3 +47,6 @@ Desktop.ini
 !docs/*.pdf
 !APP_Release_Release_Version/ReadMe/*.pdf
 !APP_Release_Release_Version/Reference/*.pdf
+
+# local release assets (uploaded to GitHub Releases)
+release/*.pdf
