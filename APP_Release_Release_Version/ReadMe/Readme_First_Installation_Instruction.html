@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>安装指南与目录说明 V4.0 · 智配芯生 ImpedanceMCP</title>
+<style>
+:root{
+  --blue:#004098; --blue-2:#0b5cab; --red:#8B0000; --ink:#1f2937; --muted:#5b6b82;
+  --line:#dbe4ef; --bg:#eef3f9; --card:#fff; --soft:#f7fbff; --ok:#047857; --warn:#92400e;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:26px;background:var(--bg);color:var(--ink);
+  font-family:"Microsoft YaHei","Segoe UI",Arial,sans-serif;line-height:1.7;font-size:14.5px}
+.container{max-width:1020px;margin:0 auto;background:var(--card);border-radius:14px;
+  box-shadow:0 14px 44px rgba(15,23,42,.10);overflow:hidden}
+.hero{padding:34px 40px 28px;background:linear-gradient(120deg,#062a4d,#004098 55%,#0b5cab);color:#eaf6ff}
+.hero .badge{display:inline-block;padding:4px 11px;border:1px solid rgba(255,255,255,.25);
+  border-radius:99px;font-size:11px;letter-spacing:.5px;color:#bae6fd}
+.hero h1{margin:14px 0 6px;font-size:29px;letter-spacing:.5px}
+.hero p{margin:0;color:#b9d7ee;font-size:12.5px}
+.hero .meta{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px 18px;font-size:11.5px;color:#cfe8f8}
+.hero .meta b{color:#fff;font-weight:600}
+.body{padding:8px 40px 30px}
+h2{font-size:17px;margin:28px 0 10px;padding:5px 0 5px 11px;border-left:5px solid var(--red);
+  background:#f8fafc;color:var(--blue)}
+h3{font-size:13.5px;margin:18px 0 7px;color:#0f4c6e}
+p{margin:7px 0}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+.alert{padding:12px 14px;margin:12px 0;border-radius:8px;border-left:5px solid;font-size:12.8px;line-height:1.65;page-break-inside:avoid}
+.card{page-break-inside:avoid}
+.alert.info{background:#eaf5ff;border-color:#2196F3;color:#0d47a1}
+.alert.ok{background:#ecfdf5;border-color:#10b981;color:#065f46}
+.alert.warn{background:#fffbeb;border-color:#f59e0b;color:var(--warn)}
+.alert.danger{background:#fef2f2;border-color:#ef4444;color:#991b1b}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.card{border:1px solid var(--line);border-radius:10px;padding:13px 14px;background:var(--soft)}
+.card h4{margin:0 0 5px;font-size:12.5px;color:var(--blue)}
+.card p{margin:3px 0;font-size:12px;color:var(--muted)}
+.card .file{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:6px;background:#e8f1fb;
+  color:#0b4a8f;font-family:Consolas,monospace;font-size:11px;word-break:break-all}
+ol.steps{counter-reset:s;list-style:none;padding:0;margin:10px 0}
+ol.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 46px;margin:8px 0;
+  border:1px solid var(--line);border-radius:9px;background:#fff;font-size:12.8px}
+ol.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:22px;height:22px;
+  border-radius:50%;display:grid;place-items:center;background:var(--blue);color:#fff;font-size:11px;font-weight:700}
+code{font-family:Consolas,"Cascadia Code",monospace;font-size:12px;background:#eef6fc;color:#0e7490;
+  padding:1px 5px;border-radius:4px}
+pre{margin:10px 0;padding:14px 16px;background:#07111f;color:#dbeafe;border-radius:10px;
+  font-family:Consolas,"Cascadia Code",monospace;font-size:11.5px;line-height:1.6;overflow-x:auto;white-space:pre-wrap}
+pre code{background:none;color:inherit;padding:0;font-size:inherit}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#eef6fc;color:#0b3a5a;font-weight:600}
+tr:nth-child(even) td{background:#fbfdff}
+.tree{background:#0b1220;color:#abb2bf;border-radius:10px;padding:16px 18px;overflow-x:auto;
+  font-family:Consolas,monospace;font-size:12px;line-height:1.7;white-space:pre}
+.tree .f{color:#e5c07b;font-weight:700}.tree .p{color:#61afef}.tree .e{color:#98c379}.tree .c{color:#5c6370}
+.footer{margin-top:26px;padding:16px 0 4px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.8}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.body{padding:6px 20px 24px}.hero{padding:26px 20px}}
+@media print{body{background:#fff;padding:0}.container{box-shadow:none;border-radius:0}.hero{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="hero">
+    <span class="badge">上海交通大学集成电路学院 · AI 教与学活动周</span>
+    <h1>安装指南与目录说明</h1>
+    <p>智配芯生 · ImpedanceMCP — 微波阻抗匹配智能计算与仿真软件</p>
+    <div class="meta">
+      <span><b>版本</b> v4.0.0</span>
+      <span><b>更新</b> 2026-10-26</span>
+      <span><b>开发者</b> 卢瑞林、卢柯吉、林芷伊、张昀蕾</span>
+      <span><b>赛道</b> 赛道一 · AI 智能体</span>
+    </div>
+  </header>
+
+  <div class="body">
+    <div class="alert ok">
+      <b>先回答最常见的问题：</b><code>MyAppInstaller_mcr.exe</code> <b>已经内置 MATLAB Runtime</b>，
+      直接双击安装即可，不需要再单独安装 Runtime。只有使用便携版
+      <code>for_redistribution_files_only/Impedance_Matching.exe</code> 时，才需要单独安装
+      <code>VC_redist.x64.exe</code> 与 <code>MATLAB_Runtime_R2023b_Update_10_win64.zip</code>。
+    </div>
+
+    <h2>1. 三种使用方式</h2>
+    <div class="grid">
+      <div class="card">
+        <h4>A. 新版智能外壳（推荐）</h4>
+        <p>AI 对话 + 五种拓扑 + Smith 圆图 + MCP 工具 + 报告。需要 Python。</p>
+        <span class="file">start_app.bat</span>
+      </div>
+      <div class="card">
+        <h4>B. 原版安装包（经典界面）</h4>
+        <p>内置 Runtime，双击安装；安装后可从新版右上角「打开原版」启动。</p>
+        <span class="file">Main_Installation/MyAppInstaller_mcr.exe</span>
+      </div>
+      <div class="card">
+        <h4>C. 便携版 exe</h4>
+        <p>体积小，但依赖已安装的 Runtime 与 VC++ 运行库。</p>
+        <span class="file">.../for_redistribution_files_only/Impedance_Matching.exe</span>
+      </div>
+      <div class="card">
+        <h4>D. MCP 服务</h4>
+        <p>让 ZCode / Claude / Cursor 调用 15 个微波仿真工具。</p>
+        <span class="file">python app\run_mcp.py</span>
+      </div>
+    </div>
+
+    <h2>2. 安装新版智能外壳</h2>
+    <ol class="steps">
+      <li>确认 Windows 10/11 64 位，安装 <b>Python 3.10+</b>（推荐 3.11–3.14），勾选 “Add Python to PATH”。</li>
+      <li>在项目根目录打开命令行，执行：
+        <pre><code>pip install numpy pypdf openpyxl Pillow</code></pre>
+        <code>numpy</code> 是计算必需；其余用于 PDF/XLSX/图片附件解析，可选。
+      </li>
+      <li>双击 <code>start_app.bat</code>，或在命令行执行 <code>python app\run_app.py</code>。</li>
+      <li>浏览器自动打开 <code>http://127.0.0.1:8765/</code>；若端口被占用，会自动尝试 8766–8776。</li>
+      <li>点击右上角「设置」，填写 DeepSeek 或交大模型平台的 API Key，点击「测试连接」。</li>
+    </ol>
+
+    <div class="alert info">
+      <b>不需要 MATLAB 也能用新版：</b>默认 Python 内核完成全部计算、绘图、报告与 MCP 工具。
+      MATLAB 只用于「MATLAB 复核」和「打开原版 exe」。
+    </div>
+
+    <h2>3. 安装原版 MATLAB 软件</h2>
+    <h3>方式 A：安装包（推荐）</h3>
+    <ol class="steps">
+      <li>双击 <code>APP_Release_Release_Version/Main_Installation/MyAppInstaller_mcr.exe</code>（约 974 MB）。</li>
+      <li>按向导安装到默认目录或 <code>D:\Impedance_Matching</code>。</li>
+      <li>安装完成后，从开始菜单或新版右上角「打开原版」启动。</li>
+    </ol>
+    <div class="alert ok">
+      该安装包由 MATLAB Application Compiler 生成，工程配置 <code>package.mcr=true</code>，
+      <b>Runtime 已打包在安装程序内</b>，无需再安装 Runtime。
+    </div>
+
+    <h3>方式 B：便携版 exe</h3>
+    <ol class="steps">
+      <li>先安装 <code>APP_Release_Release_Version/Problem_Solution/VC_redist.x64.exe</code>。</li>
+      <li>解压并安装 <code>Problem_Solution/MATLAB_Runtime_R2023b_Update_10_win64.zip</code> 中的 Runtime。</li>
+      <li>双击 <code>.../for_redistribution_files_only/Impedance_Matching.exe</code>。</li>
+    </ol>
+    <div class="alert warn">
+      便携版只有约 2.5 MB，必须依赖本机已安装的 MATLAB Runtime R2023b。若评委电脑没有 MATLAB，
+      请使用方式 A，或先把 Runtime 安装好。
+    </div>
+
+    <h2>4. 目录结构</h2>
+    <div class="tree">
+<span class="f">项目根目录/</span>
+├─ <span class="f">app/</span>
+│  ├─ <span class="f">impedance_mcp/</span>          <span class="c"># Python 计算内核 / MCP / 智能体 / Web</span>
+│  │  ├─ <span class="p">engine.py</span>            <span class="c"># 五种拓扑 + 节点法 + 扫描 + 带宽 + 耐压</span>
+│  │  ├─ <span class="p">tools.py</span>             <span class="c"># 15 个 MCP 工具</span>
+│  │  ├─ <span class="p">mcp_server.py</span>        <span class="c"># MCP stdio / HTTP</span>
+│  │  ├─ <span class="p">agent.py</span>             <span class="c"># DeepSeek 工具调用</span>
+│  │  ├─ <span class="p">matlab_bridge.py</span>     <span class="c"># MATLAB R2025b / 原版 exe</span>
+│  │  └─ <span class="f">web/</span>                <span class="c"># 前端界面</span>
+│  ├─ <span class="f">matlab/</span>                 <span class="c"># MATLAB 解析解 + 批处理入口</span>
+│  ├─ <span class="f">tests/</span>                  <span class="c"># 自动化测试</span>
+│  ├─ <span class="p">run_app.py</span>              <span class="c"># 启动 Web 外壳</span>
+│  └─ <span class="p">run_mcp.py</span>              <span class="c"># 启动 MCP 服务</span>
+├─ <span class="f">docs/</span>                     <span class="c"># 用户手册 / 技术白皮书 / 比赛说明 / 架构说明</span>
+├─ <span class="f">APP_Release_Release_Version/</span>
+│  ├─ <span class="f">Main_Installation/</span>     <span class="c"># MyAppInstaller_mcr.exe（内置 Runtime）</span>
+│  ├─ <span class="f">Problem_Solution/</span>       <span class="c"># VC_redist.x64.exe + Runtime ZIP</span>
+│  ├─ <span class="f">Backup/</span>                 <span class="c"># V3 源码与打包产物</span>
+│  ├─ <span class="f">ReadMe/</span>                 <span class="c"># 安装指南 / 用户手册 PDF</span>
+│  └─ <span class="f">Reference/</span>              <span class="c"># 软件介绍 PDF</span>
+├─ <span class="e">start_app.bat</span>               <span class="c"># 一键启动新版</span>
+├─ <span class="e">start_mcp.bat</span>               <span class="c"># 一键启动 MCP</span>
+├─ <span class="p">README.md</span>                   <span class="c"># 总说明</span>
+├─ <span class="p">requirements.txt</span>            <span class="c"># Python 依赖</span>
+├─ <span class="p">mcp.example.json</span>            <span class="c"># MCP 配置示例</span>
+└─ <span class="p">CHANGELOG.md</span> / <span class="p">LICENSE</span>
+    </div>
+
+    <h2>5. 接入 ZCode / MCP</h2>
+    <p>把下面这段加入 <code>~/.zcode/cli/config.json</code> 的 <code>mcp.servers</code>，
+      把 <code>args</code> 改成你本机的绝对路径，重启 ZCode：</p>
+    <pre><code>{
+  "mcp": {
+    "servers": {
+      "impedance-matching": {
+        "type": "stdio",
+        "command": "C:\\Python314\\python.exe",
+        "args": ["D:\\path\\to\\app\\run_mcp.py"],
+        "env": {"PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"},
+        "timeoutMs": 120000
+      }
+    }
+  }
+}</code></pre>
+    <p>重启后即可在 ZCode 中使用 15 个工具，例如：</p>
+    <pre><code>用 impedance-matching 工具设计 2.4 GHz、20+j5 Ω 的匹配网络，
+并分析 ±5% 容差和 10 W 耐压。</code></pre>
+    <div class="alert info">
+      手动测试：<code>python app\run_mcp.py</code> 后发送一行
+      <code>{"jsonrpc":"2.0","id":1,"method":"initialize",...}</code>。
+      HTTP 模式：<code>python app\run_mcp.py --http 8790</code>。
+    </div>
+
+    <h2>6. 首次运行检查清单</h2>
+    <table>
+      <tr><th>检查项</th><th>正常表现</th><th>异常处理</th></tr>
+      <tr><td>Python</td><td><code>python --version</code> 显示 3.10+</td><td>重装并勾选 Add to PATH</td></tr>
+      <tr><td>numpy</td><td><code>python -c "import numpy"</code> 无报错</td><td><code>pip install numpy</code></td></tr>
+      <tr><td>新版界面</td><td>浏览器打开 127.0.0.1:8765，状态栏显示模型/MATLAB/MCP</td><td>检查命令行报错；换端口</td></tr>
+      <tr><td>DeepSeek</td><td>设置里「测试连接」返回模型名与延迟</td><td>检查 Key / Base URL / 模型</td></tr>
+      <tr><td>原版 exe</td><td>点击「打开原版」出现经典界面</td><td>安装 Runtime + VC++</td></tr>
+      <tr><td>MCP</td><td>ZCode 中出现 <code>mcp__impedance-matching__*</code></td><td>检查 JSON 路径；重启 ZCode</td></tr>
+    </table>
+
+    <h2>7. 常见问题</h2>
+    <h3>Q1：安装包需要联网吗？</h3>
+    <p>不需要。Runtime 与程序都在本地；新版外壳的 MCP/计算也全部本地运行，只有 AI 对话需要联网。</p>
+    <h3>Q2：可以只拷贝 APP_Release_Release_Version 文件夹到评委电脑吗？</h3>
+    <p>如果只用原版 exe，可以。新版智能外壳需要项目根目录的 <code>app/</code>、<code>start_app.bat</code> 与 Python 环境；
+      建议整体拷贝项目，或使用 Release 中的源码包。</p>
+    <h3>Q3：DeepSeek 401 / 404？</h3>
+    <p>401 是 Key 无效；404 是 Base URL 或模型 ID 不对。交大平台用
+      <code>https://models.sjtu.edu.cn/api/v1</code> + <code>deepseek-chat</code>；
+      官方用 <code>https://api.deepseek.com/v1</code> + <code>deepseek-chat</code>。</p>
+    <h3>Q4：设计无解？</h3>
+    <p>固定电容拓扑对强容性/强感性负载有物理限制。换 <code>auto</code> 或其他拓扑，
+      或调整 L/C3；软件会给出具体原因。</p>
+    <h3>Q5：端口被占用？</h3>
+    <p>程序会自动尝试后续端口；也可手动 <code>python app\run_app.py --port 8899</code>。</p>
+
+    <div class="footer">
+      <b>开发者：</b>卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
+      上海交通大学集成电路学院（信息与电子工程学院）· “智绘芯生，AI 赋能” AI 教与学活动周 · 赛道一<br>
+      版本 v4.0.0 ｜ 更新日期 2026-10-26 ｜ 仓库：github.com/RuilinLu/Impedance_Matching_Calculation
+    </div>
+  </div>
+</div>
+</body>
+</html>

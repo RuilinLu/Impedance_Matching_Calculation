@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>软件代码架构说明书 V3.0 - 微波阻抗匹配计算软件</title>
+    <style>
+        :root {
+            --primary-color: #004098; /* SJTU Blue */
+            --secondary-color: #4a90e2;
+            --accent-color: #8B0000;  /* SJTU Red */
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-light: #666666;
+            --code-bg: #282c34; /* 深色代码背景 */
+            --folder-color: #e5c07b;
+            --file-color: #61afef;
+            --exe-color: #98c379; /* 可执行文件绿色 */
+            --log-color: #c678dd; /* 日志文件紫色 */
+            --comment-color: #98c379; /* 注释绿色 */
+            --tree-text: #abb2bf;
+        }
+
+        body {
+            font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+            line-height: 1.6;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px; /* 加宽容器以适应深层目录 */
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-radius: 10px;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 2px solid var(--primary-color);
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: var(--text-light);
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            border-left: 5px solid var(--accent-color);
+            padding-left: 15px;
+            margin-top: 40px;
+            background: linear-gradient(to right, #f9f9f9, #fff);
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+
+        h3 {
+            color: #444;
+            margin-top: 25px;
+            font-size: 18px;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 10px;
+        }
+
+        /* --- 核心修改：对齐的目录树样式 --- */
+        .tree-container {
+            background-color: var(--code-bg);
+            color: var(--tree-text);
+            padding: 20px;
+            border-radius: 8px;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            border: 1px solid #444;
+            line-height: 1.8;
+            margin-bottom: 40px;
+        }
+
+        .tree-line {
+            display: flex; /* 弹性布局 */
+            flex-direction: row;
+            align-items: flex-start;
+            padding: 2px 0;
+        }
+
+        .tree-line:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .tree-node {
+            /* 关键点：加大宽度以适应深层文件名 */
+            min-width: 600px; 
+            white-space: pre; 
+            flex-shrink: 0;   
+            padding-right: 20px;
+        }
+
+        .folder-icon { color: var(--folder-color); font-weight: bold; }
+        .file-icon { color: var(--file-color); }
+        .exe-icon { color: var(--exe-color); font-weight: bold; }
+        .log-icon { color: var(--log-color); }
+        
+        .comment { 
+            color: var(--comment-color); 
+            font-style: italic; 
+            white-space: normal;
+            word-break: break-all;
+        }
+
+        /* 模块卡片样式 */
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .module-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-top: 3px solid var(--secondary-color);
+        }
+
+        .module-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .module-title {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .desc-list { margin: 0; padding-left: 20px; font-size: 0.95em; color: #555; }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #999;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            margin-right: 10px;
+        }
+        .badge-core { background-color: #d9534f; }
+        .badge-config { background-color: #777; }
+        .badge-ui { background-color: #5bc0de; }
+        .badge-logic { background-color: #5cb85c; }
+        .badge-asset { background-color: #f0ad4e; }
+        .badge-calc { background-color: #9966cc; }
+        .badge-output { background-color: #607d8b; }
+    </style>
+</head>
+<body>
+<div style="position:sticky;top:0;z-index:9999;padding:10px 16px;background:linear-gradient(90deg,#fff7ed,#ffedd5);border-bottom:1px solid #fdba74;color:#9a3412;font-family:'Microsoft YaHei',Arial,sans-serif;font-size:13px;text-align:center;">本文件为 <b>V3.0 历史版本</b>，仅用于对照原版 App Designer 结构。V4.0（Python/MCP/AI 外壳）架构说明请见 <a href="Software_Structure_V4_0.html" style="color:#c2410c;font-weight:700;">Software_Structure_V4_0.html</a>。</div>
+
+
+<div class="container">
+    <header>
+        <h1>软件代码架构说明书 (V3.0)</h1>
+        <div class="subtitle">微波阻抗匹配计算与仿真软件 | 基于 MATLAB App Designer R2023b</div>
+    </header>
+
+    <div style="background-color: #eef4ff; border-left: 5px solid #004098; padding: 15px; margin-bottom: 20px;">
+        <strong>📄 文档说明：</strong> 本文档详细描述了 <code>Code_V3_For_R2023b</code> 源代码文件夹内的完整文件组织结构。包含了源代码、资源文件以及 MATLAB Application Compiler 生成的详细部署文件清单。
+    </div>
+
+    <h2>1. 完整目录树结构 (Directory Tree)</h2>
+    <div class="tree-container">
+        <div class="tree-line">
+            <span class="tree-node"><span class="folder-icon">📂 Code_V3_For_R2023b</span></span>
+            <span class="comment">// 项目根目录 (源代码)</span>
+        </div>
+        
+        <div class="tree-line"><span class="tree-node">│</span></div>
+        <div class="tree-line">
+            <span class="tree-node">├── <span class="file-icon">📄 MW_V1.mlapp</span></span>
+            <span class="comment">// 【核心入口】主程序文件，包含主界面逻辑</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">├── <span class="file-icon">⚙️ Impedance_Mctching.prj</span></span>
+            <span class="comment">// 【工程配置】App打包配置文件，记录依赖关系</span>
+        </div>
+        <div class="tree-line"><span class="tree-node">│</span></div>
+        
+        <div class="tree-line">
+            <span class="tree-node">├── <span class="folder-icon">📂 Smith_Plot</span></span>
+            <span class="comment">// 【核心算法】Smith圆图动态绘图逻辑脚本</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="file-icon">📜 SmithAnimator_LLeft.m</span></span>
+            <span class="comment">// L型(左)匹配动态绘图</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="file-icon">📜 SmithAnimator_LRight.m</span></span>
+            <span class="comment">// L型(右)匹配动态绘图</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="file-icon">📜 SmithAnimator_T.m</span></span>
+            <span class="comment">// T型匹配动态绘图</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="file-icon">📜 SmithAnimator_pi1.m</span></span>
+            <span class="comment">// Pi型(I)匹配动态绘图</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   └── <span class="file-icon">📜 SmithAnimator_pi2.m</span></span>
+            <span class="comment">// Pi型(II)匹配动态绘图</span>
+        </div>
+        <div class="tree-line"><span class="tree-node">│</span></div>
+
+        <div class="tree-line">
+            <span class="tree-node">├── <span class="folder-icon">📂 Readme</span></span>
+            <span class="comment">// 【帮助模块】各拓扑结构的独立说明书子App</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="file-icon">📄 Readme_L_Left.mlapp</span></span>
+            <span class="comment">// L型(左)说明页</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="file-icon">📄 Readme_L_Right.mlapp</span></span>
+            <span class="comment">// L型(右)说明页</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="file-icon">📄 Readme_T.mlapp</span></span>
+            <span class="comment">// T型说明页</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="file-icon">📄 Readme_pi1.mlapp</span></span>
+            <span class="comment">// Pi型(I)说明页</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   └── <span class="file-icon">📄 Readme_pi2.mlapp</span></span>
+            <span class="comment">// Pi型(II)说明页</span>
+        </div>
+        <div class="tree-line"><span class="tree-node">│</span></div>
+
+        <div class="tree-line">
+            <span class="tree-node">├── <span class="folder-icon">📂 Voltage</span></span>
+            <span class="comment">// 【计算模块】承压计算功能</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   └── <span class="file-icon">📄 Component_Voltage_All.mlapp</span></span>
+            <span class="comment">// 元件电压/电流承受能力计算子App</span>
+        </div>
+        <div class="tree-line"><span class="tree-node">│</span></div>
+
+        <div class="tree-line">
+            <span class="tree-node">├── <span class="folder-icon">📂 Figure</span></span>
+            <span class="comment">// 【静态资源】UI界面所需的图片素材</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="file-icon">🖼️ L_Left.jpg / L_Right.jpg</span></span>
+            <span class="comment">// 拓扑结构示意图</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="file-icon">🖼️ pi1.png / pi2.png / T.png</span></span>
+            <span class="comment">// 电路原理图</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="file-icon">🖼️ smile.jpg / smith_plot.png</span></span>
+            <span class="comment">// 装饰性图片</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   └── <span class="file-icon">🖼️ Matlab_Figure.png</span></span>
+            <span class="comment">// MATLAB 标志图</span>
+        </div>
+        <div class="tree-line"><span class="tree-node">│</span></div>
+
+        <div class="tree-line">
+            <span class="tree-node">├── <span class="folder-icon">📂 Impedance_Mctching</span></span>
+            <span class="comment">// 【部署输出】Compiler 生成的产物目录</span>
+        </div>
+        
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="folder-icon">📂 for_redistribution</span></span>
+            <span class="comment">// 包含最终分发的安装程序</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   │   └── <span class="exe-icon">💿 MyAppInstaller_mcr.exe</span></span>
+            <span class="comment">// 【终端用户文件】离线安装包(含Runtime)</span>
+        </div>
+
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="folder-icon">📂 for_redistribution_files_only</span></span>
+            <span class="comment">// 仅编译后的核心文件(用于免安装升级)</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   │   ├── <span class="exe-icon">🚀 Impedance_Matching.exe</span></span>
+            <span class="comment">// 主程序可执行文件</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   │   ├── <span class="file-icon">🖼️ splash.png</span></span>
+            <span class="comment">// 启动画面图片</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   │   ├── <span class="file-icon">📄 readme.txt</span></span>
+            <span class="comment">// 默认部署说明文档</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   │   ├── <span class="log-icon">📄 requiredMCRProducts.txt</span></span>
+            <span class="comment">// Runtime版本依赖列表</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   │   ├── <span class="log-icon">📄 includedSupportPackages.txt</span></span>
+            <span class="comment">// 包含的支持包列表</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   │   ├── <span class="log-icon">📄 mccExcludedFiles.log</span></span>
+            <span class="comment">// 编译器排除文件日志</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   │   └── <span class="log-icon">📄 unresolvedSymbols.txt</span></span>
+            <span class="comment">// 未解析符号日志</span>
+        </div>
+
+        <div class="tree-line">
+            <span class="tree-node">│   ├── <span class="folder-icon">📂 for_testing</span></span>
+            <span class="comment">// 开发者本机测试目录</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   │   ├── <span class="exe-icon">🚀 Impedance_Matching.exe</span></span>
+            <span class="comment">// 测试用可执行文件(依赖本机环境)</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   │   ├── <span class="file-icon">🖼️ splash.png</span></span>
+            <span class="comment">// 启动画面图片</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">│   │   └── <span class="file-icon">📄 readme.txt</span></span>
+            <span class="comment">// 测试说明文档</span>
+        </div>
+        <div class="tree-line"><span class="tree-node">│</span></div>
+
+        <div class="tree-line">
+            <span class="tree-node">└── <span class="folder-icon">📂 Impedance_Mctching_resources</span></span>
+            <span class="comment">// 【图标资源】App 打包图标</span>
+        </div>
+        <div class="tree-line">
+            <span class="tree-node">&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file-icon">🖼️ icon.ico / icon.png</span></span>
+            <span class="comment">// 应用程序图标文件</span>
+        </div>
+    </div>
+
+    <h2>2. 核心模块详解 (Module Breakdown)</h2>
+
+    <h3>2.1 主程序与入口 (Main Entry)</h3>
+    <div class="module-grid">
+        <div class="module-card">
+            <div class="module-title"><span class="badge badge-core">Core</span> MW_V1.mlapp</div>
+            <p><strong>功能：</strong> 软件的“大脑”和主入口。</p>
+            <ul class="desc-list">
+                <li>负责初始化主界面 UI (Tab页切换、按钮响应)。</li>
+                <li>接收用户输入的频率、阻抗等参数。</li>
+                <li>调用 <code>Smith_Plot</code> 中的算法进行计算。</li>
+                <li>调用 <code>Readme</code> 和 <code>Voltage</code> 子窗口。</li>
+                <li>管理 <code>startupFcn</code> 初始化逻辑。</li>
+            </ul>
+        </div>
+        <div class="module-card">
+            <div class="module-title"><span class="badge badge-config">Config</span> Impedance_Mctching.prj</div>
+            <p><strong>功能：</strong> MATLAB Compiler 的工程配置文件。</p>
+            <ul class="desc-list">
+                <li>记录了打包成 exe 所需的所有文件依赖关系。</li>
+                <li>包含 App 名称、作者、版本 (2.0/3.0)、图标设置。</li>
+                <li>定义了是否包含 MATLAB Runtime。</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>2.2 核心算法与绘图逻辑 (Logic & Plotting)</h3>
+    <div class="module-grid">
+        <div class="module-card">
+            <div class="module-title"><span class="badge badge-logic">Logic</span> Smith_Plot 文件夹</div>
+            <p><strong>包含文件：</strong> <code>SmithAnimator_*.m</code> 系列脚本。</p>
+            <p><strong>设计模式：</strong> 为了避免 App Designer 代码过于臃肿，复杂的 Smith 圆图动态绘制逻辑被剥离为独立的纯 MATLAB 脚本 (<code>.m</code>)。</p>
+            <ul class="desc-list">
+                <li><code>LLeft/LRight</code>: 处理 L 型匹配的感性/容性路径计算。</li>
+                <li><code>T/pi1/pi2</code>: 处理三元件复杂匹配的路径迭代。</li>
+                <li><strong>技术点：</strong> 使用 RF Toolbox 的 <code>smithplot</code> 函数绘制背景，使用 <code>line</code> 对象绘制动态轨迹。</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>2.3 辅助功能子系统 (Sub-Apps)</h3>
+    <div class="module-grid">
+        <div class="module-card">
+            <div class="module-title"><span class="badge badge-ui">UI View</span> Readme 文件夹</div>
+            <p><strong>包含文件：</strong> <code>Readme_*.mlapp</code></p>
+            <p><strong>功能：</strong> 独立的帮助文档窗口。</p>
+            <ul class="desc-list">
+                <li>当用户在主界面点击“？”或帮助按钮时弹出。</li>
+                <li>内置了对应电路拓扑的原理图 (Image) 和详细文字说明 (HTML Label)。</li>
+                <li>采用模态或非模态窗口设计，不干扰主程序运行。</li>
+            </ul>
+        </div>
+        <div class="module-card">
+            <div class="module-title"><span class="badge badge-calc">Calc</span> Voltage 文件夹</div>
+            <p><strong>包含文件：</strong> <code>Component_Voltage_All.mlapp</code></p>
+            <p><strong>功能：</strong> 独立的工程计算器。</p>
+            <ul class="desc-list">
+                <li>计算匹配网络中各电感、电容在特定功率下的电压/电流应力。</li>
+                <li>辅助用户进行元件选型。</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>2.4 资源与部署 (Assets & Deploy)</h3>
+    <div class="module-grid">
+        <div class="module-card">
+            <div class="module-title"><span class="badge badge-asset">Assets</span> Figure 文件夹</div>
+            <p><strong>内容：</strong> <code>.jpg</code>, <code>.png</code> 图片文件。</p>
+            <p><strong>作用：</strong> 存储电路原理图、软件 Logo、示意图等静态资源。主程序在运行时会动态读取此文件夹下的图片并显示在 UI 上。</p>
+        </div>
+        <div class="module-card">
+            <div class="module-title"><span class="badge badge-output">Output</span> Impedance_Mctching 文件夹</div>
+            <p><strong>内容：</strong> 编译器输出产物。</p>
+            <p><strong>注意：</strong> 此文件夹包含生成的安装包 (<code>MyAppInstaller_mcr.exe</code>)。它不是源代码的一部分，而是编译后的结果。如果需要重新发布，可以删除此文件夹重新打包。</p>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Copyright &copy; 2025 Ruilin Lu, SJTU. All Rights Reserved.</p>
+        <p>本文档由软件架构分析工具自动生成，适用于 Code Structure V3.0 版本。</p>
+    </div>
+</div>
+
+</body>
+</html>

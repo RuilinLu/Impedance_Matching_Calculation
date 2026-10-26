@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>软件架构说明 · 智配芯生 ImpedanceMCP</title>
+<style>
+:root {
+  --ink: #172033;
+  --muted: #5b6b82;
+  --line: #dbe4ef;
+  --brand: #0369a1;
+  --brand-2: #0891b2;
+  --bg: #ffffff;
+  --soft: #f5f9fd;
+}
+@page { size: A4; margin: 17mm 15mm 18mm 15mm; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body {
+  margin: 0; color: var(--ink); background: var(--bg);
+  font-family: "Microsoft YaHei", "Segoe UI", "Noto Sans SC", system-ui, sans-serif;
+  font-size: 10.5pt; line-height: 1.75;
+}
+a { color: var(--brand); text-decoration: none; }
+.cover {
+  min-height: 297mm; display: flex; flex-direction: column; justify-content: center;
+  padding: 42mm 22mm 26mm; margin: -17mm -15mm 0 -15mm;
+  background: linear-gradient(135deg, #061a2e 0%, #083b5c 55%, #075985 100%);
+  color: #eaf8ff; position: relative; overflow: hidden;
+  page-break-after: always;
+}
+.cover::after {
+  content: ""; position: absolute; right: -60mm; top: -40mm; width: 160mm; height: 160mm;
+  border-radius: 50%; border: 1px solid rgba(34,211,238,.25);
+  box-shadow: 0 0 0 18mm rgba(34,211,238,.05), 0 0 0 36mm rgba(34,211,238,.03);
+}
+.cover .badge {
+  display: inline-block; width: fit-content; padding: 4px 12px; border-radius: 99px;
+  border: 1px solid rgba(34,211,238,.4); color: #a5f3fc; font-size: 9pt; letter-spacing: .5px;
+}
+.cover h1 { font-size: 34pt; line-height: 1.25; margin: 18mm 0 6mm; letter-spacing: 1px; }
+.cover h2 { font-size: 15pt; font-weight: 400; color: #bae6fd; margin: 0 0 24mm; }
+.cover .meta { font-size: 10pt; line-height: 2; color: #cbe9f7; }
+.cover .meta b { color: #fff; font-weight: 600; }
+.cover .rule { width: 34mm; height: 3px; background: #22d3ee; margin: 8mm 0; }
+.cover .foot { position: absolute; bottom: 20mm; left: 22mm; right: 22mm; font-size: 8.5pt; color: #9fc9df; border-top: 1px solid rgba(255,255,255,.15); padding-top: 4mm; }
+.toc { page-break-after: always; padding-top: 4mm; }
+.toc h2 { font-size: 18pt; color: var(--ink); border: 0; margin: 0 0 8mm; padding: 0; }
+.toc ul { list-style: none; padding-left: 0; margin: 0; }
+.toc ul ul { padding-left: 7mm; }
+.toc li { margin: 0.35mm 0; font-size: 8.6pt; line-height: 1.28; }
+.toc > ul > li { margin-top: 0.8mm; }
+.toc a { color: #334155; }
+.toc > ul > li > a { color: var(--brand); font-weight: 600; }
+.content h1 {
+  font-size: 21pt; color: #0b2a44; margin: 0 0 7mm; padding-bottom: 3mm;
+  border-bottom: 2px solid #dbeafe; page-break-before: always;
+}
+.content h1:first-child { page-break-before: avoid; }
+.content h2 {
+  font-size: 14.5pt; color: #0b3a5a; margin: 8mm 0 3mm; padding-left: 3mm;
+  border-left: 4px solid var(--brand-2); page-break-after: avoid;
+}
+.content h3 { font-size: 12pt; color: #0f4c6e; margin: 5.5mm 0 2mm; page-break-after: avoid; }
+.content h4 { font-size: 10.8pt; color: #155e75; margin: 4mm 0 1.5mm; }
+.content p { margin: 2mm 0; }
+.content img {
+  display: block; max-width: 100%; height: auto; margin: 3mm auto 4mm;
+  border: 1px solid var(--line); border-radius: 3mm;
+  page-break-inside: avoid;
+}
+.content table {
+  width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 9pt;
+  page-break-inside: avoid;
+}
+.content th, .content td { border: 1px solid var(--line); padding: 1.8mm 2.2mm; vertical-align: top; }
+.content th { background: #eef6fc; color: #0b3a5a; text-align: left; font-weight: 600; }
+.content tr:nth-child(even) td { background: #fbfdff; }
+.content code {
+  font-family: "Cascadia Code", Consolas, monospace; font-size: 9pt;
+  background: #eef6fc; color: #0e7490; padding: .3mm 1.2mm; border-radius: 1mm;
+}
+.content pre {
+  background: #07111f; color: #dbeafe; border-radius: 2.5mm; padding: 3.2mm 4mm;
+  font-size: 8.4pt; line-height: 1.55; overflow-x: auto; white-space: pre-wrap;
+  word-break: break-word; page-break-inside: avoid; margin: 3mm 0 4mm;
+}
+.content pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+.content blockquote {
+  margin: 3mm 0; padding: 2.5mm 4mm; border-left: 3px solid var(--brand-2);
+  background: #f0f9ff; color: #334155; page-break-inside: avoid;
+}
+.content ul, .content ol { margin: 2mm 0 2mm 5mm; padding-left: 4mm; }
+.content li { margin: .8mm 0; }
+.content hr { border: 0; border-top: 1px solid var(--line); margin: 6mm 0; }
+.content strong { color: #0b2a44; }
+.content .doc-end {
+  margin-top: 10mm; padding-top: 3mm; border-top: 1px solid var(--line);
+  color: var(--muted); font-size: 8.5pt; text-align: center;
+}
+@media screen {
+  body { background: #eef3f9; }
+  .cover, .toc, .content { max-width: 190mm; margin: 0 auto; }
+  .cover { margin-top: 0; }
+  .content { background: #fff; padding: 12mm 15mm; box-shadow: 0 8px 30px rgba(15,23,42,.08); margin-bottom: 20mm; }
+  .toc { background: #fff; padding: 12mm 15mm; box-shadow: 0 8px 30px rgba(15,23,42,.08); margin-bottom: 8mm; }
+}
+</style></head>
+<body>
+
+    <section class="cover">
+      <span class="badge">上海交通大学集成电路学院 · AI 教与学活动周</span>
+      <h1>软件架构说明</h1>
+      <h2>V4.0 目录结构、模块职责、数据流与测试</h2>
+      <div class="rule"></div>
+      <div class="meta">
+        <div><b>版本</b>　v4.0.0　｜　<b>更新日期</b>　2026-10-26</div>
+        <div><b>开发者</b>　卢瑞林、卢柯吉、林芷伊、张昀蕾</div>
+        <div><b>项目</b>　智配芯生 · ImpedanceMCP 微波阻抗匹配智能计算与仿真软件</div>
+      </div>
+      <div class="foot">本文件由 docs/build_docs.py 自动生成 · 可直接打印为 A4 PDF</div>
+    </section>
+    
+<section class="toc"><h2>目录</h2><div class="toc">
+<ul>
+<li><a href="#impedancemcp-v40">智配芯生 · ImpedanceMCP 软件架构说明（V4.0）</a><ul>
+<li><a href="#1-v30">1. 与 V3.0 的关系</a></li>
+<li><a href="#2">2. 完整目录结构</a></li>
+<li><a href="#3">3. 模块说明</a><ul>
+<li><a href="#31-enginepy">3.1 engine.py：计算内核</a></li>
+<li><a href="#32-toolspymcp">3.2 tools.py：MCP 工具层</a></li>
+<li><a href="#33-mcp_serverpy">3.3 mcp_server.py：协议层</a></li>
+<li><a href="#34-agentpy">3.4 agent.py：智能体层</a></li>
+<li><a href="#35-llmpy">3.5 llm.py：模型客户端</a></li>
+<li><a href="#36-attachmentspy">3.6 attachments.py：附件</a></li>
+<li><a href="#37-reportspy">3.7 reports.py：报告</a></li>
+<li><a href="#38-matlab_bridgepymatlab">3.8 matlab_bridge.py：MATLAB 桥</a></li>
+<li><a href="#39-web_serverpy-webapi">3.9 web_server.py：本地 Web/API</a></li>
+<li><a href="#310">3.10 前端</a></li>
+</ul>
+</li>
+<li><a href="#4">4. 数据流</a><ul>
+<li><a href="#41">4.1 设计请求</a></li>
+<li><a href="#42-ai">4.2 AI 对话</a></li>
+<li><a href="#43-mcp">4.3 MCP</a></li>
+<li><a href="#44-matlab">4.4 MATLAB 复核</a></li>
+</ul>
+</li>
+<li><a href="#5">5. 配置与数据</a></li>
+<li><a href="#6">6. 测试</a></li>
+<li><a href="#7">7. 版本与团队</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<main class="content">
+<h1 id="impedancemcp-v40">智配芯生 · ImpedanceMCP 软件架构说明（V4.0）</h1>
+<p><strong>版本：v4.0.0 ｜ 更新日期：2026-10-26</strong></p>
+<p>开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾
+上海交通大学集成电路学院（信息与电子工程学院）</p>
+<hr />
+<h2 id="1-v30">1. 与 V3.0 的关系</h2>
+<p>V3.0 是基于 MATLAB App Designer R2023b 的单体应用：</p>
+<pre><code class="language-text">MW_V1.mlapp
+├─ Smith_Plot/SmithAnimator_*.m
+├─ Readme/Readme_*.mlapp
+├─ Voltage/Component_Voltage_All.mlapp
+└─ Figure/*.png
+</code></pre>
+<p>V4.0 保留 V3.0 的：
+- 五种拓扑与解析公式；
+- Smith 圆图动画思路；
+- 原版 <code>Impedance_Matching.exe</code>；
+- 耐压分析的教学目标。</p>
+<p>V4.0 新增：
+- Python 计算内核与完整网络节点法复核；
+- 15 个 MCP 工具；
+- DeepSeek 智能体与附件解析；
+- 现代化 Web UI；
+- HTML/Markdown 报告；
+- MATLAB R2025b 批处理复核；
+- 自动化测试与文档。</p>
+<hr />
+<h2 id="2">2. 完整目录结构</h2>
+<pre><code class="language-text">Impedance_Matching_Calculation/
+│
+├─ app/
+│  ├─ impedance_mcp/
+│  │  ├─ __init__.py
+│  │  ├─ engine.py            # 计算内核：五种拓扑 + 节点法 + 扫描 + 带宽 + 灵敏度 + 耐压
+│  │  ├─ tools.py             # 15 个 MCP 工具的定义与处理函数
+│  │  ├─ mcp_server.py        # MCP stdio / HTTP JSON-RPC 服务
+│  │  ├─ agent.py             # DeepSeek 工具调用智能体
+│  │  ├─ llm.py               # OpenAI 兼容客户端、URL 安全校验、重试
+│  │  ├─ attachments.py       # PDF/DOCX/XLSX/PPTX/Notebook 文本提取
+│  │  ├─ reports.py            # HTML/Markdown 设计报告
+│  │  ├─ matlab_bridge.py     # MATLAB R2025b 批处理、原版 exe 启动
+│  │  ├─ config.py            # 配置、路径发现、MATLAB/MCR 状态
+│  │  ├─ knowledge.py         # 本地微波匹配知识库
+│  │  └─ web/
+│  │     ├─ index.html        # 单页应用结构
+│  │     ├─ styles.css        # 深色工程控制台主题
+│  │     ├─ app.js            # 状态、API、对话、设计、分析、耐压
+│  │     ├─ smith.js          # Canvas Smith 圆图、折线图、条形图
+│  │     └─ favicon.svg
+│  ├─ matlab/
+│  │  ├─ mw_design.m          # MATLAB 解析解 + mw_analyze 节点法
+│  │  ├─ mw_batch_entry.m     # -batch 批处理入口
+│  │  └─ original_v3/         # V3 App Designer 提取源码（参考）
+│  ├─ tests/
+│  │  ├─ test_engine.py
+│  │  └─ test_mcp_protocol.py
+│  ├─ pyproject.toml
+│  ├─ run_app.py
+│  └─ run_mcp.py
+│
+├─ docs/
+│  ├─ 用户手册.md / .html / .pdf
+│  ├─ 技术白皮书.md / .html / .pdf
+│  ├─ 比赛说明文档.md / .html / .pdf
+│  ├─ 软件架构说明.md / .html / .pdf
+│  ├─ build_docs.py
+│  └─ assets/screenshot_*.png
+│
+├─ APP_Release_Release_Version/
+│  ├─ Main_Installation/MyAppInstaller_mcr.exe   # 内置 Runtime 的安装包
+│  ├─ Problem_Solution/VC_redist.x64.exe
+│  ├─ Problem_Solution/MATLAB_Runtime_R2023b_Update_10_win64.zip
+│  ├─ Backup/Code_V3_For_R2023b/                 # V3 源码与打包产物
+│  ├─ ReadMe/Readme_First_Installation_Instruction.html
+│  ├─ ReadMe/Readme_Next_Software_Instroduction.pdf
+│  └─ Reference/My_APP_Introduction.*
+│
+├─ start_app.bat
+├─ start_mcp.bat
+├─ requirements.txt
+├─ mcp.example.json
+├─ README.md
+├─ CHANGELOG.md
+└─ LICENSE
+</code></pre>
+<blockquote>
+<p>大型安装包与 Runtime ZIP 已通过 <code>.gitignore</code> 排除，不进入 Git 仓库；它们保留在本地发布目录/Release 说明中。</p>
+</blockquote>
+<hr />
+<h2 id="3">3. 模块说明</h2>
+<h3 id="31-enginepy">3.1 <code>engine.py</code>：计算内核</h3>
+<p>职责：</p>
+<ul>
+<li>五种拓扑的反向解析设计；</li>
+<li>自动 L/C3 选取；</li>
+<li>完整网络节点法复核；</li>
+<li>正向匹配范围扫描；</li>
+<li>VSWR 带宽、±5% 灵敏度；</li>
+<li>元件耐压/电流应力；</li>
+<li>Smith 圆图轨迹生成；</li>
+<li>阻抗/导纳换算。</li>
+</ul>
+<p>关键对象：</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>design_network(...)</code></td>
+<td>主入口；<code>topology="auto"</code> 自动比较五种拓扑</td>
+</tr>
+<tr>
+<td><code>analyze_network(...)</code></td>
+<td>节点法；返回 Zin、VSWR、S11、节点电压、元件应力</td>
+</tr>
+<tr>
+<td><code>scan_matchable_range(...)</code></td>
+<td>正向扫描；返回 R/X 范围与采样点</td>
+</tr>
+<tr>
+<td><code>bandwidth(...)</code></td>
+<td>固定元件扫频，找连续合格频段</td>
+</tr>
+<tr>
+<td><code>sensitivity(...)</code></td>
+<td>元件 ±5% 的最差 VSWR</td>
+</tr>
+<tr>
+<td><code>voltage_stress(...)</code></td>
+<td>功率下的峰值/RMS 电压电流</td>
+</tr>
+<tr>
+<td><code>build_steps(...)</code></td>
+<td>生成 Smith 圆图 Γ 轨迹</td>
+</tr>
+<tr>
+<td><code>suggest_topologies(...)</code></td>
+<td>五种拓扑可行性与排序</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-toolspymcp">3.2 <code>tools.py</code>：MCP 工具层</h3>
+<p>把 <code>engine.py</code> 的能力包装成 15 个工具，统一返回：</p>
+<pre><code class="language-json">{
+  &quot;ok&quot;: true,
+  &quot;summary&quot;: &quot;中文摘要&quot;,
+  &quot;...&quot;: &quot;结构化数据&quot;
+}
+</code></pre>
+<p>失败返回：</p>
+<pre><code class="language-json">{
+  &quot;ok&quot;: false,
+  &quot;error_code&quot;: &quot;no_solution&quot;,
+  &quot;message&quot;: &quot;物理原因&quot;,
+  &quot;hint&quot;: &quot;可行替代方案&quot;
+}
+</code></pre>
+<p>工具定义同时供：
+- MCP 服务 <code>tools/list</code> / <code>tools/call</code>；
+- Web 智能体 <code>openai_tools()</code>。</p>
+<h3 id="33-mcp_serverpy">3.3 <code>mcp_server.py</code>：协议层</h3>
+<ul>
+<li>stdio：按行 JSON-RPC 2.0；</li>
+<li>HTTP：<code>POST /mcp</code>；</li>
+<li>方法：<code>initialize</code>、<code>tools/list</code>、<code>tools/call</code>、<code>resources/list</code>、<code>resources/read</code>、<code>prompts/list</code>、<code>prompts/get</code>、<code>ping</code>；</li>
+<li>日志只写 stderr；</li>
+<li>支持 <code>Content-Length</code> 与换行分隔两种输入。</li>
+</ul>
+<h3 id="34-agentpy">3.4 <code>agent.py</code>：智能体层</h3>
+<ul>
+<li>系统提示：先算后说、单位统一、失败给替代方案、附件不当指令；</li>
+<li>工具循环最多 5 轮；</li>
+<li>工具结果截断到 16k 字符；</li>
+<li>SSE 事件：status / tool_call / tool_result / design / token / done / error；</li>
+<li>设计结果生成对话内设计卡片。</li>
+</ul>
+<h3 id="35-llmpy">3.5 <code>llm.py</code>：模型客户端</h3>
+<ul>
+<li>OpenAI 兼容 <code>/chat/completions</code>；</li>
+<li>支持 DeepSeek 官方与交大平台；</li>
+<li>429/5xx 重试；</li>
+<li>URL 仅允许 http/https，拒绝本机/内网/保留地址；</li>
+<li>错误信息包含 401/402/404/429 提示。</li>
+</ul>
+<h3 id="36-attachmentspy">3.6 <code>attachments.py</code>：附件</h3>
+<ul>
+<li>文本/代码：UTF-8 → GB18030 → GBK → Latin-1 回退；</li>
+<li>PDF：<code>pypdf</code>；</li>
+<li>DOCX：ZIP + XML 去标签；</li>
+<li>XLSX：<code>openpyxl</code> 或 XML 回退；</li>
+<li>PPTX：<code>a:t</code> 文本；</li>
+<li>Notebook：JSON cells；</li>
+<li>图片：保存并提示文本模型不读图；</li>
+<li>限制：25MB/文件、60k 字符/附件、48k 字符/对话。</li>
+</ul>
+<h3 id="37-reportspy">3.7 <code>reports.py</code>：报告</h3>
+<ul>
+<li>输入：完整设计字典；</li>
+<li>输出：<code>data/reports/impedance_report_*.html</code> 或 <code>.md</code>；</li>
+<li>HTML 含：封面 KPI、拓扑 SVG、元件表、节点法、Smith 圆图 SVG、VSWR 曲线、步骤、灵敏度、风险；</li>
+<li>使用浅色 A4 打印样式，可直接 <code>Ctrl+P</code> 存 PDF。</li>
+</ul>
+<h3 id="38-matlab_bridgepymatlab">3.8 <code>matlab_bridge.py</code>：MATLAB 桥</h3>
+<ul>
+<li><code>find_matlab()</code>：优先 R2025b；</li>
+<li><code>find_classic_app()</code>：定位 <code>Impedance_Matching.exe</code>；</li>
+<li><code>run_matlab_design(...)</code>：复制 <code>mw_design.m</code>/<code>mw_batch_entry.m</code> 到临时目录，<code>matlab -batch</code> 调用；</li>
+<li><code>cross_check(...)</code>：批量交叉验证；</li>
+<li><code>launch_classic_app()</code>：路径白名单校验后 <code>os.startfile</code>；</li>
+<li>安全：参数列表、<code>shell=False</code>、校验 MATLAB 安装目录。</li>
+</ul>
+<h3 id="39-web_serverpy-webapi">3.9 <code>web_server.py</code>：本地 Web/API</h3>
+<ul>
+<li>静态文件：<code>/</code>、<code>/styles.css</code>、<code>/app.js</code>、<code>/smith.js</code>；</li>
+<li>API：<code>/api/design</code>、<code>/api/scan</code>、<code>/api/evaluate</code>、<code>/api/stress</code>、<code>/api/bandwidth</code>、<code>/api/suggest</code>、<code>/api/convert</code>、<code>/api/upload</code>、<code>/api/chat</code>（SSE）、<code>/api/report</code>、<code>/api/matlab/verify</code>、<code>/api/matlab/open</code>、<code>/api/status</code>、<code>/api/config</code>、<code>/api/mcp/config</code>；</li>
+<li>仅监听 <code>127.0.0.1</code>；</li>
+<li>静态路径规范化，防目录穿越；</li>
+<li>报告文件名白名单。</li>
+</ul>
+<h3 id="310">3.10 前端</h3>
+<ul>
+<li><code>index.html</code>：五页单页应用（AI/设计/分析/耐压/关于）+ 设置模态；</li>
+<li><code>styles.css</code>：深色主题、响应式、打印样式；</li>
+<li><code>smith.js</code>：Smith 圆图类、折线图、条形图；</li>
+<li><code>app.js</code>：状态、API、SSE、Markdown 渲染、设计表单、扫描、耐压、设置、报告。</li>
+</ul>
+<hr />
+<h2 id="4">4. 数据流</h2>
+<h3 id="41">4.1 设计请求</h3>
+<pre><code class="language-text">浏览器表单
+  → POST /api/design
+  → engine.design_network
+  → 解析解 + 节点法
+  → JSON（含 steps/bandwidth/sensitivity）
+  → 前端渲染 KPI、Smith 圆图、表格、图表
+</code></pre>
+<h3 id="42-ai">4.2 AI 对话</h3>
+<pre><code class="language-text">浏览器输入
+  → POST /api/chat（SSE）
+  → agent.run_chat
+  → llm.chat（带 15 个工具）
+  → tools.call_tool → engine
+  → 工具结果回填 LLM
+  → 最终回答 + 设计卡片
+  → SSE token/tool/design 事件
+</code></pre>
+<h3 id="43-mcp">4.3 MCP</h3>
+<pre><code class="language-text">ZCode / Claude
+  → stdio / HTTP
+  → mcp_server.handle
+  → tools.call_tool
+  → JSON-RPC result（content + structuredContent）
+</code></pre>
+<h3 id="44-matlab">4.4 MATLAB 复核</h3>
+<pre><code class="language-text">前端「MATLAB 复核」
+  → POST /api/matlab/verify
+  → matlab_bridge.run_matlab_design
+  → 临时目录 + matlab -batch
+  → mw_design.m / mw_batch_entry.m
+  → JSON 结果
+  → 前端 toast/日志
+</code></pre>
+<hr />
+<h2 id="5">5. 配置与数据</h2>
+<table>
+<thead>
+<tr>
+<th>路径</th>
+<th>用途</th>
+<th>是否入库</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data/config.json</code></td>
+<td>模型 Key、引擎选择</td>
+<td>否（.gitignore）</td>
+</tr>
+<tr>
+<td><code>data/uploads/</code></td>
+<td>附件</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>data/reports/</code></td>
+<td>生成的报告</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>~/.zcode/cli/config.json</code></td>
+<td>ZCode MCP 配置</td>
+<td>否（用户目录）</td>
+</tr>
+<tr>
+<td><code>mcp.example.json</code></td>
+<td>示例配置</td>
+<td>是</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6">6. 测试</h2>
+<pre><code class="language-bat">python -m unittest app.tests.test_engine -v
+python -m unittest app.tests.test_mcp_protocol -v
+</code></pre>
+<ul>
+<li>引擎：5 拓扑、频段、随机负载、扫描、带宽、耐压、报告；</li>
+<li>MCP：initialize、15 工具、resources、prompts、错误、stdout 纯净；</li>
+<li>MATLAB：<code>matlab_bridge.cross_check</code>（需 MATLAB R2025b）；</li>
+<li>浏览器：逐页截图检查。</li>
+</ul>
+<hr />
+<h2 id="7">7. 版本与团队</h2>
+<p><strong>v4.0.0 ｜ 2026-10-26</strong></p>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>分工</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>卢瑞林</td>
+<td>项目负责人 · 算法与 MCP 架构</td>
+</tr>
+<tr>
+<td>卢柯吉</td>
+<td>MATLAB 计算内核与仿真验证</td>
+</tr>
+<tr>
+<td>林芷伊</td>
+<td>交互设计、可视化与文档</td>
+</tr>
+<tr>
+<td>张昀蕾</td>
+<td>测试、演示与用户研究</td>
+</tr>
+</tbody>
+</table>
+<p>上海交通大学集成电路学院（信息与电子工程学院）
+“智绘芯生，AI 赋能” AI 教与学活动周 · 赛道一</p>
+<div class="doc-end">智配芯生 · ImpedanceMCP v4.0.0 ｜ 2026-10-26 ｜ 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾<br>
+上海交通大学集成电路学院（信息与电子工程学院）</div>
+</main>
+</body></html>
