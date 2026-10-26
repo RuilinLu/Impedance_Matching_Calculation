@@ -1,6 +1,6 @@
 # Application Guide
 
-> This is an independent microwave/RF teaching, calculation and simulation tool. It is not tied to any competition or event. All computation, plotting, library indexing and MCP serving happen locally. Only AI chat sends the current question and the attachments you explicitly add to the provider you configure.
+> This is an independent microwave/RF teaching, calculation and simulation tool. It is not tied to any platform or event. All computation, plotting, library indexing and MCP serving happen locally. Only AI chat sends the current question and the attachments you explicitly add to the provider you configure.
 
 ## 1. Layout
 
@@ -12,6 +12,29 @@
 | Floating assistant | bottom-right `AI` button on every view | Collapse to a button, expand for contextual questions |
 
 The language button switches the interface between Chinese and English. Numerical values, units and textbook originals keep their standard notation.
+
+### 1.1 Mathematics and LaTeX
+
+AI answers, documentation and textbook translations render LaTeX. Use `\( ... \)` for inline math and `\[ ... \]` for display math; `$ ... $`, `$$ ... $$` and `\begin{equation}` are also accepted. The bundled offline MathJax supports fractions, roots, Greek letters, sub/superscripts, integrals, matrices, cases, `align`, `cases`, `boldsymbol` and `mhchem`.
+
+For example:
+
+\[
+z = \frac{Z_L}{Z_0}, \qquad
+\Gamma = \frac{z-1}{z+1}, \qquad
+\mathrm{VSWR} = \frac{1+|\Gamma|}{1-|\Gamma|}
+\]
+
+An ABCD cascade:
+
+\[
+\begin{bmatrix} A & B \\ C & D \end{bmatrix}
+=
+\begin{bmatrix} 1 & j\omega L \\ 0 & 1 \end{bmatrix}
+\begin{bmatrix} 1 & 0 \\ j\omega C_1 & 1 \end{bmatrix}
+\]
+
+If a formula cannot be rendered, the original LaTeX text is preserved instead of disappearing.
 
 ## 2. AI Agent
 

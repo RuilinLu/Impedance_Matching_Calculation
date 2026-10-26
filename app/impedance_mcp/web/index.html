@@ -416,6 +416,7 @@
                     <span id="libZoomLabel" class="zoom-label">120%</span>
                     <button class="icon-btn sm" id="libZoomIn" title="Zoom in"><svg><use href="#i-plus"/></svg></button>
                     <button class="btn tiny ghost" id="libOcr"><svg><use href="#i-ocr"/></svg><span data-i18n="library.ocr">OCR 本页</span></button>
+                    <button class="btn tiny ghost" id="libOcrBook"><svg><use href="#i-ocr"/></svg><span data-i18n="library.ocrBook">OCR 本书</span></button>
                     <button class="btn tiny ghost" id="libTranslate"><svg><use href="#i-translate"/></svg><span data-i18n="library.translate">翻译</span></button>
                     <button class="btn tiny" id="libAsk"><svg><use href="#i-spark"/></svg><span data-i18n="library.ask">问此页</span></button>
                   </div>
@@ -640,6 +641,12 @@
           <label class="field"><span data-i18n="settings.cacheMiss">缓存未命中输入</span><input id="mpOffMiss" type="number" min="0" step="0.001"></label>
           <label class="field"><span data-i18n="settings.outputPrice">输出价格</span><input id="mpOffOutput" type="number" min="0" step="0.001"></label>
         </div>
+        <div class="section-label"><span data-i18n="settings.schedule">谷时窗口</span><i></i></div>
+        <div class="field-grid three-col">
+          <label class="field"><span data-i18n="settings.offStart">谷时开始</span><input id="mpOffStart" type="time" value="00:30"></label>
+          <label class="field"><span data-i18n="settings.offEnd">谷时结束</span><input id="mpOffEnd" type="time" value="08:30"></label>
+          <label class="field"><span data-i18n="settings.timezone">时区</span><input id="mpTimezone" type="text" value="Asia/Shanghai"></label>
+        </div>
       </section>
 
       <section class="settings-section settings-pane" data-pane="catalog">
@@ -683,6 +690,22 @@
 </div>
 
 <div class="toast-wrap" id="toastWrap"></div>
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]],
+    processEscapes: true,
+    packages: {"[+]": ["ams", "mathtools", "physics", "mhchem", "boldsymbol", "html"]}
+  },
+  svg: {fontCache: "global"},
+  options: {
+    skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+  },
+  startup: {typeset: false}
+};
+</script>
+<script src="/vendor/mathjax/tex-svg-full.js"></script>
 <script src="/i18n.js"></script>
 <script src="/smith.js"></script>
 <script src="/app.js"></script>

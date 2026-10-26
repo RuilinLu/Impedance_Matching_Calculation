@@ -7,10 +7,11 @@ A standalone microwave matching application and MCP server. It combines L/T/π d
 
 ## Highlights
 
-- **Textbook library**: local PDF indexing, full-text/fuzzy search, page rendering and zoom, OCR for scanned books, academic translation, citation thumbnails.
+- **Textbook library**: local PDF indexing, full-text/fuzzy search, page rendering and zoom, OCR for scanned books (single page or page range), academic translation, full-page thumbnails and cropped citation screenshots.
 - **Documentation centre**: four searchable domains (application, code, AI interface, MCP) with every-word highlighting and previous/next match navigation. Code reference is generated from the live AST.
 - **Any-file agent input**: PDF, DOCX, PPTX, XLSX, source code, images, archives and arbitrary binaries; clipboard and drag-and-drop; vision models receive page/image content.
-- **20 provider catalog**: per-model context, output, vision/audio, tools, JSON, reasoning, Responses/Anthropic API, FIM, concurrency and peak/off-peak pricing; one-click updates from models.dev / official `/models` / announcements, AI-assisted review, backup and rollback.
+- **Complete offline LaTeX**: AI answers and documentation render `$...$`, `\(...\)`, `$$...$$`, `\[...\]`, `align`, `cases`, matrices, physics/chemistry extensions; no CDN required.
+- **20 provider catalog**: per-model context, output, vision/audio, tools, JSON, reasoning, Responses/Anthropic API, FIM, concurrency, currency, cache-hit/miss/output prices and editable peak/off-peak windows; one-click updates from models.dev / official `/models` / announcements, AI-assisted review, backup and rollback.
 - **Usage accounting**: tokens, cache hit rate, context usage and cost per request and per day/week/all time.
 - **Scan visualization**: grey density cloud, boundary envelope and cyan near-centre highlights; fixed Run Scan state handling.
 - **Bilingual UI** and independent branding; MATLAB/MATLAB Runtime support removed completely.

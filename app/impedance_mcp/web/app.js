@@ -284,10 +284,32 @@
   function renderMarkdown(source) {
     if (!source) return "";
     const codeBlocks = [];
+    const inlineCodes = [];
+    const mathItems = [];
     let text = String(source).replace(/```([a-zA-Z0-9_+-]*)\n?([\s\S]*?)```/g, (match, lang, code) => {
       codeBlocks.push(`<pre><code>${escapeHtml(code.replace(/\n$/, ""))}</code></pre>`);
       return `@@CODEBLOCK${codeBlocks.length - 1}@@`;
     });
+    // Protect inline code and math before Markdown emphasis/list parsing.
+    text = text.replace(/`([^`\n]+)`/g, (match, code) => {
+      inlineCodes.push(code);
+      return `@@INLINECODE${inlineCodes.length - 1}@@`;
+    });
+    const stashMath = (raw, display) => {
+      mathItems.push({ raw, display: !!display });
+      return `@@MATH${mathItems.length - 1}@@`;
+    };
+    text = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, body) =>
+      stashMath(`\\[${body}\\]`, true));
+    text = text.replace(/\\\[([\s\S]+?)\\\]/g, (match, body) =>
+      stashMath(`\\[${body}\\]`, true));
+    text = text.replace(/\\\(([\s\S]+?)\\\)/g, (match, body) =>
+      stashMath(`\\(${body}\\)`, false));
+    text = text.replace(
+      /\\begin\{(equation|align|aligned|gather|gathered|multline|split|matrix|pmatrix|bmatrix|vmatrix|cases|array)\*?\}[\s\S]+?\\end\{\1\*?\}/g,
+      (match) => stashMath(`\\[${match}\\]`, true));
+    text = text.replace(/\$([^$\n]+?)\$/g, (match, body) =>
+      stashMath(`\\(${body}\\)`, false));
     const lines = text.split(/\r?\n/);
     const out = [];
     let paragraph = [];
@@ -365,8 +387,36 @@
     }
     flushParagraph(); flushList(); flushTable();
     let html = out.join("");
+    html = html.replace(/@@INLINECODE(\d+)@@/g, (match, index) => {
+      const code = inlineCodes[Number(index)];
+      return code === undefined ? "" : `<code>${escapeHtml(code)}</code>`;
+    });
+    html = html.replace(/@@MATH(\d+)@@/g, (match, index) => {
+      const item = mathItems[Number(index)];
+      if (!item) return "";
+      return item.display
+        ? `<div class="math-display">${escapeHtml(item.raw)}</div>`
+        : `<span class="math-inline">${escapeHtml(item.raw)}</span>`;
+    });
     html = html.replace(/@@CODEBLOCK(\d+)@@/g, (match, index) => codeBlocks[Number(index)] || "");
     return html;
+  }
+
+  function typesetMath(element) {
+    if (!element || !window.MathJax) return;
+    const run = () => {
+      try {
+        if (MathJax.typesetClear) MathJax.typesetClear([element]);
+        MathJax.typesetPromise([element]).catch(() => {});
+      } catch (error) {
+        /* a malformed formula must never break the answer */
+      }
+    };
+    if (MathJax.startup && MathJax.startup.promise) {
+      MathJax.startup.promise.then(run).catch(() => {});
+    } else {
+      setTimeout(run, 300);
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -389,6 +439,8 @@
     if (name === "design" && !STATE.design) $("#emptyDesign").classList.remove("hidden");
     if (name === "design" && STATE.design) setTimeout(redrawDesignCharts, 50);
     if (name === "analysis" && scanChart) setTimeout(() => scanChart.draw(), 60);
+    if (name === "agent") setTimeout(() => typesetMath($("#messages")), 80);
+    if (name === "docs") setTimeout(() => typesetMath($("#docsContent")), 120);
     if (name === "stress" && STATE.lastStress) setTimeout(() => renderStress(STATE.lastStress), 50);
     if (name === "library" && window.Library && !options.skipLibrary) {
       window.Library.onShow();
@@ -761,6 +813,10 @@
     setProfileField("#mpOffHit", off.input_cache_hit ?? "");
     setProfileField("#mpOffMiss", off.input_cache_miss ?? "");
     setProfileField("#mpOffOutput", off.output ?? "");
+    const schedule = profile.pricing_schedule || {};
+    setProfileField("#mpOffStart", schedule.off_peak_start || "00:30");
+    setProfileField("#mpOffEnd", schedule.off_peak_end || "08:30");
+    setProfileField("#mpTimezone", schedule.timezone || "Asia/Shanghai");
     setProfileField("#mpRelease", profile.release || "");
     setProfileField("#mpNotes", profile.notes || "");
   }
@@ -807,6 +863,11 @@
         input_cache_hit: oh || 0, input_cache_miss: om || 0, output: oo || 0,
       };
     }
+    profile.pricing_schedule = {
+      off_peak_start: $("#mpOffStart").value || "00:30",
+      off_peak_end: $("#mpOffEnd").value || "08:30",
+      timezone: $("#mpTimezone").value.trim() || "Asia/Shanghai",
+    };
     return profile;
   }
 
@@ -1058,6 +1119,7 @@
   function finishAssistant(assistant, content) {
     if (assistant.typing) assistant.typing.remove();
     assistant.md.innerHTML = renderMarkdown(content || assistant.buffer || "");
+    typesetMath(assistant.md);
     scrollChat();
   }
 
@@ -1127,7 +1189,7 @@
     const snippet = String(citation.snippet || "").replace(/\[\[([^\]]+)\]\]/g, "<mark>$1</mark>").slice(0, 500);
     if (citation.kind === "textbook") {
       return `<div class="citation-card" data-citation-kind="textbook" data-doc-id="${citation.doc_id}" data-page="${citation.page}" data-rects="${escapeHtml(JSON.stringify(citation.rects || []))}">
-        <img src="${escapeHtml(citation.thumb_url || "")}" alt="page">
+        <img src="${escapeHtml(citation.crop_url || citation.thumb_url || "")}" alt="page">
         <div class="citation-copy"><b>${escapeHtml(citation.title || "教材")}</b><small>第 ${citation.page} 页</small><p>${snippet}</p></div>
         <button class="btn tiny" data-open-citation="1">打开</button>
       </div>`;
@@ -1433,7 +1495,7 @@
       });
       if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
       if (!assistant.errored) {
-        assistant.md.innerHTML = renderMarkdown(result.content || assistant.buffer || "（未收到回答）");
+        finishAssistant(assistant, result.content || assistant.buffer || "（未收到回答）");
         STATE.chat.push({ role: "assistant", content: result.content || assistant.buffer || "" });
         if (STATE.chat.length > 24) STATE.chat = STATE.chat.slice(-24);
       }
@@ -1725,7 +1787,9 @@
     drawSensitivity(lastSens);
     $("#sensNote").textContent = T("design.sensNote", "每根柱为该元件 ±5% 偏差下的最差 VSWR；绿色 <1.5，黄色 <2，红色 ≥2。");
 
-    const warnings = design.warnings || [];
+    const warnings = (window.I18N && window.I18N.lang === "en" && (design.warnings_en || []).length)
+      ? design.warnings_en
+      : (design.warnings || []);
     $("#warnCount").textContent = warnings.length ? `${warnings.length}` : "0";
     $("#warningList").innerHTML = warnings.length
       ? warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")
@@ -1759,13 +1823,35 @@
   }
 
   function renderComponentGrid(components, topology) {
+    const en = window.I18N && window.I18N.lang === "en";
+    const labels = en
+      ? {
+          L: "Inductor", C1: "Capacitor C1", C2: "Capacitor C2", C3: "Capacitor C3",
+          Zin: "Input impedance", seriesL: "Series inductor", seriesC: "Series matching capacitor",
+          srcShunt: "Shunt at source", loadShunt: "Shunt at load", either: "Series / shunt",
+          srcSeries: "Series at source", checked: "Nodal verification",
+        }
+      : {
+          L: "电感", C1: "电容 C1", C2: "电容 C2", C3: "电容 C3",
+          Zin: "输入阻抗", seriesL: "串联电感", seriesC: "串联匹配电容",
+          srcShunt: "源端并联", loadShunt: "负载端并联", either: "串联/并联",
+          srcSeries: "源端串联", checked: "节点法复核值",
+        };
+    const shunt = topology === "l_right" || topology === "pi2"
+      ? labels.srcShunt
+      : topology === "l_left" || topology === "pi1" ? labels.loadShunt : labels.either;
     const items = [
-      ["L", "电感", fmtComp(components, "L"), "串联电感"],
-      ["C1", "电容 C1", fmtComp(components, "C1"), topology === "l_right" || topology === "pi2" ? "源端并联" : topology === "l_left" || topology === "pi1" ? "负载端并联" : "串联/并联"],
-      ["C2", "电容 C2", fmtComp(components, "C2"), "串联匹配电容"],
+      ["L", labels.L, fmtComp(components, "L"), labels.seriesL],
+      ["C1", labels.C1, fmtComp(components, "C1"), shunt],
+      ["C2", labels.C2, fmtComp(components, "C2"), labels.seriesC],
     ];
-    if (components.C3_pF > 0) items.push(["C3", "电容 C3", fmtComp(components, "C3"), topology === "t" ? "源端串联" : topology === "pi1" ? "源端并联" : "负载端并联"]);
-    else items.push(["Zin", "输入阻抗", "—", "节点法复核值"]);
+    if (components.C3_pF > 0) {
+      const c3role = topology === "t" ? labels.srcSeries
+        : topology === "pi1" ? labels.srcShunt : labels.loadShunt;
+      items.push(["C3", labels.C3, fmtComp(components, "C3"), c3role]);
+    } else {
+      items.push(["Zin", labels.Zin, "—", labels.checked]);
+    }
     $("#componentGrid").innerHTML = items.slice(0, 4).map(([symbol, name, value, role]) =>
       `<div class="component-item"><span>${escapeHtml(name)}<small>${escapeHtml(symbol)}</small></span><b>${escapeHtml(value)}</b><small>${escapeHtml(role)}</small></div>`
     ).join("");
@@ -1933,12 +2019,19 @@
     });
     const centerX = (result.r_max + result.r_min) / 2;
     const centerY = (result.x_max + result.x_min) / 2;
-    $("#scanSummary").innerHTML =
-      `在 <b>${fmt(result.frequency_mhz, 1)} MHz</b>、L=<b>${fmt($("#anL").value, 4)} µH</b> 下，` +
-      `<b>${escapeHtml(TOPO_SHORT[result.topology] || result.topology)}</b> 可覆盖的负载范围约为 ` +
-      `R <b>${fmt(result.r_min, 2)}–${fmt(result.r_max, 2)} Ω</b>、X <b>${fmt(result.x_min, 2)}–${fmt(result.x_max, 2)} Ω</b>；` +
-      `中心约 <b>${fmt(centerX, 1)} ${centerY >= 0 ? "+" : "−"} j${fmt(Math.abs(centerY), 1)} Ω</b>。` +
-      `若目标负载落在灰色区域之外，可调整 L、扩大电容范围或改用三元件拓扑。`;
+    const en = window.I18N && window.I18N.lang === "en";
+    const topology = escapeHtml(TOPO_SHORT[result.topology] || result.topology);
+    $("#scanSummary").innerHTML = en
+      ? `At <b>${fmt(result.frequency_mhz, 1)} MHz</b> and L=<b>${fmt($("#anL").value, 4)} µH</b>, ` +
+        `<b>${topology}</b> covers approximately ` +
+        `R <b>${fmt(result.r_min, 2)}–${fmt(result.r_max, 2)} Ω</b> and X <b>${fmt(result.x_min, 2)}–${fmt(result.x_max, 2)} Ω</b>; ` +
+        `the centre is about <b>${fmt(centerX, 1)} ${centerY >= 0 ? "+" : "−"} j${fmt(Math.abs(centerY), 1)} Ω</b>. ` +
+        `If the target load lies outside the grey region, adjust L, widen the capacitance range, or use a three-element topology.`
+      : `在 <b>${fmt(result.frequency_mhz, 1)} MHz</b>、L=<b>${fmt($("#anL").value, 4)} µH</b> 下，` +
+        `<b>${topology}</b> 可覆盖的负载范围约为 ` +
+        `R <b>${fmt(result.r_min, 2)}–${fmt(result.r_max, 2)} Ω</b>、X <b>${fmt(result.x_min, 2)}–${fmt(result.x_max, 2)} Ω</b>；` +
+        `中心约 <b>${fmt(centerX, 1)} ${centerY >= 0 ? "+" : "−"} j${fmt(Math.abs(centerY), 1)} Ω</b>。` +
+        `若目标负载落在灰色区域之外，可调整 L、扩大电容范围或改用三元件拓扑。`;
   }
 
   async function compareTopologies() {
@@ -2081,15 +2174,26 @@
       return `<tr><td>${escapeHtml(element.name)}</td><td>${fmt(element.voltage_peak, 2)}</td><td>${fmt(element.voltage_rms, 2)}</td><td>${fmt(element.current_peak, 3)}</td><td>${fmt(element.current_rms, 3)}</td><td class="${cls}">${factor === null ? "—" : fmt(factor, 2)}</td></tr>`;
     }).join("");
 
-    const advice = [];
-    if (result.vswr > 1.2) advice.push(`当前网络 VSWR=${fmt(result.vswr, 3)}，并非完全匹配；失配会在节点产生额外驻波电压。`);
-    if (maxVoltage > 100) advice.push(`最高峰值电压 ${fmt(maxVoltage, 1)} V，建议选用 C0G/NP0 高压电容与高 SRF 电感，并按额定值至少 2× 降额。`);
-    if (maxVoltage > 0 && maxVoltage < 10) advice.push("峰值电压较低，常规 0402/0603 射频元件即可，但仍需检查 RMS 电流。");
     const maxCurrent = elements.length ? Math.max(...elements.map((element) => element.current_peak)) : 0;
-    if (maxCurrent > 1) advice.push(`最大峰值电流 ${fmt(maxCurrent, 2)} A，注意电感的饱和电流与电容的纹波电流额定值。`);
-    if (minFactor !== null && minFactor < 2) advice.push(`最小安全系数 ${fmt(minFactor, 2)} 小于 2，建议提高元件额定电压或降低输入功率。`);
-    if (result.efficiency !== null && result.efficiency !== undefined && result.efficiency < 0.98) advice.push("网络效率低于 98%，可能由失配或数值截断导致；请用 evaluate_network 复核 Zin。");
-    advice.push("本计算采用完整网络节点法，包含 50Ω 源阻抗的负载效应；实际选型还需考虑温度降额、寄生参数与 PCB 布局。");
+    const en = window.I18N && window.I18N.lang === "en";
+    const advice = [];
+    if (en) {
+      if (result.vswr > 1.2) advice.push(`The network VSWR is ${fmt(result.vswr, 3)}; mismatch creates additional standing-wave voltage at the nodes.`);
+      if (maxVoltage > 100) advice.push(`Peak voltage reaches ${fmt(maxVoltage, 1)} V. Use C0G/NP0 high-voltage capacitors and high-SRF inductors with at least 2× derating.`);
+      if (maxVoltage > 0 && maxVoltage < 10) advice.push("Peak voltage is low; standard 0402/0603 RF components are usually sufficient, but still check RMS current.");
+      if (maxCurrent > 1) advice.push(`Peak current reaches ${fmt(maxCurrent, 2)} A; check inductor saturation and capacitor ripple-current ratings.`);
+      if (minFactor !== null && minFactor < 2) advice.push(`The minimum safety factor ${fmt(minFactor, 2)} is below 2; raise the voltage rating or reduce input power.`);
+      if (result.efficiency !== null && result.efficiency !== undefined && result.efficiency < 0.98) advice.push("Network efficiency is below 98%, possibly due to mismatch or numerical truncation; recheck Zin with evaluate_network.");
+      advice.push("This calculation uses the complete nodal model including the 50 Ω source loading. Real selection must also consider temperature derating, parasitics and PCB layout.");
+    } else {
+      if (result.vswr > 1.2) advice.push(`当前网络 VSWR=${fmt(result.vswr, 3)}，并非完全匹配；失配会在节点产生额外驻波电压。`);
+      if (maxVoltage > 100) advice.push(`最高峰值电压 ${fmt(maxVoltage, 1)} V，建议选用 C0G/NP0 高压电容与高 SRF 电感，并按额定值至少 2× 降额。`);
+      if (maxVoltage > 0 && maxVoltage < 10) advice.push("峰值电压较低，常规 0402/0603 射频元件即可，但仍需检查 RMS 电流。");
+      if (maxCurrent > 1) advice.push(`最大峰值电流 ${fmt(maxCurrent, 2)} A，注意电感的饱和电流与电容的纹波电流额定值。`);
+      if (minFactor !== null && minFactor < 2) advice.push(`最小安全系数 ${fmt(minFactor, 2)} 小于 2，建议提高元件额定电压或降低输入功率。`);
+      if (result.efficiency !== null && result.efficiency !== undefined && result.efficiency < 0.98) advice.push("网络效率低于 98%，可能由失配或数值截断导致；请用 evaluate_network 复核 Zin。");
+      advice.push("本计算采用完整网络节点法，包含 50Ω 源阻抗的负载效应；实际选型还需考虑温度降额、寄生参数与 PCB 布局。");
+    }
     $("#stressAdvice").innerHTML = advice.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
   }
 
@@ -2248,6 +2352,7 @@
     t: T,
     escapeHtml,
     renderMarkdown,
+    typesetMath,
     showView,
     streamChat,
     makeAssistant,

@@ -7,6 +7,7 @@ import threading
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 from . import config
 
@@ -63,7 +64,15 @@ def _minutes(value: str, default: int) -> int:
 def _in_off_peak(schedule: Dict[str, Any], when: Optional[datetime] = None) -> bool:
     if not isinstance(schedule, dict):
         return False
-    when = when or datetime.now()
+    if when is None:
+        timezone_name = str(schedule.get("timezone") or "").strip()
+        if timezone_name:
+            try:
+                when = datetime.now(ZoneInfo(timezone_name))
+            except Exception:
+                when = datetime.now()
+        else:
+            when = datetime.now()
     start = _minutes(schedule.get("off_peak_start", ""), 30)
     end = _minutes(schedule.get("off_peak_end", ""), 510)
     now = when.hour * 60 + when.minute

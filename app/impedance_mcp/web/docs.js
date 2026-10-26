@@ -110,6 +110,7 @@
       } else if (!STATE.query) {
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
+      setTimeout(() => IMP().typesetMath($("#docsContent")), 90);
     } catch (error) {
       $("#docsContent").innerHTML = `<div class="error-box"><b>无法加载文档</b><p>${esc(error.message)}</p></div>`;
     }
@@ -223,7 +224,7 @@
         if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
         const parent = node.parentElement;
         if (!parent) return NodeFilter.FILTER_REJECT;
-        if (parent.closest("pre, code, script, style, mark")) return NodeFilter.FILTER_REJECT;
+        if (parent.closest("pre, code, script, style, mark, mjx-container")) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
     });

@@ -225,6 +225,7 @@
       if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
       if (!assistant.errored) {
         assistant.md.innerHTML = IMP().renderMarkdown(result.content || assistant.buffer || "（未收到回答）");
+        IMP().typesetMath(assistant.md);
         STATE.messages.push({ role: "assistant", content: result.content || assistant.buffer || "" });
         if (STATE.messages.length > 20) STATE.messages = STATE.messages.slice(-20);
       }

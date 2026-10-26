@@ -656,6 +656,7 @@ def design_network(
 
     steps_meta: List[Dict[str, Any]] = []
     warnings: List[str] = []
+    warnings_en: List[str] = []
 
     if top == "l_right":
         q = math.sqrt(z0 / load_r - 1.0)
@@ -803,19 +804,31 @@ def design_network(
             "节点法复核 VSWR=%.4f，与理想值偏差偏大，请检查元件值是否被截断。" %
             verification["vswr"]
         )
+        warnings_en.append(
+            "Nodal verification gives VSWR=%.4f, which deviates from the ideal value; "
+            "check whether component values were rounded." % verification["vswr"]
+        )
     if comps["C1_pF"] < 0.1:
         warnings.append("C1 小于 0.1 pF，实际寄生参数可能主导，建议降低频率或调整拓扑。")
+        warnings_en.append("C1 is below 0.1 pF; parasitics may dominate. Lower the frequency or change topology.")
     if comps["C1_pF"] > 1000:
         warnings.append("C1 大于 1000 pF，建议选用高 Q 射频电容并核实自谐振频率。")
+        warnings_en.append("C1 exceeds 1000 pF; use a high-Q RF capacitor and verify its self-resonance.")
     if comps["C2_pF"] < 0.1:
         warnings.append(
             "C2 小于 0.1 pF，实际寄生参数可能主导；通常是固定电感 L 过大，"
             "建议减小 L 或改用自动选值（典型 1–20 pF）。"
         )
+        warnings_en.append(
+            "C2 is below 0.1 pF; parasitics may dominate. The fixed L is probably too large; "
+            "reduce L or use auto values (typically 1–20 pF)."
+        )
     if comps["L_uH"] < 0.001:
         warnings.append("L 小于 1 nH，PCB 走线寄生电感不可忽略，建议提高频率或改用微带实现。")
+        warnings_en.append("L is below 1 nH; PCB trace inductance is significant. Raise the frequency or use a microstrip design.")
     if q_design > 20:
         warnings.append(f"设计 Q 值约 {q_design:.1f}，带宽较窄，对元件容差敏感。")
+        warnings_en.append(f"Design Q is about {q_design:.1f}; the bandwidth is narrow and sensitive to component tolerance.")
 
     steps = build_steps(top, frequency_mhz, zl, comps, z0)
     return {
@@ -846,6 +859,7 @@ def design_network(
         "sensitivity": sensitivity(top, frequency_mhz, zl, comps, z0),
         "steps": steps,
         "warnings": warnings,
+        "warnings_en": warnings_en,
         "engine": "python-port-v3 (nodal verified)",
         "formulas": _formula_text(top),
     }

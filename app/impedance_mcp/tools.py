@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import urllib.parse
 from typing import Any, Dict, List, Optional
 
 from . import code_docs, config, docs_hub, engine, knowledge, library
@@ -430,15 +431,22 @@ def export_design_report(args: Dict[str, Any]) -> Dict[str, Any]:
 def _citation(item: Dict[str, Any], snippet: str = "") -> Dict[str, Any]:
     doc_id = int(item.get("doc_id") or 0)
     page = int(item.get("page") or 1)
+    rects = item.get("rects") or []
+    crop_url = ""
+    if rects:
+        encoded = urllib.parse.quote(
+            json.dumps(rects, ensure_ascii=False, separators=(",", ":")), safe="")
+        crop_url = f"/api/library/crop?doc={doc_id}&page={page}&rects={encoded}"
     return {
         "kind": "textbook",
         "doc_id": doc_id,
         "page": page,
         "title": item.get("title") or "",
         "snippet": snippet or item.get("snippet", ""),
-        "rects": item.get("rects") or [],
+        "rects": rects,
         "page_url": f"/api/library/page?doc={doc_id}&page={page}&zoom=1.0",
         "thumb_url": f"/api/library/page?doc={doc_id}&page={page}&zoom=0.55",
+        "crop_url": crop_url,
     }
 
 

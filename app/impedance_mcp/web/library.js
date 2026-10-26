@@ -50,6 +50,7 @@
     $("#libZoomIn").addEventListener("click", () => setZoom(STATE.zoom + 0.2));
     $("#libZoomOut").addEventListener("click", () => setZoom(STATE.zoom - 0.2));
     $("#libOcr").addEventListener("click", runOcr);
+    $("#libOcrBook").addEventListener("click", runOcrBook);
     $("#libTranslate").addEventListener("click", runTranslate);
     $("#libAsk").addEventListener("click", askPage);
     $("#libraryPage").addEventListener("load", () => {
@@ -382,6 +383,47 @@
       if (!result.ok) throw new Error(result.message || "OCR 失败");
       IMP().toast("OCR 完成", `${(result.text || "").length} 字符`, "ok");
       await loadPageInfo();
+      await refreshStatus();
+    } catch (error) {
+      IMP().toast("OCR 失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 7000);
+    } finally {
+      button.disabled = false;
+      button.innerHTML = old;
+    }
+  }
+
+  async function runOcrBook() {
+    if (!STATE.currentDoc) return IMP().toast("请先打开一页", "", "amber");
+    const en = window.I18N && window.I18N.lang === "en";
+    const startText = window.prompt(
+      en ? "First page to OCR" : "从第几页开始 OCR", "1");
+    if (startText === null) return;
+    const endText = window.prompt(
+      en ? "Last page to OCR (max 40 pages per batch)" : "OCR 到第几页（每批最多 40 页）",
+      String(Math.min(STATE.currentDoc.pages, Number(startText || 1) + 39)));
+    if (endText === null) return;
+    const start = Math.max(1, Number(startText) || 1);
+    const end = Math.max(start, Number(endText) || start);
+    const button = $("#libOcrBook");
+    button.disabled = true;
+    const old = button.innerHTML;
+    button.innerHTML = `<span>${esc(T("library.ocrRunning", "OCR 中…"))}</span>`;
+    try {
+      const result = await IMP().api("/api/library/ocr_book", {
+        method: "POST",
+        body: {
+          doc_id: STATE.currentDoc.id,
+          start,
+          end,
+          max_pages: Math.min(40, Math.max(1, end - start + 1)),
+        },
+      });
+      if (!result.ok) throw new Error(result.message || "OCR 失败");
+      IMP().toast(
+        en ? "OCR queued" : "OCR 已排队",
+        result.message || `${start}–${end}`,
+        "ok", 5000);
+      startPolling();
       await refreshStatus();
     } catch (error) {
       IMP().toast("OCR 失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 7000);
