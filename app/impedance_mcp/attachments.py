@@ -172,7 +172,7 @@ def extract(path: Path, original_name: str) -> Dict[str, Any]:
         text, note = _ipynb_text(path)
     elif suffix in IMAGE_SUFFIXES:
         kind = "image"
-        note = "图片已保存。当前 DeepSeek 文本模型不读取图像内容，请用文字描述关键信息。"
+        note = "图片已保存。当前文本模型不读取图像内容，请用文字描述关键信息。"
         try:
             from PIL import Image
             with Image.open(path) as im:

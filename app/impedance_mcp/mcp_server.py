@@ -12,8 +12,12 @@ from __future__ import annotations
 
 import json
 import os
+import queue
 import sys
+import threading
 import traceback
+import urllib.parse
+import uuid
 from typing import Any, Dict, Iterable, List, Optional
 
 from . import config, engine, knowledge, tools
@@ -295,62 +299,262 @@ def run_stdio() -> None:
 
 
 def run_http(host: str = "127.0.0.1", port: int = 8790) -> None:
+    """Serve MCP over Streamable HTTP and legacy HTTP+SSE.
+
+    Endpoints
+    ---------
+    POST   /mcp                    Streamable HTTP JSON-RPC (Mcp-Session-Id)
+    GET    /mcp                    405 (no server-initiated messages)
+    DELETE /mcp                    terminate a streamable session
+    GET    /sse                    legacy HTTP+SSE endpoint event
+    POST   /messages?sessionId=... legacy client -> server messages
+    GET    /health                 service metadata
+    """
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    server = MCPServer()
+    sessions: Dict[str, "MCPServer"] = {}
+    sse_queues: Dict[str, "queue.Queue[Optional[Dict[str, Any]]]"] = {}
+    lock = threading.Lock()
+
+    def _new_session() -> tuple:
+        sid = uuid.uuid4().hex
+        srv = MCPServer()
+        with lock:
+            sessions[sid] = srv
+        return sid, srv
+
+    def _session(sid: Optional[str]) -> tuple:
+        if sid:
+            with lock:
+                srv = sessions.get(sid)
+            if srv is not None:
+                return sid, srv
+        return _new_session()
+
+    def _drop_session(sid: Optional[str]) -> None:
+        if not sid:
+            return
+        with lock:
+            sessions.pop(sid, None)
+            sse_queues.pop(sid, None)
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "ImpedanceMCP/" + config.VERSION
+        protocol_version = "HTTP/1.1"
 
-        def do_GET(self):  # noqa: N802
-            if self.path in ("/health", "/"):
-                body = json.dumps(config.status(), ensure_ascii=False).encode()
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
+        # -- helpers ------------------------------------------------------
+        def _origin_ok(self) -> bool:
+            origin = self.headers.get("Origin")
+            if not origin:
+                return True
+            try:
+                parsed = urllib.parse.urlparse(origin)
+                return parsed.hostname in ("127.0.0.1", "localhost", "::1")
+            except Exception:
+                return False
+
+        def _cors(self) -> None:
+            origin = self.headers.get("Origin")
+            if origin and self._origin_ok():
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+            self.send_header(
+                "Access-Control-Allow-Headers",
+                "Content-Type, Accept, Mcp-Session-Id, MCP-Protocol-Version",
+            )
+            self.send_header("Access-Control-Expose-Headers", "Mcp-Session-Id, MCP-Protocol-Version")
+
+        def _send_json(self, payload: Any, status: int = 200,
+                       sid: Optional[str] = None,
+                       ctype: str = "application/json; charset=utf-8") -> None:
+            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("MCP-Protocol-Version", DEFAULT_PROTOCOL)
+            if sid:
+                self.send_header("Mcp-Session-Id", sid)
+            self._cors()
+            self.end_headers()
+            if self.command != "HEAD":
                 self.wfile.write(body)
-            else:
-                self.send_error(404)
 
-        def do_POST(self):  # noqa: N802
-            if self.path not in ("/mcp", "/"):
-                self.send_error(404)
-                return
+        def _send_empty(self, status: int, sid: Optional[str] = None) -> None:
+            self.send_response(status)
+            self.send_header("Content-Length", "0")
+            self.send_header("MCP-Protocol-Version", DEFAULT_PROTOCOL)
+            if sid:
+                self.send_header("Mcp-Session-Id", sid)
+            self._cors()
+            self.end_headers()
+
+        def _read_json(self) -> Optional[Dict[str, Any]]:
             try:
                 length = int(self.headers.get("Content-Length", "0"))
             except ValueError:
-                self.send_error(400)
-                return
-            if length > 2_000_000:
-                self.send_error(413)
-                return
+                self._send_json(MCPServer._error(None, -32600, "Invalid Content-Length"), 400)
+                return None
+            if length <= 0:
+                self._send_json(MCPServer._error(None, -32600, "Empty body"), 400)
+                return None
+            if length > 4_000_000:
+                self._send_json(MCPServer._error(None, -32600, "Request too large"), 413)
+                return None
             raw = self.rfile.read(length).decode("utf-8", errors="replace")
             try:
                 msg = json.loads(raw)
             except json.JSONDecodeError:
-                self._json(MCPServer._error(None, -32700, "Parse error"))
+                self._send_json(MCPServer._error(None, -32700, "Parse error"), 400)
+                return None
+            if not isinstance(msg, dict):
+                self._send_json(MCPServer._error(None, -32600, "JSON-RPC batch is not supported"), 400)
+                return None
+            return msg
+
+        def _handle_streamable(self) -> None:
+            if not self._origin_ok():
+                self._send_json(MCPServer._error(None, -32600, "Origin not allowed"), 403)
                 return
-            response = server.handle(msg)
+            msg = self._read_json()
+            if msg is None:
+                return
+            sid_header = self.headers.get("Mcp-Session-Id")
+            method = str(msg.get("method") or "")
+            if method == "initialize" or not sid_header:
+                sid, srv = _new_session()
+            else:
+                sid, srv = _session(sid_header)
+            response = srv.handle(msg)
+            if srv.exiting:
+                _drop_session(sid)
             if response is None:
-                self.send_response(202)
+                self._send_empty(202, sid)
+                return
+            accept = (self.headers.get("Accept") or "").lower()
+            if "text/event-stream" in accept and "application/json" not in accept:
+                body = ("event: message\ndata: " +
+                        json.dumps(response, ensure_ascii=False) + "\n\n").encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("MCP-Protocol-Version", DEFAULT_PROTOCOL)
+                self.send_header("Mcp-Session-Id", sid)
+                self._cors()
+                self.end_headers()
+                self.wfile.write(body)
+            else:
+                self._send_json(response, 200, sid)
+
+        def _handle_legacy_sse(self) -> None:
+            if not self._origin_ok():
+                self._send_json(MCPServer._error(None, -32600, "Origin not allowed"), 403)
+                return
+            sid, srv = _new_session()
+            q: "queue.Queue[Optional[Dict[str, Any]]]" = queue.Queue()
+            with lock:
+                sse_queues[sid] = q
+            try:
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache, no-transform")
+                self.send_header("Connection", "keep-alive")
+                self.send_header("X-Accel-Buffering", "no")
+                self.send_header("MCP-Protocol-Version", DEFAULT_PROTOCOL)
+                self.send_header("Mcp-Session-Id", sid)
+                self._cors()
+                self.end_headers()
+                endpoint = f"/messages?sessionId={sid}"
+                self.wfile.write(f"event: endpoint\ndata: {endpoint}\n\n".encode("utf-8"))
+                self.wfile.flush()
+                self.close_connection = False
+                while True:
+                    try:
+                        item = q.get(timeout=15)
+                    except queue.Empty:
+                        self.wfile.write(b": keepalive\n\n")
+                        self.wfile.flush()
+                        continue
+                    if item is None:
+                        break
+                    payload = json.dumps(item, ensure_ascii=False)
+                    self.wfile.write(f"event: message\ndata: {payload}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            finally:
+                _drop_session(sid)
+
+        def _handle_legacy_message(self) -> None:
+            if not self._origin_ok():
+                self._send_json(MCPServer._error(None, -32600, "Origin not allowed"), 403)
+                return
+            parsed = urllib.parse.urlparse(self.path)
+            sid = urllib.parse.parse_qs(parsed.query).get("sessionId", [None])[0]
+            if not sid:
+                self._send_json(MCPServer._error(None, -32600, "Missing sessionId"), 400)
+                return
+            with lock:
+                srv = sessions.get(sid)
+                q = sse_queues.get(sid)
+            if srv is None or q is None:
+                self._send_json(MCPServer._error(None, -32000, "Unknown or expired session"), 404)
+                return
+            msg = self._read_json()
+            if msg is None:
+                return
+            response = srv.handle(msg)
+            if response is not None:
+                q.put(response)
+            self._send_empty(202, sid)
+
+        # -- HTTP verbs ---------------------------------------------------
+        def do_OPTIONS(self):  # noqa: N802
+            if not self._origin_ok():
+                self._send_empty(403)
+                return
+            self._send_empty(204)
+
+        def do_GET(self):  # noqa: N802
+            path = urllib.parse.urlparse(self.path).path
+            if path in ("/health", "/"):
+                self._send_json(config.status())
+            elif path == "/sse":
+                self._handle_legacy_sse()
+            elif path == "/mcp":
+                self.send_response(405)
+                self.send_header("Allow", "POST, DELETE, OPTIONS")
+                self.send_header("Content-Length", "0")
                 self.end_headers()
             else:
-                self._json(response)
+                self.send_error(404)
 
-        def _json(self, payload: Dict[str, Any]):
-            body = json.dumps(payload, ensure_ascii=False).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+        def do_POST(self):  # noqa: N802
+            path = urllib.parse.urlparse(self.path).path
+            if path in ("/mcp", "/"):
+                self._handle_streamable()
+            elif path == "/messages":
+                self._handle_legacy_message()
+            else:
+                self.send_error(404)
+
+        def do_DELETE(self):  # noqa: N802
+            path = urllib.parse.urlparse(self.path).path
+            if path == "/mcp":
+                _drop_session(self.headers.get("Mcp-Session-Id"))
+                self._send_empty(204)
+            else:
+                self.send_error(404)
 
         def log_message(self, fmt, *args):  # noqa: A003
             _log(fmt % args)
 
     httpd = ThreadingHTTPServer((host, port), Handler)
-    _log(f"HTTP MCP server listening on http://{host}:{port}/mcp")
+    httpd.daemon_threads = True
+    _log(f"HTTP MCP server listening on http://{host}:{port}/mcp "
+         f"(legacy SSE: http://{host}:{port}/sse)")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

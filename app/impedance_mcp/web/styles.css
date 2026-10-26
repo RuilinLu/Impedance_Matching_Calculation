@@ -811,6 +811,8 @@ code, pre, .mono { font-family: "Cascadia Code", Consolas, "SFMono-Regular", mon
 .radio-card b { display: block; font-size: 11.5px; font-weight: 500; }
 .radio-card small { display: block; color: var(--muted); font-size: 9.5px; line-height: 1.5; margin-top: 1px; }
 .engine-status { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(6, 14, 26, .4); color: var(--muted); font-size: 10.5px; line-height: 1.6; }
+.provider-note { margin: 0 0 9px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: rgba(6, 14, 26, .4); color: var(--muted); font-size: 10px; line-height: 1.6; }
+.provider-note a { color: var(--cyan); }
 .engine-status b { color: var(--text-2); }
 .modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 22px; border-top: 1px solid var(--line); background: rgba(5, 12, 22, .5); }
 .modal-foot > div { display: flex; gap: 8px; }

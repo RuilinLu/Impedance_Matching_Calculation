@@ -1,4 +1,4 @@
-"""DeepSeek tool-calling agent for microwave matching."""
+"""Provider-agnostic tool-calling agent for microwave matching."""
 
 from __future__ import annotations
 

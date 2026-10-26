@@ -13,7 +13,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
-from . import agent, attachments, config, engine, knowledge, llm, matlab_bridge, reports, tools
+from . import agent, attachments, config, engine, knowledge, llm, matlab_bridge, providers, reports, tools
 
 MAX_BODY = 42 * 1024 * 1024  # base64 uploads
 
@@ -84,6 +84,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"ok": True, "config": config.public_config()})
             if path == "/api/catalog":
                 return self._json({"ok": True, **engine.catalog()})
+            if path == "/api/providers":
+                data = providers.load()
+                return self._json({"ok": True, **data})
             if path == "/api/presets":
                 return self._json(tools.list_presets({}))
             if path == "/api/mcp/config":
@@ -190,10 +193,12 @@ class Handler(BaseHTTPRequestHandler):
     def _save_config(self) -> None:
         data = self._body()
         if "llm" in data and isinstance(data["llm"], dict):
-            base = data["llm"].get("base_url")
+            llm_data = data["llm"]
+            base = llm_data.get("base_url")
             if base:
                 try:
-                    llm.normalize_base(base)
+                    llm.normalize_base(base, llm_data.get("api_style", "openai"),
+                                       llm_data.get("chat_path", ""))
                 except llm.LLMError as exc:
                     return self._error(exc.message, exc.hint, 400, "invalid_base_url")
         cfg = config.save_config(data)

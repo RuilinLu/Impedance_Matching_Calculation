@@ -70,7 +70,7 @@
       <button class="copy-config" id="btnCopyMcpSide">
         <svg><use href="#i-copy"/></svg> 复制 ZCode 配置
       </button>
-      <div class="version">v4.0.0 · 2026-10-26<br>上海交通大学集成电路学院</div>
+      <div class="version">v4.1.0 · 2026-10-26<br>上海交通大学集成电路学院</div>
     </div>
   </aside>
 
@@ -371,19 +371,19 @@
         <div class="about-wrap">
           <div class="about-hero">
             <div class="about-mark"><svg><use href="#i-logo"/></svg></div>
-            <div><h2>智配芯生 · ImpedanceMCP</h2><p>微波阻抗匹配智能计算与仿真软件 · v4.0.0</p></div>
+            <div><h2>智配芯生 · ImpedanceMCP</h2><p>微波阻抗匹配智能计算与仿真软件 · v4.1.0</p></div>
             <span class="tag cyan">赛道一 · AI 智能体</span>
           </div>
           <div class="about-grid">
             <div class="panel">
               <h3>我们做了什么</h3>
-              <p>在原有 MATLAB App Designer 软件的基础上，保留并封装经典 <code>Impedance_Matching.exe</code> 计算内核，新增 Python / MATLAB R2025b 双计算引擎、MCP 标准接口、DeepSeek 工具调用智能体与现代化可视化界面。</p>
+              <p>在原有 MATLAB App Designer 软件的基础上，保留并封装经典 <code>Impedance_Matching.exe</code> 计算内核，新增 Python / MATLAB R2025b 双计算引擎、MCP 标准接口、多模型工具调用智能体（OpenAI 兼容 / Anthropic）与现代化可视化界面。</p>
               <div class="feature-grid">
                 <div><b>01</b><span>五种拓扑解析设计 + 节点法复核</span></div>
                 <div><b>02</b><span>Smith 圆图逐步动画与匹配范围扫描</span></div>
                 <div><b>03</b><span>VSWR 带宽、±5% 容差、耐压分析</span></div>
                 <div><b>04</b><span>MCP 服务，可被 ZCode / 任意 Agent 调用</span></div>
-                <div><b>05</b><span>DeepSeek 对话、附件解析、工具调用</span></div>
+                <div><b>05</b><span>多模型对话、附件解析、工具调用</span></div>
                 <div><b>06</b><span>一键导出 HTML / Markdown 报告</span></div>
               </div>
             </div>
@@ -403,7 +403,7 @@
             <div class="arch">
               <div class="arch-layer"><span>表现层</span><div>Web UI · Smith 圆图 · 对话 · 报告</div></div>
               <div class="arch-arrow">↓</div>
-              <div class="arch-layer"><span>智能体层</span><div>DeepSeek 工具调用 · 附件解析 · 知识库检索</div></div>
+              <div class="arch-layer"><span>智能体层</span><div>多模型工具调用 · 附件解析 · 知识库检索</div></div>
               <div class="arch-arrow">↓</div>
               <div class="arch-layer"><span>协议层</span><div>MCP stdio / HTTP · 15 个工具 · 3 个资源</div></div>
               <div class="arch-arrow">↓</div>
@@ -417,7 +417,7 @@
             <button class="btn tiny" id="btnCopyMcpAbout"><svg><use href="#i-copy"/></svg> 复制配置</button>
           </div>
           <div class="about-foot">
-            <span>v4.0.0 · 更新日期 2026-10-26</span>
+            <span>v4.1.0 · 更新日期 2026-10-26</span>
             <span>开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾</span>
             <a href="https://github.com/RuilinLu/Impedance_Matching_Calculation" target="_blank" rel="noreferrer">GitHub 仓库 ↗</a>
           </div>
@@ -439,14 +439,11 @@
       <section class="settings-section">
         <h3>模型服务</h3>
         <div class="field-grid two-col">
-          <label class="field"><span>服务预设</span><select id="setProvider" class="select">
-            <option value="sjtu">上海交大模型平台</option>
-            <option value="deepseek">DeepSeek 官方</option>
-            <option value="custom">自定义 OpenAI 兼容服务</option>
-          </select></label>
-          <label class="field"><span>模型 ID</span><select id="setModel" class="select"></select></label>
+          <label class="field"><span>服务商</span><select id="setProvider" class="select"><option value="">请选择模型服务商</option></select></label>
+          <label class="field"><span>模型 ID</span><select id="setModel" class="select"><option value="">请选择模型</option></select></label>
         </div>
-        <label class="field"><span>Base URL</span><input id="setBaseUrl" type="text" placeholder="https://api.deepseek.com/v1"></label>
+        <div class="provider-note" id="providerNote">选择服务商后会自动填入 Base URL，并列出该服务商可用模型。目录来自开源项目 models.dev。</div>
+        <label class="field"><span>Base URL</span><input id="setBaseUrl" type="text" placeholder="选择服务商后自动填入，或手动填写完整 Base URL"></label>
         <label class="field"><span>自定义模型 ID <em>可选</em></span><input id="setModelCustom" type="text" placeholder="留空使用上方模型；可填 deepseek-flash 等新模型"></label>
         <label class="field"><span>API Key <em>仅保存在本机 data/config.json</em></span><input id="setApiKey" type="password" placeholder="sk-…"></label>
         <div class="field-grid two-col">

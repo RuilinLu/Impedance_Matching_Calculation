@@ -1,23 +1,28 @@
-"""Minimal DeepSeek / OpenAI-compatible client (stdlib only)."""
+"""OpenAI-compatible / Anthropic client for multiple model providers.
+
+The application never selects a vendor by default.  The user chooses a provider
+from the built-in models.dev catalog, enters a Base URL/model/API key, and the
+settings are stored locally.  Only public http(s) endpoints are accepted.
+"""
 
 from __future__ import annotations
 
 import ipaddress
 import json
+import re
 import socket
 import ssl
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 _VERIFIED_HOSTS: Dict[str, bool] = {}
 
 
 class LLMError(Exception):
-    def __init__(self, message: str, status: Optional[int] = None,
-                 hint: str = ""):
+    def __init__(self, message: str, status: Optional[int] = None, hint: str = ""):
         super().__init__(message)
         self.message = message
         self.status = status
@@ -43,41 +48,85 @@ def _is_public_host(host: str, port: int) -> bool:
     return True
 
 
-def normalize_base(base_url: str) -> str:
-    url = (base_url or "").strip().rstrip("/")
-    if not url:
-        raise LLMError("尚未配置模型服务的 Base URL")
+def _validate_url(url: str) -> urllib.parse.ParseResult:
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise LLMError("Base URL 必须以 http:// 或 https:// 开头")
     if not parsed.hostname:
         raise LLMError("Base URL 缺少主机名")
     _is_public_host(parsed.hostname, parsed.port or (443 if parsed.scheme == "https" else 80))
+    return parsed
+
+
+def normalize_base(base_url: str, api_style: str = "openai", chat_path: str = "") -> str:
+    """Return a complete chat-completions URL.
+
+    api_style:
+      openai   -> append the provider's chat path (or /chat/completions)
+      anthropic-> append /messages
+      as_is    -> use the URL exactly as entered (Azure, custom gateways)
+    """
+    url = (base_url or "").strip().rstrip("/")
+    if not url:
+        raise LLMError("请选择模型服务商并填写 Base URL")
+    parsed = _validate_url(url)
+    style = (api_style or "openai").lower()
+    if style == "as_is":
+        return url
+    if style == "anthropic":
+        if url.endswith("/messages"):
+            return url
+        if url.endswith("/v1"):
+            return url + "/messages"
+        return url + "/v1/messages"
     if url.endswith("/chat/completions"):
         return url
-    if url.endswith("/v1"):
+    if chat_path:
+        return url + "/" + chat_path.lstrip("/")
+    path = parsed.path.lower()
+    if re.search(r"/v\d+(?:/|$)", path) or path.endswith("/openai") or "compatible-mode" in path:
         return url + "/chat/completions"
     return url + "/v1/chat/completions"
 
 
-def models_url(base_url: str) -> str:
-    chat = normalize_base(base_url)
-    return chat[: -len("/chat/completions")] + "/models"
+def models_url(cfg: Dict[str, Any]) -> str:
+    llm = cfg.get("llm", {})
+    style = (llm.get("api_style") or "openai").lower()
+    if style == "as_is":
+        return ""
+    chat = normalize_base(llm.get("base_url", ""), style, llm.get("chat_path", ""))
+    if chat.endswith("/messages"):
+        return chat[: -len("/messages")] + "/models"
+    if chat.endswith("/chat/completions"):
+        return chat[: -len("/chat/completions")] + "/models"
+    return chat + "/models"
 
 
-def _headers(api_key: str) -> Dict[str, str]:
-    return {
+def _headers(api_key: str, cfg: Dict[str, Any]) -> Dict[str, str]:
+    llm = cfg.get("llm", {})
+    header = str(llm.get("auth_header") or "Authorization")
+    prefix = llm.get("auth_prefix")
+    if prefix is None:
+        prefix = "Bearer " if header.lower() == "authorization" else ""
+    headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": f"Bearer {api_key}",
-        "User-Agent": "ImpedanceMCP/4.0 (+SJTU)",
+        "User-Agent": "ImpedanceMCP/4.1 (+SJTU)",
+        header: f"{prefix}{api_key}",
     }
+    extra = llm.get("extra_headers") or {}
+    if isinstance(extra, dict):
+        for k, v in extra.items():
+            headers[str(k)] = str(v)
+    if (llm.get("api_style") or "").lower() == "anthropic":
+        headers.setdefault("anthropic-version", "2023-06-01")
+    return headers
 
 
-def _open_json(url: str, body: Optional[Dict[str, Any]], api_key: str,
+def _open_json(url: str, body: Optional[Dict[str, Any]], headers: Dict[str, str],
                timeout: int) -> Any:
     data = json.dumps(body, ensure_ascii=False).encode("utf-8") if body is not None else None
-    req = urllib.request.Request(url, data=data, headers=_headers(api_key),
+    req = urllib.request.Request(url, data=data, headers=headers,
                                  method="POST" if body is not None else "GET")
     ctx = ssl.create_default_context()
     try:
@@ -96,8 +145,10 @@ def _open_json(url: str, body: Optional[Dict[str, Any]], api_key: str,
             hint = "API Key 无效或已过期，请在设置中重新填写。"
         elif exc.code == 402:
             hint = "账户余额不足。"
+        elif exc.code == 403:
+            hint = "该 Key 没有调用此模型的权限，请检查服务商控制台。"
         elif exc.code == 404:
-            hint = "模型名称或接口路径不存在，请检查模型 ID 与 Base URL。"
+            hint = "Base URL、模型 ID 或部署名不存在，请检查服务商配置。"
         elif exc.code == 429:
             hint = "触发限流，请稍后重试。"
         raise LLMError(f"模型服务返回 HTTP {exc.code}：{msg or '未知错误'}",
@@ -109,6 +160,168 @@ def _open_json(url: str, body: Optional[Dict[str, Any]], api_key: str,
         raise LLMError("模型服务响应超时。", hint="请稍后重试或缩短问题。") from exc
 
 
+def _chat_openai(cfg: Dict[str, Any], messages: List[Dict[str, Any]],
+                 tools: Optional[List[Dict[str, Any]]], timeout: int) -> Dict[str, Any]:
+    llm = cfg.get("llm", {})
+    url = normalize_base(llm.get("base_url", ""), llm.get("api_style", "openai"),
+                         llm.get("chat_path", ""))
+    payload: Dict[str, Any] = {
+        "model": llm.get("model", ""),
+        "messages": messages,
+        "temperature": float(llm.get("temperature", 0.25)),
+        "max_tokens": int(llm.get("max_tokens", 2600)),
+        "stream": False,
+    }
+    if tools:
+        payload["tools"] = tools
+        payload["tool_choice"] = "auto"
+    headers = _headers(llm.get("api_key", ""), cfg)
+    data = None
+    last_exc: Optional[Exception] = None
+    for attempt in range(3):
+        try:
+            data = _open_json(url, payload, headers, timeout)
+            break
+        except LLMError as exc:
+            last_exc = exc
+            if exc.status in (429, 500, 502, 503, 504) and attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
+                continue
+            raise
+    if data is None:
+        raise last_exc or LLMError("模型请求失败")
+    choice = (data.get("choices") or [{}])[0]
+    msg = choice.get("message") or {}
+    return {
+        "content": msg.get("content") or "",
+        "reasoning": msg.get("reasoning_content") or "",
+        "tool_calls": msg.get("tool_calls") or [],
+        "finish_reason": choice.get("finish_reason"),
+        "usage": data.get("usage") or {},
+        "model": data.get("model") or llm.get("model"),
+        "raw_message": msg,
+    }
+
+
+def _anthropic_messages(messages: List[Dict[str, Any]]) -> tuple:
+    system_parts: List[str] = []
+    out: List[Dict[str, Any]] = []
+    pending_tools: List[Dict[str, Any]] = []
+    for m in messages:
+        role = m.get("role")
+        content = m.get("content")
+        if role == "system":
+            if content:
+                system_parts.append(str(content))
+            continue
+        if role == "tool":
+            pending_tools.append({
+                "type": "tool_result",
+                "tool_use_id": m.get("tool_call_id") or "",
+                "content": str(content or ""),
+            })
+            continue
+        if pending_tools:
+            out.append({"role": "user", "content": pending_tools})
+            pending_tools = []
+        if role == "assistant":
+            blocks: List[Dict[str, Any]] = []
+            if content:
+                blocks.append({"type": "text", "text": str(content)})
+            for tc in m.get("tool_calls") or []:
+                fn = tc.get("function") or {}
+                raw_args = fn.get("arguments") or "{}"
+                try:
+                    parsed = json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
+                except Exception:
+                    parsed = {}
+                blocks.append({
+                    "type": "tool_use",
+                    "id": tc.get("id") or "tool_call",
+                    "name": fn.get("name") or "unknown",
+                    "input": parsed if isinstance(parsed, dict) else {},
+                })
+            if blocks:
+                out.append({"role": "assistant", "content": blocks})
+        elif role == "user":
+            out.append({"role": "user", "content": [{"type": "text", "text": str(content or "")}]})
+    if pending_tools:
+        out.append({"role": "user", "content": pending_tools})
+    return system_parts, out
+
+
+def _chat_anthropic(cfg: Dict[str, Any], messages: List[Dict[str, Any]],
+                    tools: Optional[List[Dict[str, Any]]], timeout: int) -> Dict[str, Any]:
+    llm = cfg.get("llm", {})
+    url = normalize_base(llm.get("base_url", ""), "anthropic", llm.get("chat_path", ""))
+    system_parts, converted = _anthropic_messages(messages)
+    payload: Dict[str, Any] = {
+        "model": llm.get("model", ""),
+        "max_tokens": int(llm.get("max_tokens", 2600)),
+        "messages": converted,
+        "temperature": float(llm.get("temperature", 0.25)),
+    }
+    if system_parts:
+        payload["system"] = "\n\n".join(system_parts)
+    if tools:
+        payload["tools"] = [
+            {
+                "name": t.get("function", {}).get("name", ""),
+                "description": t.get("function", {}).get("description", ""),
+                "input_schema": t.get("function", {}).get("parameters", {"type": "object"}),
+            }
+            for t in tools
+        ]
+    headers = _headers(llm.get("api_key", ""), cfg)
+    data = None
+    last_exc: Optional[Exception] = None
+    for attempt in range(3):
+        try:
+            data = _open_json(url, payload, headers, timeout)
+            break
+        except LLMError as exc:
+            last_exc = exc
+            if exc.status in (429, 500, 502, 503, 504) and attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
+                continue
+            raise
+    if data is None:
+        raise last_exc or LLMError("模型请求失败")
+
+    text_parts: List[str] = []
+    tool_calls: List[Dict[str, Any]] = []
+    for block in data.get("content") or []:
+        if not isinstance(block, dict):
+            continue
+        if block.get("type") == "text":
+            text_parts.append(block.get("text") or "")
+        elif block.get("type") == "tool_use":
+            tool_calls.append({
+                "id": block.get("id") or "tool_call",
+                "type": "function",
+                "function": {
+                    "name": block.get("name") or "",
+                    "arguments": json.dumps(block.get("input") or {}, ensure_ascii=False),
+                },
+            })
+    usage = data.get("usage") or {}
+    stop = data.get("stop_reason")
+    finish = "tool_calls" if tool_calls else ("length" if stop == "max_tokens" else "stop")
+    return {
+        "content": "\n".join(x for x in text_parts if x),
+        "reasoning": "",
+        "tool_calls": tool_calls,
+        "finish_reason": finish,
+        "usage": {
+            "prompt_tokens": int(usage.get("input_tokens", 0) or 0),
+            "completion_tokens": int(usage.get("output_tokens", 0) or 0),
+            "total_tokens": int(usage.get("input_tokens", 0) or 0) + int(usage.get("output_tokens", 0) or 0),
+        },
+        "model": data.get("model") or llm.get("model"),
+        "raw_message": data,
+    }
+
+
 def chat(
     cfg: Dict[str, Any],
     messages: List[Dict[str, Any]],
@@ -118,56 +331,22 @@ def chat(
 ) -> Dict[str, Any]:
     llm = cfg.get("llm", {})
     key = (llm.get("api_key") or "").strip()
+    if not llm.get("base_url"):
+        raise LLMError("尚未选择模型服务商。",
+                       hint="打开右上角「设置」→ 选择服务商 → 填写 Base URL、模型 ID 和 API Key。")
+    if not llm.get("model"):
+        raise LLMError("尚未选择模型 ID。",
+                       hint="在设置中选择服务商后选择模型，或填写「自定义模型 ID」。")
     if not key:
-        raise LLMError("尚未配置 DeepSeek API Key。",
-                       hint="点击右上角「设置」填写 API Key，或设置环境变量 DEEPSEEK_API_KEY。")
-    url = normalize_base(llm.get("base_url", ""))
-    payload: Dict[str, Any] = {
-        "model": llm.get("model", "deepseek-chat"),
-        "messages": messages,
-        "temperature": float(llm.get("temperature", 0.25)),
-        "max_tokens": int(llm.get("max_tokens", 2600)),
-        "stream": False,
-    }
-    if tools:
-        payload["tools"] = tools
-        payload["tool_choice"] = tool_choice
-
-    last_exc: Optional[Exception] = None
-    for attempt in range(3):
-        try:
-            data = _open_json(url, payload, key, timeout)
-            break
-        except LLMError as exc:
-            last_exc = exc
-            if exc.status in (429, 500, 502, 503, 504) and attempt < 2:
-                time.sleep(1.5 * (attempt + 1))
-                continue
-            if tools and exc.status == 400 and "tool" in exc.message.lower():
-                payload.pop("tools", None)
-                payload.pop("tool_choice", None)
-                continue
-            raise
-    else:
-        raise last_exc or LLMError("模型请求失败")
-
-    try:
-        choice = (data.get("choices") or [{}])[0]
-        msg = choice.get("message") or {}
-    except Exception as exc:  # noqa: BLE001
-        raise LLMError(f"模型返回格式异常：{str(exc)}") from exc
-    return {
-        "content": msg.get("content") or "",
-        "reasoning": msg.get("reasoning_content") or "",
-        "tool_calls": msg.get("tool_calls") or [],
-        "finish_reason": choice.get("finish_reason"),
-        "usage": data.get("usage") or {},
-        "model": data.get("model") or payload["model"],
-        "raw_message": msg,
-    }
+        raise LLMError("尚未填写 API Key。",
+                       hint="在设置中填写你从服务商控制台获取的 Key；本软件不会内置任何厂商密钥。")
+    style = (llm.get("api_style") or "openai").lower()
+    if style == "anthropic":
+        return _chat_anthropic(cfg, messages, tools, timeout)
+    return _chat_openai(cfg, messages, tools, timeout)
 
 
-def test_connection(cfg: Dict[str, Any], timeout: int = 45) -> Dict[str, Any]:
+def test_connection(cfg: Dict[str, Any], timeout: int = 60) -> Dict[str, Any]:
     started = time.time()
     resp = chat(cfg, [
         {"role": "system", "content": "你是微波工程助手，只回复两个字。"},
@@ -187,9 +366,11 @@ def list_models(cfg: Dict[str, Any], timeout: int = 30) -> Dict[str, Any]:
     llm = cfg.get("llm", {})
     key = (llm.get("api_key") or "").strip()
     if not key:
-        raise LLMError("尚未配置 API Key")
-    url = models_url(llm.get("base_url", ""))
-    data = _open_json(url, None, key, timeout)
+        raise LLMError("尚未填写 API Key")
+    url = models_url(cfg)
+    if not url:
+        return {"ok": True, "models": []}
+    data = _open_json(url, None, _headers(key, cfg), timeout)
     items = data.get("data") if isinstance(data, dict) else data
     models = []
     for item in items or []:

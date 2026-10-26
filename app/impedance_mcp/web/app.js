@@ -19,6 +19,8 @@
     streaming: false,
     scan: null,
     models: [],
+    providers: [],
+    providerChanged: false,
     lastAssistant: null,
   };
 
@@ -300,19 +302,106 @@
   /* ------------------------------------------------------------------ */
   /* Status / settings                                                  */
   /* ------------------------------------------------------------------ */
+  async function loadProviders() {
+    try {
+      const r = await api("/api/providers");
+      STATE.providers = r.providers || [];
+      populateProviderSelect();
+    } catch (e) {
+      STATE.providers = [];
+      toast("服务商目录加载失败", e.message, "err", 6000);
+    }
+  }
+
+  function providerById(id) {
+    return (STATE.providers || []).find((p) => p.id === id) || null;
+  }
+
+  function providerLabel(p) {
+    if (!p) return "";
+    const zh = p.name_zh || p.name || p.id;
+    if (p.name && p.name !== zh && !/[\u4e00-\u9fff]/.test(p.name)) {
+      return `${zh}（${p.name}）`;
+    }
+    return zh;
+  }
+
+  function populateProviderSelect() {
+    const sel = $("#setProvider");
+    if (!sel) return;
+    const featured = STATE.providers.filter((p) => p.featured);
+    const rest = STATE.providers.filter((p) => !p.featured);
+    const opt = (p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(providerLabel(p))}</option>`;
+    sel.innerHTML = `<option value="">请选择模型服务商</option>` +
+      (featured.length ? `<optgroup label="常用服务商">${featured.map(opt).join("")}</optgroup>` : "") +
+      (rest.length ? `<optgroup label="全部服务商（${rest.length}）">${rest.map(opt).join("")}</optgroup>` : "") +
+      `<option value="custom">自定义 OpenAI 兼容服务</option>`;
+  }
+
+  function updateProviderNote(id) {
+    const el = $("#providerNote");
+    if (!el) return;
+    const p = providerById(id);
+    if (!p) {
+      el.innerHTML = id === "custom"
+        ? "填写完整的 Base URL（通常以 /v1 结尾）、模型 ID 和 API Key。适用于任意 OpenAI 兼容服务。"
+        : "选择服务商后会自动填入 Base URL，并列出该服务商可用模型。目录来自开源项目 " +
+          '<a href="https://github.com/sst/models.dev" target="_blank" rel="noreferrer">models.dev</a>。';
+      return;
+    }
+    const env = (p.env || []).join(", ");
+    el.innerHTML = `${escapeHtml(p.notes || "")}${p.notes ? "<br>" : ""}` +
+      `API Key 环境变量：<code>${escapeHtml(env || "—")}</code>` +
+      (p.doc ? ` · <a href="${escapeHtml(p.doc)}" target="_blank" rel="noreferrer">服务商文档</a>` : "");
+  }
+
+  function populateModels(providerId, current) {
+    const sel = $("#setModel");
+    if (!sel) return;
+    const p = providerById(providerId);
+    let list = p ? (p.models || []).map((m) => m.id) : [];
+    if (providerId === "custom") list = (STATE.models || []).slice();
+    if (current && !list.includes(current) && providerId) list.unshift(current);
+    sel.innerHTML = `<option value="">请选择模型</option>` +
+      list.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
+    sel.value = current && list.includes(current) ? current : "";
+    updateProviderNote(providerId);
+    syncChatModelSelect();
+  }
+
+  function syncChatModelSelect() {
+    const sel = $("#modelSelect");
+    if (!sel) return;
+    const llm = (STATE.config && STATE.config.llm) || {};
+    const p = providerById(llm.provider);
+    const isCustom = llm.provider === "custom";
+    let list = p ? (p.models || []).map((m) => m.id) : (isCustom ? (STATE.models || []).slice() : []);
+    const current = llm.model || "";
+    if (current && (p || isCustom) && !list.includes(current)) list.unshift(current);
+    if (!list.length) {
+      sel.innerHTML = `<option value="">请先选择模型</option>`;
+      return;
+    }
+    sel.innerHTML = list.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
+    sel.value = current && list.includes(current) ? current : list[0];
+  }
+
   async function loadStatus() {
     try {
       const s = await api("/api/status");
       STATE.status = s;
       const llmOk = s.llm && s.llm.configured;
-      $("#llmStatus").innerHTML = `<i class="dot ${llmOk ? "ok" : "warn"}"></i><span>${llmOk ? escapeHtml(s.llm.model || "DeepSeek") : "模型未配置"}</span>`;
-      $("#llmStatus").title = llmOk ? `${s.llm.base_url} · ${s.llm.model}` : "点击设置填写 API Key";
+      const label = llmOk ? (s.llm.model || "模型") : "未选择模型服务";
+      $("#llmStatus").innerHTML = `<i class="dot ${llmOk ? "ok" : "warn"}"></i><span>${escapeHtml(label)}</span>`;
+      $("#llmStatus").title = llmOk
+        ? `${s.llm.provider_name || s.llm.provider || ""} · ${s.llm.base_url} · ${s.llm.model}`
+        : "点击右上角设置，选择模型服务商并填写你自己的 API Key";
       const mat = s.matlab || {};
       const matOk = !!mat.matlab_path;
       $("#matlabStatus").innerHTML = `<i class="dot ${matOk ? "ok" : ""}"></i><span>${matOk ? escapeHtml(mat.matlab_version || "MATLAB") : "MATLAB 未安装"}</span>`;
       $("#matlabStatus").title = mat.matlab_path || "未检测到 MATLAB";
       $("#mcpStatus").innerHTML = `<i class="dot ok"></i><span>MCP 就绪</span>`;
-      $("#mcpStateText").textContent = "stdio · 15 个工具";
+      $("#mcpStateText").textContent = "stdio / HTTP / SSE · 15 个工具";
       const eng = $("#engineStatus");
       if (eng) {
         eng.innerHTML =
@@ -321,7 +410,7 @@
           `<b>原版 exe</b>：${mat.classic_app_available ? "已找到 Impedance_Matching.exe" : "未找到"}<br>` +
           `<b>MATLAB Runtime</b>：${mat.mcr_installed ? "已安装" : "未检测到（安装包 MyAppInstaller_mcr.exe 已内置）"}`;
       }
-      $("#modelSelect").innerHTML = `<option>${escapeHtml((s.llm && s.llm.model) || "deepseek-chat")}</option>`;
+      syncChatModelSelect();
     } catch (e) {
       $("#llmStatus").innerHTML = `<i class="dot err"></i><span>服务未连接</span>`;
       $("#matlabStatus").innerHTML = `<i class="dot err"></i><span>状态未知</span>`;
@@ -340,15 +429,19 @@
   function fillSettings(cfg) {
     if (!cfg) return;
     const llm = cfg.llm || {};
+    const providerId = llm.provider || "";
+    $("#setProvider").value = providerId;
+    if ($("#setProvider").value !== providerId) $("#setProvider").value = "";
     $("#setBaseUrl").value = llm.base_url || "";
     $("#setApiKey").value = "";
     $("#setModelCustom").value = "";
-    $("#setApiKey").placeholder = llm.has_key ? `已配置 ${llm.key_hint || ""}（留空不修改）` : "sk-…";
+    $("#setApiKey").placeholder = llm.has_key
+      ? `已配置 ${llm.key_hint || ""}（留空不修改）`
+      : "填写该服务商控制台的 API Key";
     $("#setTemp").value = llm.temperature != null ? llm.temperature : 0.25;
     $("#setMaxTokens").value = llm.max_tokens || 2600;
-    const provider = llm.provider || (String(llm.base_url || "").includes("sjtu") ? "sjtu" : "deepseek");
-    $("#setProvider").value = provider;
-    populateModels(provider, llm.model);
+    populateModels(providerId, llm.model || "");
+    STATE.providerChanged = false;
     const eng = cfg.engine || "python";
     $$('input[name="engine"]').forEach((r) => { r.checked = r.value === eng; });
     const mat = (STATE.status && STATE.status.matlab) || {};
@@ -359,35 +452,32 @@
       `<b>MATLAB Runtime</b>：${mat.mcr_installed ? "已安装" : "未检测到（安装包 MyAppInstaller_mcr.exe 已内置）"}`;
   }
 
-  function populateModels(provider, current) {
-    const presets = {
-      sjtu: ["deepseek-chat", "deepseek-reasoner", "qwen", "qwen3.8-27b"],
-      deepseek: ["deepseek-chat", "deepseek-reasoner"],
-      custom: STATE.models.length ? STATE.models : ["deepseek-chat"],
+  function settingsPayload() {
+    const providerId = $("#setProvider").value;
+    const p = providerById(providerId);
+    const model = ($("#setModelCustom").value.trim() || $("#setModel").value || "").trim();
+    const llm = {
+      provider: providerId,
+      provider_name: p ? providerLabel(p) : (providerId === "custom" ? "自定义 OpenAI 兼容服务" : ""),
+      base_url: $("#setBaseUrl").value.trim(),
+      model,
+      temperature: Number($("#setTemp").value),
+      max_tokens: Number($("#setMaxTokens").value),
+      auth_header: p ? p.auth_header : "Authorization",
+      auth_prefix: p ? p.auth_prefix : "Bearer ",
+      api_style: p ? p.api_style : "openai",
+      chat_path: p ? p.chat_path : "",
+      extra_headers: {},
     };
-    const list = presets[provider] || presets.custom;
-    if (current && !list.includes(current)) list.unshift(current);
-    $("#setModel").innerHTML = list.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
-    $("#setModel").value = current || list[0];
-    if (STATE.models.length) {
-      $("#modelSelect").innerHTML = STATE.models.map((m) => `<option>${escapeHtml(m)}</option>`).join("");
-      if (current) $("#modelSelect").value = current;
-    }
+    const key = $("#setApiKey").value.trim();
+    if (key) llm.api_key = key;
+    return { llm, key, providerId, provider: p, model };
   }
 
-  async function loadModels() {
-    try {
-      const r = await api("/api/models", { method: "POST", body: {} });
-      if (r.models && r.models.length) {
-        STATE.models = r.models;
-        populateModels($("#setProvider").value, $("#setModel").value);
-      }
-    } catch (e) { /* key may be absent */ }
-  }
-
-  function openSettings() {
+  async function openSettings() {
     $("#settingsModal").classList.remove("hidden");
-    loadConfig().then(() => { loadModels(); });
+    if (!STATE.providers.length) await loadProviders();
+    await loadConfig();
     loadMcpCode();
   }
 
@@ -397,25 +487,26 @@
   }
 
   async function saveSettings() {
-    const provider = $("#setProvider").value;
-    const llm = {
-      provider,
-      base_url: $("#setBaseUrl").value.trim(),
-      model: ($("#setModelCustom").value.trim() || $("#setModel").value),
-      temperature: Number($("#setTemp").value),
-      max_tokens: Number($("#setMaxTokens").value),
-    };
-    const key = $("#setApiKey").value.trim();
-    if (key) llm.api_key = key;
+    const { llm, key, providerId, provider, model } = settingsPayload();
+    if (!providerId) {
+      return toast("请选择服务商", "先选择模型服务商，再填写对应的 API Key。", "amber");
+    }
+    if (!llm.base_url || !model) {
+      return toast("配置不完整", "请填写 Base URL 和模型 ID。", "amber");
+    }
+    const existingKey = !!(STATE.config && STATE.config.llm && STATE.config.llm.has_key);
+    if (!key && (!existingKey || STATE.providerChanged)) {
+      return toast("请填写 API Key", "每个服务商都需要使用你自己的 Key；本软件不内置任何厂商密钥。", "amber", 5000);
+    }
     const engine = ($$('input[name="engine"]').find((r) => r.checked) || {}).value || "python";
     try {
       const r = await api("/api/config", { method: "POST", body: { llm, engine } });
       STATE.config = r.config;
       $("#setApiKey").value = "";
       $("#saveHint").textContent = "已保存";
-      toast("设置已保存", "模型服务与计算引擎配置已更新。", "ok");
+      toast("设置已保存", `${provider ? providerLabel(provider) : "自定义服务"} · ${model}`, "ok");
       await loadStatus();
-      if (key) loadModels();
+      await loadConfig();
     } catch (e) {
       toast("保存失败", e.message + (e.data && e.data.hint ? ` ${e.data.hint}` : ""), "err", 6000);
     }
@@ -425,15 +516,18 @@
     const out = $("#llmTestResult");
     out.className = "inline-status";
     out.textContent = "测试中…";
-    const llm = {
-      provider: $("#setProvider").value,
-      base_url: $("#setBaseUrl").value.trim(),
-      model: ($("#setModelCustom").value.trim() || $("#setModel").value),
-      temperature: Number($("#setTemp").value),
-      max_tokens: Number($("#setMaxTokens").value),
-    };
-    const key = $("#setApiKey").value.trim();
-    if (key) llm.api_key = key;
+    const { llm, key, providerId } = settingsPayload();
+    if (!providerId || !llm.base_url || !llm.model) {
+      out.className = "inline-status err";
+      out.textContent = "请先选择服务商，并填写 Base URL 与模型 ID。";
+      return;
+    }
+    const existingKey = !!(STATE.config && STATE.config.llm && STATE.config.llm.has_key);
+    if (!key && (!existingKey || STATE.providerChanged)) {
+      out.className = "inline-status err";
+      out.textContent = "请填写该服务商的 API Key。";
+      return;
+    }
     try {
       const r = await api("/api/config/test", { method: "POST", body: { llm } });
       out.className = "inline-status ok";
@@ -693,6 +787,16 @@
     const input = $("#chatInput");
     const text = input.value.trim();
     if (!text && !STATE.attachments.length) return;
+    const llm = (STATE.config && STATE.config.llm) || {};
+    if (!llm.provider || !llm.has_key || !llm.base_url || !llm.model) {
+      toast("请先配置模型服务", "点击右上角「设置」，选择服务商并填写你自己的 API Key。", "amber", 5000);
+      openSettings();
+      return;
+    }
+    if (!$("#modelSelect").value) {
+      toast("请先选择模型", "在输入框下方选择模型，或在设置中选择服务商模型。", "amber");
+      return;
+    }
     $("#chatWelcome").classList.add("hidden");
     const attachments = STATE.attachments.slice();
     const userText = text || "请阅读附件并总结与微波阻抗匹配相关的关键信息。";
@@ -1512,14 +1616,18 @@
       if (e.target === $("#settingsModal")) closeSettings();
     });
     $("#setProvider").addEventListener("change", () => {
-      const p = $("#setProvider").value;
-      const urls = {
-        sjtu: "https://models.sjtu.edu.cn/api/v1",
-        deepseek: "https://api.deepseek.com/v1",
-        custom: $("#setBaseUrl").value,
-      };
-      $("#setBaseUrl").value = urls[p] || "";
-      populateModels(p, "");
+      const pid = $("#setProvider").value;
+      const p = providerById(pid);
+      $("#setBaseUrl").value = p ? (p.api || "") : "";
+      $("#setApiKey").value = "";
+      const saved = (STATE.config && STATE.config.llm) || {};
+      if (pid && saved.provider === pid && saved.has_key) {
+        $("#setApiKey").placeholder = `已配置 ${saved.key_hint || ""}（留空不修改）`;
+      } else {
+        $("#setApiKey").placeholder = `填写 ${(p && p.env && p.env[0]) || "API Key"}`;
+      }
+      populateModels(pid, "");
+      STATE.providerChanged = pid !== (saved.provider || "");
     });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !$("#settingsModal").classList.contains("hidden")) closeSettings();
@@ -1550,6 +1658,7 @@
       },
     });
     setTopology("auto");
+    await loadProviders();
     await loadStatus();
     await loadConfig();
     await loadMcpCode();
