@@ -140,7 +140,7 @@ def write_checksums() -> Path:
         if path.is_file() and path.name != "SHA256SUMS.txt":
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
             lines.append(f"{digest}  {path.name}")
-    target.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    target.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     return target
 
 
