@@ -247,12 +247,16 @@ def compute_voltage_stress(args: Dict[str, Any]) -> Dict[str, Any]:
             z0=_num(args.get("z0", 50.0)),
             rated_voltage=None if args.get("rated_voltage") in (None, "", 0)
             else _num(args["rated_voltage"]),
+            sweep=bool(args.get("sweep", False)),
+            sweep_points=int(args.get("sweep_points", 21)),
+            frequency_span=_num(args.get("frequency_span", 0.2)),
         )
-        worst = max(r["elements"], key=lambda e: e["voltage_peak"]) if r["elements"] else None
+        worst = max(r["elements"], key=lambda e: e["voltage_peak_worst"]) if r["elements"] else None
         r["summary"] = (
             f"{r['power_w']:g} W 输入时，输入峰值电压 {r['input_voltage_peak']:.2f} V"
             f"（源开路 {r['source_voltage_peak']:.2f} V），"
-            + (f"最高元件峰值电压出现在 {worst['name']}：{worst['voltage_peak']:.2f} V。" if worst else "")
+            f"完成 {r.get('solves', 1)} 次节点求解；"
+            + (f"最高元件最坏峰值电压出现在 {worst['name']}：{worst['voltage_peak_worst']:.2f} V。" if worst else "")
         )
         return r
     except Exception as exc:  # noqa: BLE001
@@ -782,6 +786,12 @@ TOOL_SPECS: List[Dict[str, Any]] = [
                 "power_w": {"type": "number", "default": 10},
                 "z0": {"type": "number", "default": 50},
                 "rated_voltage": {"type": "number", "description": "元件额定电压峰值，V"},
+                "sweep": {"type": "boolean", "default": False,
+                          "description": "是否执行频率×功率二维扫描；默认关闭以保持 MCP 调用轻量"},
+                "sweep_points": {"type": "integer", "default": 21,
+                                 "minimum": 3, "maximum": 41},
+                "frequency_span": {"type": "number", "default": 0.2,
+                                   "minimum": 0, "maximum": 0.9},
             },
             "required": ["topology", "frequency_mhz", "load_r", "L_uh", "C1_pF", "C2_pF"],
         },

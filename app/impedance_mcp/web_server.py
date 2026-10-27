@@ -43,17 +43,22 @@ class Handler(BaseHTTPRequestHandler):
     # -- helpers ----------------------------------------------------------
     def _send(self, status: int, body: bytes, ctype: str,
               extra: Optional[Dict[str, str]] = None) -> None:
-        self.send_response(status)
-        self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Referrer-Policy", "no-referrer")
-        self.send_header("Cache-Control", "no-store")
-        for key, value in (extra or {}).items():
-            self.send_header(key, value)
-        self.end_headers()
-        if self.command != "HEAD":
-            self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Cache-Control", "no-store")
+            for key, value in (extra or {}).items():
+                self.send_header(key, value)
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            # The client disconnected while we were replying; this is normal
+            # under bursty load and must not be logged as a 500.
+            self.close_connection = True
 
     def _json(self, payload: Any, status: int = 200) -> None:
         self._send(status, _json_bytes(payload), "application/json; charset=utf-8")
@@ -214,7 +219,8 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/favicon.ico":
                 return self._serve_static("favicon.svg")
             return self._serve_static(path.lstrip("/"))
-        except BrokenPipeError:
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            self.close_connection = True
             return
         except ValueError as exc:
             if path.startswith("/api/library/page") or path.startswith("/api/library/crop"):
@@ -279,7 +285,8 @@ class Handler(BaseHTTPRequestHandler):
             if handler:
                 return handler()
             return self._error("未知接口", status=404, code="not_found")
-        except BrokenPipeError:
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            self.close_connection = True
             return
         except (KeyError, TypeError) as exc:
             return self._error(f"参数错误：{exc}", "请检查必填字段与数值类型。",
@@ -386,6 +393,8 @@ class Handler(BaseHTTPRequestHandler):
                 float(data.get("z0", 50.0)), float(data["L_uh"]),
                 data.get("c1_range_pf"), data.get("c2_range_pf"), data.get("c3_range_pf"),
                 int(data.get("steps", 45)),
+                int(data.get("max_points", 12000) or 12000),
+                int(data.get("points_budget") or data.get("sim_points") or 0),
             )
             return self._json(result)
         except engine.DesignError as exc:
@@ -413,6 +422,9 @@ class Handler(BaseHTTPRequestHandler):
             float(data.get("z0", 50.0)),
             None if data.get("rated_voltage") in (None, "", 0)
             else float(data["rated_voltage"]),
+            sweep=bool(data.get("sweep", True)),
+            sweep_points=int(data.get("sweep_points", 21)),
+            frequency_span=float(data.get("frequency_span", 0.2)),
         )
         return self._json(result)
 

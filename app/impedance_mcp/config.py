@@ -102,7 +102,7 @@ for _kind, _label, _resolver in BUILTIN_SOURCES:
     except Exception:
         pass
 
-VERSION = "4.4.0"
+VERSION = "4.4.1"
 RELEASE_DATE = "2026-10-27"
 SETTINGS_VERSION = 4
 APP_NAME = "Impedance Matching AI"

@@ -32,6 +32,7 @@
     showCitations: false,
     scanAbort: null,
     scanStreaming: false,
+    scanRevealed: 0,
     stressAbort: null,
     stressStreaming: false,
     updateInfo: null,
@@ -86,8 +87,8 @@
       en: ["Documentation", "Application · code reference · AI interface · MCP protocol"],
     },
     about: {
-      zh: ["关于", "Impedance Matching AI v4.4.0"],
-      en: ["About", "Impedance Matching AI v4.4.0"],
+      zh: ["关于", "Impedance Matching AI v4.4.1"],
+      en: ["About", "Impedance Matching AI v4.4.1"],
     },
   };
 
@@ -2288,8 +2289,9 @@
       const batch = anim.queue.splice(0, count);
       if (batch.length) scanChart.addScanPoints(batch);
       anim.revealed += batch.length;
+      STATE.scanRevealed = anim.revealed;
       setProgressBar("scanProgress", anim.revealed, anim.total,
-        `${anim.revealed} / ${anim.total} · 有效 ${anim.valid}`);
+        `${anim.revealed} / ${anim.total} 点已绘制`);
       if (anim.queue.length) {
         anim.raf = setTimeout(() => tick(performance.now()), 16);
         return;
@@ -2352,6 +2354,7 @@
       queue: [], total, revealed: 0, valid: 0, done: null,
       raf: null, last: 0, resolve: animationDone,
     };
+    STATE.scanRevealed = 0;
     scanChart.beginScan(z0,
       STATE.design && STATE.design.load ? { re: STATE.design.load.r, im: STATE.design.load.x } : null);
     setProgressBar("scanProgress", 0, total, `0 / ${total}`);
@@ -2361,7 +2364,7 @@
           total = Number(data.total) || total;
           if (scanAnimation) scanAnimation.total = total;
           setProgressBar("scanProgress", 0, total,
-            `0 / ${total} · ${data.per_dimension}^${data.dims}`);
+            `0 / ${total} · ${(data.grid_steps || [data.per_dimension]).join("×")}`);
         } else if (eventName === "points") {
           evaluated = Number(data.evaluated || evaluated);
           valid = Number(data.valid || valid);
@@ -2404,7 +2407,7 @@
     } catch (error) {
       stopScanAnimation();
       if (error.name === "AbortError") {
-        toast("扫描已停止", `已计算并显示 ${evaluated} 个真实点。`, "amber");
+        toast("扫描已停止", `已计算 ${evaluated} 个真实点，圆图上已显示 ${STATE.scanRevealed} 个。`, "amber");
       } else {
         errorBox.textContent = error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : "");
         toast("扫描失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 7000);
@@ -2456,7 +2459,7 @@
         `（${escapeHtml(dims)} 网格，用时 <b>${Number(result.elapsed_ms || 0)} ms</b>）。` +
         `可匹配负载覆盖 R <b>${fmt(result.r_min, 2)}–${fmt(result.r_max, 2)} Ω</b>、X <b>${fmt(result.x_min, 2)}–${fmt(result.x_max, 2)} Ω</b>；` +
         `在圆图上占据 <b>${coverage.toFixed(2)}%</b> 的有效面积。灰色区域由所有真实计算命中的网格单元组成，不再使用凸包近似。` +
-        `扩大电容范围时若点数不变，密度会下降但覆盖范围不应缩小；把“仿真点数”调大可以获得更平滑的边界。`;
+        `扩大电容范围时会自动增加该维采样，覆盖范围不会缩小；把“仿真点数”调大可以获得更平滑的边界。`;
   }
 
   async function compareTopologies() {
@@ -2660,9 +2663,14 @@
         ? `标称功率下的频率扫描；最坏点 ${fmt(worst.voltage_peak, 1)} V @ ${fmt(worst.frequency_mhz, 1)} MHz / ${fmt(worst.power_w, 2)} W（${worst.element || "—"}）。`
         : `标称频率下的功率扫描；最坏点 ${fmt(worst.voltage_peak, 1)} V @ ${fmt(worst.frequency_mhz, 1)} MHz / ${fmt(worst.power_w, 2)} W（${worst.element || "—"}）。`;
     } else {
-      const ctx = $("#stressSweepCanvas").getContext("2d");
-      const rect = $("#stressSweepCanvas").getBoundingClientRect();
+      const canvas = $("#stressSweepCanvas");
+      const ctx = canvas.getContext("2d");
+      const rect = canvas.getBoundingClientRect();
       ctx.clearRect(0, 0, rect.width, rect.height);
+      ctx.fillStyle = "rgba(139, 160, 189, .72)";
+      ctx.font = '11px "Microsoft YaHei", "Segoe UI", system-ui, sans-serif';
+      ctx.textAlign = "center";
+      ctx.fillText("单点模式 · 勾选“频率 × 功率扫描”显示曲线", rect.width / 2, rect.height / 2);
       $("#stressSweepNote").textContent = "未开启扫描：单点结果只需一次线性节点求解，因此返回很快；勾选“频率 × 功率扫描”可执行完整网格。";
     }
 

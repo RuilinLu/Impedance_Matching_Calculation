@@ -224,7 +224,7 @@
         if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
         const parent = node.parentElement;
         if (!parent) return NodeFilter.FILTER_REJECT;
-        if (parent.closest("pre, code, script, style, mark, mjx-container")) return NodeFilter.FILTER_REJECT;
+        if (parent.closest("script, style, mark, mjx-container")) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
     });

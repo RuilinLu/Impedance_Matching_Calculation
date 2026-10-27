@@ -8,7 +8,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 </script>
 <script src="vendor/mathjax/tex-svg-full.js"></script>
 </head><body><div class="layout"><aside>
-<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.4.0</small></div></div>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.4.1</small></div></div>
 <nav><a class="" href="index.html">文档首页</a>
 <a class="active" href="features.zh.html">软件功能文档</a>
 <a class="" href="code.zh.html">代码参考文档</a>
@@ -487,6 +487,14 @@ z = \frac{Z_L}{Z_0}, \qquad
 <li>卸载时会询问是否保留个人数据。选择“是”保留 API Key、设置、索引、上传、报告、翻译缓存与搜索路径；选择“否”彻底删除。程序目录 <code>TextBook</code> 中的文件在保留模式下会先复制到用户数据目录。</li>
 </ul>
 <h3>11.6 兼容性</h3>
-<p>4.4.0 可直接读取 4.3.x 的 <code>config.json</code>、教材 SQLite 索引、上传文件与报告目录。新增配置项采用默认值合并，不会覆盖旧字段；教材索引在路径变化后会自动重建。4.4.0 作为后续版本的兼容基线，后续版本应继续支持这些数据和接口。</p>
+<p>4.4.0 可直接读取 4.3.x 的 <code>config.json</code>、教材 SQLite 索引、上传文件与报告目录。新增配置项采用默认值合并，不会覆盖旧字段；教材索引在路径变化后会自动重建。4.4.x 作为后续版本的兼容基线，后续版本应继续支持这些数据和接口。</p>
+<h2>12. v4.4.1 稳定性修复</h2>
+<ul>
+<li>REST <code>POST /api/stress</code> 现在正确识别 <code>sweep=false</code>，单点模式只做 1 次节点求解；单点最坏电压/电流不再为 0。</li>
+<li>REST <code>POST /api/scan</code> 支持 <code>points_budget</code> / <code>sim_points</code>；三元件宽电容范围按对数跨度自动增加该维采样，覆盖率不会随范围扩大而缩小。</li>
+<li>教材翻译独立提高输出上限并增加短文本重试，思考模型不再频繁返回空译文。</li>
+<li>文档中心搜索会在代码块中高亮命中词；教材库长路径在侧栏内换行。</li>
+<li>MCP HTTP 会话增加 TTL 与数量上限，异常客户端不会无限占用内存。</li>
+</ul>
 <div class="footer">Impedance Matching AI v4.4.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
 </main></div></body></html>

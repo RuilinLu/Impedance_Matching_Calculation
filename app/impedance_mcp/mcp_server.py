@@ -15,6 +15,7 @@ import os
 import queue
 import sys
 import threading
+import time
 import traceback
 import urllib.parse
 import uuid
@@ -362,20 +363,40 @@ def run_http(host: str = "127.0.0.1", port: int = 8790) -> None:
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
     sessions: Dict[str, "MCPServer"] = {}
+    session_seen: Dict[str, float] = {}
     sse_queues: Dict[str, "queue.Queue[Optional[Dict[str, Any]]]"] = {}
     lock = threading.Lock()
+    SESSION_LIMIT = 256
+    SESSION_TTL = 1800.0
+
+    def _sweep_sessions() -> None:
+        now = time.time()
+        for sid, seen in list(session_seen.items()):
+            if now - seen > SESSION_TTL:
+                sessions.pop(sid, None)
+                sse_queues.pop(sid, None)
+                session_seen.pop(sid, None)
+        while len(sessions) >= SESSION_LIMIT and session_seen:
+            oldest = min(session_seen, key=session_seen.get)
+            sessions.pop(oldest, None)
+            sse_queues.pop(oldest, None)
+            session_seen.pop(oldest, None)
 
     def _new_session() -> tuple:
         sid = uuid.uuid4().hex
         srv = MCPServer()
         with lock:
+            _sweep_sessions()
             sessions[sid] = srv
+            session_seen[sid] = time.time()
         return sid, srv
 
     def _session(sid: Optional[str]) -> tuple:
         if sid:
             with lock:
                 srv = sessions.get(sid)
+                if srv is not None:
+                    session_seen[sid] = time.time()
             if srv is not None:
                 return sid, srv
         return _new_session()
@@ -386,6 +407,7 @@ def run_http(host: str = "127.0.0.1", port: int = 8790) -> None:
         with lock:
             sessions.pop(sid, None)
             sse_queues.pop(sid, None)
+            session_seen.pop(sid, None)
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "ImpedanceMCP/" + config.VERSION

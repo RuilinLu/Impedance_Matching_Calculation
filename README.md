@@ -7,7 +7,9 @@
 > 独立开源项目 · MIT License · 不绑定任何平台或模型厂商
 > 开发者：Nova（诺瓦）、Echo（回声）、Iris（鸢尾）、Lumen（流明）
 
-## v4.4.0 重点
+## v4.4.1 重点
+
+> 4.4.1 是 4.4.0 的稳定性补丁：修复 REST 耐压/扫描参数被忽略、单点耐压最坏值为 0、三元件宽范围扫描面积缩水、教材翻译偶发空译文、代码文档搜索不高亮、路径摘要溢出、MCP HTTP 会话无上限等问题。
 
 - **教材路径管理**：界面里查看安装目录、数据目录和当前教材库；按优先级增删、启停、上下移动搜索目录。程序目录 `TextBook` 随安装位置自动解析。
 - **教材面板可拖动**：搜索结果 ↔ 教材页面左右拖动，页面 ↔ 原文/翻译上下拖动，尺寸自动保存。
@@ -42,10 +44,10 @@ Release 提供完整安装程序、Windows 便携版、MCP 独立程序和源码
 
 | 资产 | 用途 |
 |---|---|
-| `Impedance_Matching_AI_v4.4.0_Setup.exe` | 约 367 MB · 完整安装程序：主程序 + MCP + 离线说明书 + 教材数据库初始化 + VC++/WebView2 检测 |
-| `Impedance_Matching_AI_v4.4.0_Portable.exe` | 免安装便携版，双击即用 |
-| `Impedance_Matching_AI_v4.4.0_MCP.exe` | 独立 MCP 服务（stdio / HTTP / SSE） |
-| `Impedance_Matching_AI_v4.4.0_Source.zip` | 干净源码，不含教材、用户数据、API Key |
+| `Impedance_Matching_AI_v4.4.1_Setup.exe` | 约 367 MB · 完整安装程序：主程序 + MCP + 离线说明书 + 教材数据库初始化 + VC++/WebView2 检测 |
+| `Impedance_Matching_AI_v4.4.1_Portable.exe` | 免安装便携版，双击即用 |
+| `Impedance_Matching_AI_v4.4.1_MCP.exe` | 独立 MCP 服务（stdio / HTTP / SSE） |
+| `Impedance_Matching_AI_v4.4.1_Source.zip` | 干净源码，不含教材、用户数据、API Key |
 | `SHA256SUMS.txt` | 下载校验 |
 
 **安装程序会：**
@@ -176,7 +178,7 @@ app/
     web_server.py      # 本地 API
     web/               # 前端（含 vendor/mathjax）
     docs_content/      # 四域 Markdown 文档
-  tests/               # 69 项单元测试
+  tests/               # 72 项单元测试
 docs/
   build_static.py      # 生成安装包内的离线 HTML 说明书
   assets/              # 界面截图
@@ -194,7 +196,7 @@ release/
 python -m unittest discover -s app/tests -v
 ```
 
-- **69 项单元测试**：计算内核、物理审计、MCP 协议、教材索引/OCR、DOCX 教材、任意附件、引用裁剪、模型目录/费用/谷时窗口、Web API、智能体工具循环、视觉消息、附件缓存与长查询上限；新增配置迁移、路径优先级、扫描单调性、耐压扫描、分块上传、更新版本比较。
+- **72 项单元测试**：计算内核、物理审计、MCP 协议、教材索引/OCR、DOCX 教材、任意附件、引用裁剪、模型目录/费用/谷时窗口、Web API、智能体工具循环、视觉消息、附件缓存与长查询上限；新增配置迁移、路径优先级、扫描单调性、耐压扫描、分块上传、更新版本比较。
 - **随机工程跑测**：250 组随机频率/负载/拓扑设计与复核，0 失败；扫描区域随电容范围扩大单调不减。
 - **19 本中英文教材实测**：2197 页文字层索引、36 页 OCR、Smith chart / 反射系数 / 公式检索与页码定位。
 - **DeepSeek 实际 API 实测**：`deepseek-flash` 连接、工具调用、LaTeX 回答、思考链路事件、缓存命中率、上下文占用与费用统计。
@@ -214,7 +216,7 @@ python -m unittest discover -s app/tests -v
 
 ## 版本
 
-当前版本 **v4.4.0**（2026-10-27）。更新内容见 [CHANGELOG.md](CHANGELOG.md)，安全策略见 [SECURITY.md](SECURITY.md)。
+当前版本 **v4.4.1**（2026-10-27）。更新内容见 [CHANGELOG.md](CHANGELOG.md)，安全策略见 [SECURITY.md](SECURITY.md)。
 
 ## License
 

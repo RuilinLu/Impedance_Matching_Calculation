@@ -26,8 +26,10 @@ class LibraryTests(unittest.TestCase):
         self.root = Path(self.tmp.name)
         self.old_library = config.LIBRARY_DIR
         self.old_sources = config.LIBRARY_SOURCE_DIRS
+        self.old_source_paths = config.library_source_paths
         config.LIBRARY_DIR = self.root / "library"
         config.LIBRARY_SOURCE_DIRS = [self.root / "books"]
+        config.library_source_paths = lambda cfg=None: [self.root / "books"]
         config.LIBRARY_SOURCE_DIRS[0].mkdir(parents=True, exist_ok=True)
         library._INDEX_STATE.update({"running": False, "phase": "idle", "total": 0,
                                      "done": 0, "current": "", "error": ""})
@@ -46,6 +48,7 @@ class LibraryTests(unittest.TestCase):
     def tearDown(self):
         config.LIBRARY_DIR = self.old_library
         config.LIBRARY_SOURCE_DIRS = self.old_sources
+        config.library_source_paths = self.old_source_paths
         self.tmp.cleanup()
 
     def test_index_search_render(self):

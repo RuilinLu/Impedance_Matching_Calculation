@@ -947,6 +947,7 @@ code, pre, .mono { font-family: "Cascadia Code", Consolas, "SFMono-Regular", mon
 .library-layout { display: grid; grid-template-columns: 286px minmax(0, 1fr); gap: 14px; width: 100%; height: 100%; min-height: 0; }
 .library-side { position: static; min-height: 0; display: flex; flex-direction: column; }
 .library-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.library-actions .btn { flex: 1 1 auto; justify-content: center; }
 .library-status { padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: rgba(6, 14, 26, .4); color: var(--muted); font-size: 10px; line-height: 1.5; margin-bottom: 8px; }
 .library-status b { color: var(--cyan); }
 .index-progress { height: 4px; border-radius: 4px; background: rgba(148, 163, 184, .15); overflow: hidden; margin-bottom: 5px; }
@@ -1276,9 +1277,10 @@ body.resizing * { cursor: inherit; }
   border: 1px solid var(--line); border-radius: 8px;
   background: rgba(6, 14, 26, .45);
   font-size: 9.5px; color: var(--muted);
+  min-width: 0; overflow: hidden;
 }
-.library-path-summary b { color: var(--text-2); font-weight: 600; word-break: break-all; }
-.library-path-summary small { color: var(--muted); font-size: 8.8px; word-break: break-all; }
+.library-path-summary b { color: var(--text-2); font-weight: 600; word-break: break-all; overflow-wrap: anywhere; }
+.library-path-summary small { color: var(--muted); font-size: 8.8px; word-break: break-all; overflow-wrap: anywhere; }
 .path-info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
 .path-info { min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: rgba(6, 14, 26, .45); }
 .path-info span { display: block; font-size: 9px; color: var(--muted); margin-bottom: 3px; }

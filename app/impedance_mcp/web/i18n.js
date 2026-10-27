@@ -267,7 +267,7 @@
     "about.checkUpdate": "Check for updates",
     "settings.cancel": "Cancel",
     "settings.save": "Save settings",
-    "about.tagline": "Microwave impedance matching, simulation and textbook study · v4.4.0",
+    "about.tagline": "Microwave impedance matching, simulation and textbook study · v4.4.1",
     "about.independent": "Independent open-source project",
     "about.what": "What this project is",
     "about.whatText": "A standalone microwave-engineering tool that can also be called by MCP clients. It combines Smith charts, L/T/π matching networks, nodal verification, textbook full-text search, OCR, academic translation and tool-calling LLMs in one desktop application.",

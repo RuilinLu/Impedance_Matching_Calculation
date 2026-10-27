@@ -96,6 +96,19 @@ class ScanTests(unittest.TestCase):
             self.assertTrue(result["ok"], topology)
             self.assertGreater(result["coverage_fraction"], 0.01, topology)
 
+    def test_three_element_wide_range_is_monotonic(self):
+        for topology in ("t", "pi1", "pi2"):
+            coverage = []
+            for upper in (10, 30, 100, 1000):
+                result = engine.scan_matchable_range(
+                    topology, 2400, 50, 0.002,
+                    (0.5, 10), (0.5, 10), (0.2, upper), points_budget=10000)
+                self.assertTrue(result["ok"], topology)
+                coverage.append(result["coverage_fraction"])
+            for previous, current in zip(coverage, coverage[1:]):
+                self.assertGreaterEqual(current + 0.005, previous,
+                                        f"{topology} shrank: {coverage}")
+
 
 class StressTests(unittest.TestCase):
     def test_sweep_reports_real_solves_and_worst_case(self):
@@ -122,6 +135,10 @@ class StressTests(unittest.TestCase):
             comps["C1_pF"], comps["C2_pF"], 0.0, 10.0, sweep=False)
         self.assertEqual(result["solves"], 1)
         self.assertEqual(result["sweep"]["points_count"], 0)
+        for element in result["elements"]:
+            self.assertAlmostEqual(element["voltage_peak_worst"],
+                                   element["voltage_peak"], places=9)
+            self.assertGreater(element["voltage_peak_worst"], 0)
 
 
 class UpdateVersionTests(unittest.TestCase):
@@ -212,6 +229,31 @@ class WebUploadTests(unittest.TestCase):
         payload = json.loads(done)
         self.assertEqual(payload["evaluated_count"], 900)
         self.assertIn("coverage", payload)
+
+    def test_scan_rest_accepts_points_budget(self):
+        status, payload = self._json("POST", "/api/scan", {
+            "topology": "l_right", "frequency_mhz": 2400, "z0": 50,
+            "L_uh": 0.001939, "points_budget": 900,
+            "c1_range_pf": [0.5, 10], "c2_range_pf": [0.5, 10],
+        })
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["evaluated_count"], 900)
+
+    def test_stress_rest_respects_sweep_flag(self):
+        base = {
+            "topology": "l_right", "frequency_mhz": 2400,
+            "load_r": 20, "load_x": 5, "L_uh": 0.001939,
+            "C1_pF": 1.6244, "C2_pF": 6.8033, "power_w": 10,
+        }
+        status, single = self._json("POST", "/api/stress", {**base, "sweep": False})
+        self.assertEqual(status, 200)
+        self.assertEqual(single["solves"], 1)
+        status, swept = self._json("POST", "/api/stress",
+                                   {**base, "sweep": True, "sweep_points": 5})
+        self.assertEqual(status, 200)
+        self.assertEqual(swept["solves"], 26)
+        self.assertEqual(swept["sweep"]["points_count"], 25)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 </script>
 <script src="vendor/mathjax/tex-svg-full.js"></script>
 </head><body><div class="layout"><aside>
-<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.4.0</small></div></div>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.4.1</small></div></div>
 <nav><a class="" href="index.html">文档首页</a>
 <a class="" href="features.zh.html">软件功能文档</a>
 <a class="" href="code.zh.html">代码参考文档</a>
@@ -380,6 +380,14 @@ z = \frac{Z_L}{Z_0}, \qquad
 <li>The uninstaller asks whether to keep personal data. <strong>Yes</strong> keeps API keys, settings, index, uploads, reports, translation cache and search paths; <strong>No</strong> deletes them. In keep mode, files in the installation <code>TextBook</code> folder are first copied to the user-data directory.</li>
 </ul>
 <h3>11.6 Compatibility</h3>
-<p>4.4.0 reads 4.3.x <code>config.json</code>, textbook SQLite index, uploads and reports directly. New settings are merged with defaults without dropping old keys, and the index rebuilds automatically when paths change. 4.4.0 is the compatibility baseline for later releases.</p>
+<p>4.4.0 reads 4.3.x <code>config.json</code>, textbook SQLite index, uploads and reports directly. New settings are merged with defaults without dropping old keys, and the index rebuilds automatically when paths change. 4.4.x is the compatibility baseline for later releases.</p>
+<h2>12. v4.4.1 stability fixes</h2>
+<ul>
+<li><code>POST /api/stress</code> honours <code>sweep=false</code> and performs exactly one nodal solve; single-point worst voltage/current are no longer zero.</li>
+<li><code>POST /api/scan</code> accepts <code>points_budget</code>/<code>sim_points</code>; three-element scans add samples for wide capacitance ranges so coverage does not shrink as the range grows.</li>
+<li>Textbook translation raises its own output limit and retries with a shorter chunk, avoiding empty answers from thinking models.</li>
+<li>Documentation search highlights terms inside code blocks; long library paths wrap inside the sidebar.</li>
+<li>MCP HTTP sessions have a TTL and a hard cap, so misbehaving clients cannot grow memory without bound.</li>
+</ul>
 <div class="footer">Impedance Matching AI v4.4.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
 </main></div></body></html>

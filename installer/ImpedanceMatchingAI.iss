@@ -1,8 +1,8 @@
-; Impedance Matching AI v4.4.0 — Inno Setup 6 installer
+; Impedance Matching AI v4.4.1 — Inno Setup 6 installer
 ; Build:  "C:\Users\Lenovo\AppData\Local\Programs\Inno Setup 6\ISCC.exe" installer\ImpedanceMatchingAI.iss
 
 #define MyAppName "Impedance Matching AI"
-#define MyAppVersion "4.4.0"
+#define MyAppVersion "4.4.1"
 #define MyAppPublisher "Impedance Matching AI contributors"
 #define MyAppURL "https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation"
 #define MyAppExeName "ImpedanceMatchingAI.exe"
@@ -37,7 +37,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
 RestartApplications=no
 SetupLogging=yes
-VersionInfoVersion=4.4.0.0
+VersionInfoVersion=4.4.1.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} installer
 VersionInfoProductName={#MyAppName}

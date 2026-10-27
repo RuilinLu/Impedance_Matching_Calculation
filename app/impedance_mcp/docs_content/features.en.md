@@ -285,4 +285,13 @@ Copy the stdio configuration from Settings or About:
 
 ### 11.6 Compatibility
 
-4.4.0 reads 4.3.x `config.json`, textbook SQLite index, uploads and reports directly. New settings are merged with defaults without dropping old keys, and the index rebuilds automatically when paths change. 4.4.0 is the compatibility baseline for later releases.
+4.4.0 reads 4.3.x `config.json`, textbook SQLite index, uploads and reports directly. New settings are merged with defaults without dropping old keys, and the index rebuilds automatically when paths change. 4.4.x is the compatibility baseline for later releases.
+
+
+## 12. v4.4.1 stability fixes
+
+- `POST /api/stress` honours `sweep=false` and performs exactly one nodal solve; single-point worst voltage/current are no longer zero.
+- `POST /api/scan` accepts `points_budget`/`sim_points`; three-element scans add samples for wide capacitance ranges so coverage does not shrink as the range grows.
+- Textbook translation raises its own output limit and retries with a shorter chunk, avoiding empty answers from thinking models.
+- Documentation search highlights terms inside code blocks; long library paths wrap inside the sidebar.
+- MCP HTTP sessions have a TTL and a hard cap, so misbehaving clients cannot grow memory without bound.

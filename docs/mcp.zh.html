@@ -8,7 +8,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 </script>
 <script src="vendor/mathjax/tex-svg-full.js"></script>
 </head><body><div class="layout"><aside>
-<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.4.0</small></div></div>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.4.1</small></div></div>
 <nav><a class="" href="index.html">文档首页</a>
 <a class="" href="features.zh.html">软件功能文档</a>
 <a class="" href="code.zh.html">代码参考文档</a>
@@ -585,6 +585,27 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 <td>否</td>
 <td><code>—</code></td>
 <td>元件额定电压峰值，V</td>
+</tr>
+<tr>
+<td><code>sweep</code></td>
+<td><code>boolean</code></td>
+<td>否</td>
+<td><code>False</code></td>
+<td>是否执行频率×功率二维扫描；默认关闭以保持 MCP 调用轻量</td>
+</tr>
+<tr>
+<td><code>sweep_points</code></td>
+<td><code>integer</code></td>
+<td>否</td>
+<td><code>21</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>frequency_span</code></td>
+<td><code>number</code></td>
+<td>否</td>
+<td><code>0.2</code></td>
+<td></td>
 </tr>
 </tbody>
 </table>

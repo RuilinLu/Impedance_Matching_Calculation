@@ -1059,6 +1059,29 @@ def scan_plan(
         "c2": _scan_rng(c2_range_pf, (0.5, 10)),
         "c3": _scan_rng(c3_range_pf, (0.2, 10) if top == "t" else (0.5, 10)),
     }
+    # Wide capacitance ranges need more samples per decade; otherwise a fixed
+    # cube-root budget becomes sparse and the rasterised region can shrink when
+    # the range grows.  Treat the budget as a lower bound and add resolution
+    # only where the logarithmic span demands it.
+    per_dims = [per] * dims
+    keys = ("c1", "c2") if dims == 2 else ("c1", "c2", "c3")
+    for index, key in enumerate(keys):
+        lo, hi = ranges[key]
+        decades = math.log10(max(hi, lo * 1.0000001) / lo)
+        needed = int(math.ceil(decades * 12.0)) + 1
+        per_dims[index] = max(per_dims[index], max(6, min(needed, 120)))
+    total = 1
+    for value in per_dims:
+        total *= value
+    # Keep the worst case bounded (the UI maximum is 250,000).
+    while total > 250000:
+        largest = max(range(len(per_dims)), key=lambda i: per_dims[i])
+        if per_dims[largest] <= 6:
+            break
+        per_dims[largest] -= 1
+        total = 1
+        for value in per_dims:
+            total *= value
     return {
         "topology": top,
         "frequency_mhz": float(frequency_mhz),
@@ -1067,9 +1090,10 @@ def scan_plan(
         "L": L,
         "L_uh": float(L_uh),
         "dims": dims,
-        "per": per,
-        "total": int(per ** dims),
-        "grid_steps": [per] * dims,
+        "per": per_dims[0],
+        "per_dims": per_dims,
+        "total": int(total),
+        "grid_steps": per_dims,
         "ranges": ranges,
     }
 
@@ -1085,10 +1109,11 @@ def iter_scan_groups(plan: Dict[str, Any]):
     w = plan["w"]
     z0 = plan["z0"]
     L = plan["L"]
-    per = plan["per"]
-    c1v = np.geomspace(plan["ranges"]["c1"][0], plan["ranges"]["c1"][1], per)
-    c2v = np.geomspace(plan["ranges"]["c2"][0], plan["ranges"]["c2"][1], per)
-    c3v = np.geomspace(plan["ranges"]["c3"][0], plan["ranges"]["c3"][1], per)
+    per_dims = plan.get("per_dims") or [plan["per"]] * plan["dims"]
+    c1v = np.geomspace(plan["ranges"]["c1"][0], plan["ranges"]["c1"][1], per_dims[0])
+    c2v = np.geomspace(plan["ranges"]["c2"][0], plan["ranges"]["c2"][1], per_dims[1])
+    c3v = np.geomspace(plan["ranges"]["c3"][0], plan["ranges"]["c3"][1],
+                       per_dims[2] if len(per_dims) > 2 else per_dims[0])
 
     if top in ("l_right", "l_left"):
         for row, c1 in enumerate(c1v):
@@ -1444,15 +1469,24 @@ def voltage_stress(
     zl = complex(load_r, load_x)
     nominal = analyze_network(top, f0, zl, comps, z0, power_w)
     element_order = [item["name"] for item in nominal["elements"]]
+    # Seed the worst-case table with the nominal operating point.  Without
+    # this, a single-point analysis (sweep=False) reports 0 V "worst" values.
     stats = {
-        name: {
-            "voltage_peak_worst": 0.0, "current_peak_worst": 0.0,
+        item["name"]: {
+            "voltage_peak_worst": float(item["voltage_peak"]),
+            "current_peak_worst": float(item["current_peak"]),
             "worst_frequency_mhz": f0, "worst_power_w": power_w,
         }
-        for name in element_order
+        for item in nominal["elements"]
     }
-    global_worst = {"voltage_peak": 0.0, "frequency_mhz": f0, "power_w": power_w,
-                    "element": ""}
+    nominal_peak = max((item["voltage_peak"] for item in nominal["elements"]),
+                       default=0.0)
+    nominal_peak_name = max(nominal["elements"],
+                            key=lambda item: item["voltage_peak"])["name"] \
+        if nominal["elements"] else ""
+    global_worst = {"voltage_peak": float(nominal_peak),
+                    "frequency_mhz": f0, "power_w": power_w,
+                    "element": nominal_peak_name}
     sweeps: List[Dict[str, Any]] = []
     curve_power: List[Dict[str, Any]] = []
     curve_freq: List[Dict[str, Any]] = []

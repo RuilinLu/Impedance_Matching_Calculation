@@ -688,7 +688,8 @@
       });
       if (!result.ok) throw new Error(result.message || "翻译失败");
       STATE.translation = result;
-      $("#libraryTranslation").textContent = result.text || "";
+      $("#libraryTranslation").textContent = (result.text || "") +
+        (result.truncated ? "\n\n…（本页内容较长，译文已截断）" : "");
       IMP().toast("翻译完成", `${result.lang} · ${result.cached ? "缓存" : "新译"}`, "ok");
     } catch (error) {
       IMP().toast("翻译失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 8000);

@@ -1192,16 +1192,27 @@ def translate_page(doc_id: int, page_no: int, cfg: Dict[str, Any],
                 "created_at": row["created_at"]}
 
     from . import llm
+    # Thinking models can spend a small output budget entirely on reasoning.
+    # Give translation its own generous limit instead of inheriting a chat
+    # setting that may be as low as 2k tokens.
+    llm_cfg = dict(cfg)
+    llm_cfg["llm"] = dict(cfg.get("llm") or {})
+    try:
+        configured = int(llm_cfg["llm"].get("max_tokens") or 0)
+    except (TypeError, ValueError):
+        configured = 0
+    llm_cfg["llm"]["max_tokens"] = max(configured, 16384)
     chunk = text[:14000]
     prompt = (
         f"请把下面这页教材原文翻译成{'简体中文' if target == 'zh' else '英文'}。"
         f"只输出译文。\n\n{chunk}"
     )
-    resp = llm.chat(cfg, [
+    resp = llm.chat(llm_cfg, [
         {"role": "system", "content": _TRANSLATION_SYSTEM.get(target, _TRANSLATION_SYSTEM["zh"])},
         {"role": "user", "content": prompt},
     ], timeout=120)
     translated = (resp.get("content") or "").strip()
+    used_short = False
     if not translated:
         # Thinking models occasionally return an empty final message.  Retry
         # once with an explicit "output only the translation" instruction.
@@ -1209,14 +1220,25 @@ def translate_page(doc_id: int, page_no: int, cfg: Dict[str, Any],
             "上一条请求没有返回可见译文。请忽略任何思考过程，直接输出完整译文，"
             "不要解释、不要重复原文。\n\n" + chunk
         )
-        resp = llm.chat(cfg, [
+        resp = llm.chat(llm_cfg, [
             {"role": "system", "content": _TRANSLATION_SYSTEM.get(target, _TRANSLATION_SYSTEM["zh"])},
             {"role": "user", "content": retry_prompt},
         ], timeout=120)
         translated = (resp.get("content") or "").strip()
     if not translated:
+        # Last resort: a shorter chunk leaves room for both reasoning and the
+        # visible translation on providers with small per-request budgets.
+        used_short = True
+        short = text[:6000]
+        resp = llm.chat(llm_cfg, [
+            {"role": "system", "content": _TRANSLATION_SYSTEM.get(target, _TRANSLATION_SYSTEM["zh"])},
+            {"role": "user", "content": (
+                "只输出译文，不要任何思考、解释或原文。\n\n" + short)},
+        ], timeout=120)
+        translated = (resp.get("content") or "").strip()
+    if not translated:
         return {"ok": False, "message": "模型没有返回译文",
-                "hint": "请重试；若持续失败，可在设置中换用非思考模型或提高最大输出 token。"}
+                "hint": "已自动提高输出上限并重试三次；请稍后重试，或在设置中换用非思考模型。"}
     model = str(resp.get("model") or "")
     created = datetime.now().isoformat(timespec="seconds")
     with _db() as conn:
@@ -1227,7 +1249,8 @@ def translate_page(doc_id: int, page_no: int, cfg: Dict[str, Any],
         )
         conn.commit()
     return {"ok": True, "text": translated, "lang": target, "model": model,
-            "cached": False, "created_at": created, "truncated": len(text) > 14000}
+            "cached": False, "created_at": created,
+            "truncated": len(text) > 14000 or used_short}
 
 
 # ---------------------------------------------------------------------------

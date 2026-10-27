@@ -4,7 +4,7 @@
       "type": "stdio",
       "command": "python",
       "args": [
-        "C:/path/to/Impedance_Matching_AI_4_4_0/app/run_mcp.py"
+        "C:/path/to/Impedance_Matching_AI_4_4_1/app/run_mcp.py"
       ],
       "env": {
         "PYTHONUNBUFFERED": "1",
