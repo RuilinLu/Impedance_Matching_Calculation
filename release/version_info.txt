@@ -23,7 +23,7 @@ VSVersionInfo(
           StringStruct('OriginalFilename', 'ImpedanceMatchingAI.exe'),
           StringStruct('ProductName', 'Impedance Matching AI'),
           StringStruct('ProductVersion', '4.3.0.0'),
-          StringStruct('Comments', 'https://github.com/RuilinLu/Impedance_Matching_Calculation')
+          StringStruct('Comments', 'https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation')
         ]
       )
     ]),

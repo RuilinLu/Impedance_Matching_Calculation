@@ -2,7 +2,7 @@
 
 **发布日期：2026-10-27**
 **开发者：Nova（诺瓦）、Echo（回声）、Iris（鸢尾）、Lumen（流明）**
-**项目主页：** https://github.com/RuilinLu/Impedance_Matching_Calculation
+**项目主页：** https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation
 
 一个独立运行的微波阻抗匹配、Smith 圆图、教材检索与 MCP 服务软件。本版本完成了独立开源项目的重构，补齐安装器、卸载器、完整离线说明书、教材数据库与真实模型测试。
 
@@ -22,11 +22,11 @@
 
 ## 界面截图
 
-![匹配设计](https://raw.githubusercontent.com/RuilinLu/Impedance_Matching_Calculation/main/docs/assets/screenshot_design.png)
+![匹配设计](https://raw.githubusercontent.com/SkywalkerHolmes/Impedance_Matching_Calculation/main/docs/assets/screenshot_design.png)
 
-![圆图分析](https://raw.githubusercontent.com/RuilinLu/Impedance_Matching_Calculation/main/docs/assets/screenshot_scan.png)
+![圆图分析](https://raw.githubusercontent.com/SkywalkerHolmes/Impedance_Matching_Calculation/main/docs/assets/screenshot_scan.png)
 
-![教材库](https://raw.githubusercontent.com/RuilinLu/Impedance_Matching_Calculation/main/docs/assets/screenshot_library.png)
+![教材库](https://raw.githubusercontent.com/SkywalkerHolmes/Impedance_Matching_Calculation/main/docs/assets/screenshot_library.png)
 
 更多截图见仓库 `docs/assets/` 与安装目录 `docs/index.html`。
 

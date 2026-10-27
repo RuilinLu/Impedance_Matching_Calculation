@@ -103,7 +103,7 @@ class MCPServer:
                     "name": "impedance-matching-ai",
                     "title": "Impedance Matching AI · 微波阻抗匹配与教材检索",
                     "version": config.VERSION,
-                    "websiteUrl": "https://github.com/RuilinLu/Impedance_Matching_Calculation",
+                    "websiteUrl": "https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation",
                 },
                 "instructions": INSTRUCTIONS,
             }

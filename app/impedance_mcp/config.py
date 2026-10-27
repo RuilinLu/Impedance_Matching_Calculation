@@ -49,7 +49,7 @@ VERSION = "4.3.0"
 RELEASE_DATE = "2026-10-27"
 APP_NAME = "Impedance Matching AI"
 APP_NAME_ZH = "阻抗匹配智能计算与仿真"
-PROJECT_URL = "https://github.com/RuilinLu/Impedance_Matching_Calculation"
+PROJECT_URL = "https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation"
 TEAM = [
     {"name": "Nova（诺瓦）", "role": "项目负责人 / 计算内核与智能体架构"},
     {"name": "Echo（回声）", "role": "数值算法与仿真验证"},

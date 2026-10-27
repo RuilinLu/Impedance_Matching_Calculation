@@ -16,7 +16,7 @@
 ## Reporting a vulnerability
 
 Please open a private GitHub Security Advisory (or, for non-sensitive reports, a
-GitHub Issue) at <https://github.com/RuilinLu/Impedance_Matching_Calculation> with:
+GitHub Issue) at <https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation> with:
 
 - affected version and file hash;
 - reproduction steps;

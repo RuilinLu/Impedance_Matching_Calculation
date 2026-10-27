@@ -4,7 +4,7 @@
 #define MyAppName "Impedance Matching AI"
 #define MyAppVersion "4.3.0"
 #define MyAppPublisher "Impedance Matching AI contributors"
-#define MyAppURL "https://github.com/RuilinLu/Impedance_Matching_Calculation"
+#define MyAppURL "https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation"
 #define MyAppExeName "ImpedanceMatchingAI.exe"
 #define MyAppMcpExeName "ImpedanceMatchingAI_MCP.exe"
 #define MyAppId "{{D3A6C1E1-6B25-4E55-9A3F-5C2B8D7E4F10}"
