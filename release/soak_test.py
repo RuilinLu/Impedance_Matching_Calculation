@@ -1,4 +1,4 @@
-"""Long-running v4.4.0 stability and congestion soak test.
+"""Long-running v4.5.0 stability and congestion soak test.
 
 Runs HTTP API workers, MCP stdio batches, MCP Streamable HTTP workers and a
 low-rate real-model chat loop for a configurable duration.  Writes a JSON
@@ -208,7 +208,7 @@ def http_worker(index: int) -> None:
             elif op == "status":
                 result = get_json("/api/status")
                 COUNTER.add("status")
-                if result.get("version") != "4.4.1" or "library" not in result:
+                if result.get("version") != "4.5.0" or "library" not in result:
                     COUNTER.error("status", json.dumps(result)[:300], None)
                 get_json("/api/providers")
                 COUNTER.add("providers")

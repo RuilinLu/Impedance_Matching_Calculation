@@ -1,8 +1,8 @@
-; Impedance Matching AI v4.4.1 — Inno Setup 6 installer
+; Impedance Matching AI v4.5.0 — Inno Setup 6 installer
 ; Build:  "C:\Users\Lenovo\AppData\Local\Programs\Inno Setup 6\ISCC.exe" installer\ImpedanceMatchingAI.iss
 
 #define MyAppName "Impedance Matching AI"
-#define MyAppVersion "4.4.1"
+#define MyAppVersion "4.5.0"
 #define MyAppPublisher "Impedance Matching AI contributors"
 #define MyAppURL "https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation"
 #define MyAppExeName "ImpedanceMatchingAI.exe"
@@ -37,7 +37,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
 RestartApplications=no
 SetupLogging=yes
-VersionInfoVersion=4.4.1.0
+VersionInfoVersion=4.5.0.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} installer
 VersionInfoProductName={#MyAppName}
@@ -53,7 +53,7 @@ Name: "uninstallicon"; Description: "创建“一键卸载”桌面快捷方式"
 [Files]
 Source: "..\release\Impedance_Matching_AI_v{#MyAppVersion}_Portable.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion
 Source: "..\release\Impedance_Matching_AI_v{#MyAppVersion}_MCP.exe"; DestDir: "{app}"; DestName: "{#MyAppMcpExeName}"; Flags: ignoreversion
-Source: "..\docs\*"; DestDir: "{app}\docs"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\docs\*"; DestDir: "{app}\docs"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "__pycache__\*,*.pyc"
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\CHANGELOG.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\SECURITY.md"; DestDir: "{app}"; Flags: ignoreversion
@@ -99,6 +99,114 @@ Type: filesandordirs; Name: "{app}\TextBook"
 [Code]
 var
   KeepUserData: Boolean;
+  ExistingUserData: Boolean;
+  DataRoot: String;
+
+function DataRootPath: String;
+begin
+  Result := ExpandConstant('{localappdata}\ImpedanceMatchingAI');
+end;
+
+function InitializeSetup(): Boolean;
+begin
+  Result := True;
+  DataRoot := DataRootPath;
+  ExistingUserData := FileExists(DataRoot + '\data\config.json')
+    or DirExists(DataRoot + '\data\library')
+    or DirExists(DataRoot + '\TextBook');
+  Log('Existing user data detected: ' + IntToStr(Ord(ExistingUserData)) + ' at ' + DataRoot);
+end;
+
+procedure InitializeWizard();
+var
+  Page: TInputOptionWizardPage;
+begin
+  if not ExistingUserData then
+    Exit;
+  Page := CreateInputOptionPage(wpWelcome,
+    '已有个人数据',
+    '安装程序检测到以前的个人数据，将直接复用',
+    'API Key、模型连接、界面设置、教材索引、上传文件、报告与翻译缓存都保存在用户数据目录中。',
+    True, False);
+  Page.Add('继续复用已有数据（推荐）');
+  Page.Values[0] := True;
+end;
+
+function ShowUninstallOptions(): Boolean;
+var
+  Form: TSetupForm;
+  Info: TNewStaticText;
+  Hint: TNewStaticText;
+  Keep: TNewCheckBox;
+  OkButton: TNewButton;
+  CancelButton: TNewButton;
+begin
+  Result := False;
+  Form := CreateCustomForm(ScaleX(500), ScaleY(260), False, True);
+  try
+    Form.Caption := '卸载 ' + ExpandConstant('{#MyAppName}');
+
+    Info := TNewStaticText.Create(Form);
+    Info.Parent := Form;
+    Info.Left := ScaleX(18);
+    Info.Top := ScaleY(16);
+    Info.Width := ScaleX(464);
+    Info.Height := ScaleY(92);
+    Info.AutoSize := False;
+    Info.WordWrap := True;
+    Info.Caption :=
+      '卸载前请选择如何处理本机个人数据。' + #13#10#13#10 +
+      '保留后，下次安装会自动检测并复用；彻底删除后不可恢复。' +
+      '自定义教材目录不会被卸载程序删除。';
+
+    Keep := TNewCheckBox.Create(Form);
+    Keep.Parent := Form;
+    Keep.Left := ScaleX(18);
+    Keep.Top := ScaleY(116);
+    Keep.Width := ScaleX(464);
+    Keep.Caption := '保留我的个人数据、设置、教材索引与文件库（推荐）';
+    Keep.Checked := True;
+
+    Hint := TNewStaticText.Create(Form);
+    Hint.Parent := Form;
+    Hint.Left := ScaleX(18);
+    Hint.Top := ScaleY(142);
+    Hint.Width := ScaleX(464);
+    Hint.AutoSize := False;
+    Hint.WordWrap := True;
+    Hint.Caption :=
+      '包括 API Key、模型连接、界面设置、教材索引、上传/报告、翻译缓存和教材搜索路径。' +
+      '取消勾选将删除上述数据（不可恢复），并删除程序目录 TextBook。';
+
+    OkButton := TNewButton.Create(Form);
+    OkButton.Parent := Form;
+    OkButton.Left := ScaleX(278);
+    OkButton.Top := ScaleY(210);
+    OkButton.Width := ScaleX(96);
+    OkButton.Height := ScaleY(30);
+    OkButton.Caption := '继续卸载';
+    OkButton.ModalResult := mrOk;
+    OkButton.Default := True;
+
+    CancelButton := TNewButton.Create(Form);
+    CancelButton.Parent := Form;
+    CancelButton.Left := ScaleX(384);
+    CancelButton.Top := ScaleY(210);
+    CancelButton.Width := ScaleX(96);
+    CancelButton.Height := ScaleY(30);
+    CancelButton.Caption := '取消';
+    CancelButton.ModalResult := mrCancel;
+    CancelButton.Cancel := True;
+
+    if Form.ShowModal() = mrOk then
+    begin
+      KeepUserData := Keep.Checked;
+      Result := True;
+    end;
+  finally
+    Form.Free();
+  end;
+end;
 
 procedure KillProcesses;
 var
@@ -131,7 +239,6 @@ end;
 
 function InitializeUninstall(): Boolean;
 var
-  Answer: Integer;
   Tail: String;
   SilentMode: Boolean;
 begin
@@ -148,14 +255,11 @@ begin
     KeepUserData := True
   else
   begin
-    Answer := SuppressibleMsgBox(
-      '是否保留个人数据与设置？' + #13#10 + #13#10 +
-      '是：保留 API Key、界面设置、教材索引、上传/报告、翻译缓存和教材搜索路径，' +
-      '下次安装可直接复用原来的使用习惯。' + #13#10 + #13#10 +
-      '否：彻底删除本机保存的全部个人数据（不可恢复），并删除程序目录 TextBook。' + #13#10 + #13#10 +
-      '自定义的教材搜索目录不会被卸载程序删除；选择“是”时程序目录 TextBook 会先复制到用户数据目录。',
-      mbConfirmation, MB_YESNO, IDYES);
-    KeepUserData := (Answer = IDYES);
+    if not ShowUninstallOptions() then
+    begin
+      Result := False;
+      Exit;
+    end;
   end;
   Log('Uninstall: keep user data = ' + IntToStr(Ord(KeepUserData)));
   KillProcesses;

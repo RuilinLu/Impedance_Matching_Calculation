@@ -204,6 +204,125 @@ def _plain_text(content: Any) -> str:
     return str(content or "")
 
 
+_ALLOWED_MEDIA_SCHEMES = ("http://", "https://", "data:image/", "data:audio/",
+                          "data:video/", "data:application/", "/api/media/",
+                          "/api/report/")
+
+
+def _safe_media_url(url: str) -> str:
+    text = str(url or "").strip()
+    if not text:
+        return ""
+    lowered = text.lower()
+    if any(lowered.startswith(prefix) for prefix in _ALLOWED_MEDIA_SCHEMES):
+        return text[:8_000_000]
+    return ""
+
+
+def _media_item(kind: str, url: str, name: str = "", mime: str = "") -> Optional[Dict[str, Any]]:
+    safe = _safe_media_url(url)
+    if not safe:
+        return None
+    item = {"type": kind, "url": safe}
+    if name:
+        item["name"] = str(name)[:200]
+    if mime:
+        item["mime"] = str(mime)[:100]
+    return item
+
+
+def _media_from_blocks(blocks: Any) -> Tuple[str, List[Dict[str, Any]]]:
+    """Split a multimodal response into visible text and media descriptors."""
+    if isinstance(blocks, str):
+        return blocks, []
+    if not isinstance(blocks, list):
+        return (str(blocks) if blocks is not None else ""), []
+    texts: List[str] = []
+    media: List[Dict[str, Any]] = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            continue
+        kind = block.get("type")
+        if kind in ("text", "output_text"):
+            texts.append(str(block.get("text") or ""))
+        elif kind == "image_url":
+            url = block.get("image_url")
+            if isinstance(url, dict):
+                url = url.get("url")
+            item = _media_item("image", str(url or ""), str(block.get("name") or ""))
+            if item:
+                media.append(item)
+        elif kind in ("image", "input_image"):
+            source = block.get("source") if isinstance(block.get("source"), dict) else {}
+            data = str(source.get("data") or block.get("data") or "")
+            mime = str(source.get("media_type") or block.get("mime") or "image/png")
+            if data:
+                item = _media_item("image", f"data:{mime};base64,{data}",
+                                   str(block.get("name") or ""), mime)
+                if item:
+                    media.append(item)
+            elif block.get("url"):
+                item = _media_item("image", str(block.get("url")), str(block.get("name") or ""))
+                if item:
+                    media.append(item)
+        elif kind in ("audio", "audio_url", "input_audio"):
+            url = block.get("audio_url") or block.get("url") or block.get("data") or ""
+            if isinstance(url, dict):
+                url = url.get("url")
+            mime = str(block.get("mime_type") or block.get("mime") or "audio/mpeg")
+            item = _media_item("audio", str(url or ""), str(block.get("name") or ""), mime)
+            if item:
+                media.append(item)
+        elif kind in ("video", "video_url"):
+            url = block.get("video_url") or block.get("url") or ""
+            if isinstance(url, dict):
+                url = url.get("url")
+            item = _media_item("video", str(url or ""), str(block.get("name") or ""),
+                               str(block.get("mime_type") or "video/mp4"))
+            if item:
+                media.append(item)
+        elif kind in ("file", "document", "file_url"):
+            url = block.get("file_url") or block.get("url") or ""
+            name = str(block.get("name") or block.get("filename") or "文件")
+            item = _media_item("file", str(url or ""), name,
+                               str(block.get("mime_type") or block.get("mime") or ""))
+            if item:
+                media.append(item)
+    return "\n".join(part for part in texts if part), media[:12]
+
+
+def _collect_output_media(message: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Pick up provider-specific top-level media arrays (images/audio/files)."""
+    media: List[Dict[str, Any]] = []
+    for key, kind in (("images", "image"), ("image", "image"),
+                      ("audio", "audio"), ("videos", "video"),
+                      ("video", "video"), ("files", "file"),
+                      ("attachments", "file")):
+        values = message.get(key)
+        if not values:
+            continue
+        if not isinstance(values, list):
+            values = [values]
+        for value in values[:8]:
+            url = value
+            name = ""
+            mime = ""
+            if isinstance(value, dict):
+                url = (value.get("url") or value.get("image_url")
+                       or value.get("file_url") or value.get("data") or "")
+                if isinstance(url, dict):
+                    url = url.get("url")
+                name = str(value.get("name") or value.get("filename") or "")
+                mime = str(value.get("mime_type") or value.get("mime") or "")
+                if not url and value.get("b64_json"):
+                    mime = mime or "image/png"
+                    url = f"data:{mime};base64,{value.get('b64_json')}"
+            item = _media_item(kind, str(url or ""), name, mime)
+            if item:
+                media.append(item)
+    return media[:12]
+
+
 def _anthropic_content(content: Any) -> List[Dict[str, Any]]:
     if isinstance(content, str):
         return [{"type": "text", "text": content}]
@@ -322,10 +441,13 @@ def _chat_openai(cfg: Dict[str, Any], messages: List[Dict[str, Any]],
         raise last_exc or LLMError("模型请求失败")
     choice = (data.get("choices") or [{}])[0]
     msg = choice.get("message") or {}
+    text, media = _media_from_blocks(msg.get("content"))
+    media.extend(_collect_output_media(msg))
     return {
-        "content": msg.get("content") or "",
-        "reasoning": msg.get("reasoning_content") or "",
+        "content": text or "",
+        "reasoning": msg.get("reasoning_content") or msg.get("reasoning") or "",
         "tool_calls": msg.get("tool_calls") or [],
+        "media": media[:12],
         "finish_reason": choice.get("finish_reason"),
         "usage": data.get("usage") or {},
         "model": data.get("model") or llm.get("model"),
@@ -379,6 +501,7 @@ def _chat_anthropic(cfg: Dict[str, Any], messages: List[Dict[str, Any]],
 
     text_parts: List[str] = []
     tool_calls: List[Dict[str, Any]] = []
+    media: List[Dict[str, Any]] = []
     for block in data.get("content") or []:
         if not isinstance(block, dict):
             continue
@@ -393,6 +516,9 @@ def _chat_anthropic(cfg: Dict[str, Any], messages: List[Dict[str, Any]],
                     "arguments": json.dumps(block.get("input") or {}, ensure_ascii=False),
                 },
             })
+        elif block.get("type") in ("image", "audio", "video", "file", "document"):
+            _, extra = _media_from_blocks([block])
+            media.extend(extra)
     usage = data.get("usage") or {}
     stop = data.get("stop_reason")
     finish = "tool_calls" if tool_calls else ("length" if stop == "max_tokens" else "stop")
@@ -400,6 +526,7 @@ def _chat_anthropic(cfg: Dict[str, Any], messages: List[Dict[str, Any]],
         "content": "\n".join(x for x in text_parts if x),
         "reasoning": "",
         "tool_calls": tool_calls,
+        "media": media[:12],
         "finish_reason": finish,
         "usage": usage,
         "model": data.get("model") or llm.get("model"),

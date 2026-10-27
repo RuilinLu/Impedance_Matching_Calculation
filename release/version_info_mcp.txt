@@ -1,8 +1,8 @@
-# PyInstaller version resource for the Impedance Matching AI MCP server
+# PyInstaller version resource for Impedance Matching AI
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(4, 4, 1, 0),
-    prodvers=(4, 4, 1, 0),
+    filevers=(4, 5, 0, 0),
+    prodvers=(4, 5, 0, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -16,13 +16,13 @@ VSVersionInfo(
         '080404B0',
         [
           StringStruct('CompanyName', 'Impedance Matching AI contributors'),
-          StringStruct('FileDescription', 'Impedance Matching AI MCP Server - stdio / Streamable HTTP / legacy SSE'),
-          StringStruct('FileVersion', '4.4.1.0'),
+          StringStruct('FileDescription', 'Impedance Matching AI - MCP stdio / HTTP / SSE server'),
+          StringStruct('FileVersion', '4.5.0.0'),
           StringStruct('InternalName', 'ImpedanceMatchingAI_MCP'),
           StringStruct('LegalCopyright', 'Copyright (c) 2025-2026 Nova, Echo, Iris, Lumen. MIT License.'),
           StringStruct('OriginalFilename', 'ImpedanceMatchingAI_MCP.exe'),
           StringStruct('ProductName', 'Impedance Matching AI'),
-          StringStruct('ProductVersion', '4.4.1.0'),
+          StringStruct('ProductVersion', '4.5.0.0'),
           StringStruct('Comments', 'https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation')
         ]
       )

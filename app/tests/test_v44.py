@@ -21,6 +21,7 @@ class ConfigAndPathTests(unittest.TestCase):
         cfg = config.default_config()
         self.assertFalse(cfg["ui"]["show_thinking"])
         self.assertFalse(cfg["ui"]["show_citations"])
+        self.assertFalse(cfg["ui"]["show_tools"])
         self.assertTrue(cfg["update"]["auto_check"])
         self.assertEqual(cfg["settings_version"], config.SETTINGS_VERSION)
 

@@ -17,10 +17,13 @@ moving the program to another directory automatically moves its bundled
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import os
 import re
 import sys
+import time
+import urllib.parse
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -79,6 +82,7 @@ WEB_DIR = PACKAGE_DIR / "web"
 
 UPLOAD_DIR = DATA_DIR / "uploads"
 REPORT_DIR = DATA_DIR / "reports"
+MEDIA_DIR = DATA_DIR / "media"
 LIBRARY_DIR = DATA_DIR / "library"
 CATALOG_DIR = DATA_DIR / "catalog"
 CONFIG_PATH = DATA_DIR / "config.json"
@@ -102,9 +106,9 @@ for _kind, _label, _resolver in BUILTIN_SOURCES:
     except Exception:
         pass
 
-VERSION = "4.4.1"
+VERSION = "4.5.0"
 RELEASE_DATE = "2026-10-27"
-SETTINGS_VERSION = 4
+SETTINGS_VERSION = 5
 APP_NAME = "Impedance Matching AI"
 APP_NAME_ZH = "阻抗匹配智能计算与仿真"
 PROJECT_URL = "https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation"
@@ -118,7 +122,7 @@ AUTHOR_EMAILS: List[str] = []
 
 
 def ensure_dirs() -> None:
-    for path in (DATA_DIR, UPLOAD_DIR, REPORT_DIR, LIBRARY_DIR,
+    for path in (DATA_DIR, UPLOAD_DIR, REPORT_DIR, MEDIA_DIR, LIBRARY_DIR,
                  LIBRARY_DIR / "books", LIBRARY_DIR / "cache", CATALOG_DIR,
                  UPLOAD_CHUNK_DIR):
         path.mkdir(parents=True, exist_ok=True)
@@ -155,6 +159,8 @@ def default_config() -> Dict[str, Any]:
             "thinking_budget": 0,
             "model_profile": {},
             "profiles": {},
+            "connections": [],
+            "active_connection": "",
         },
         "ui": {
             "lang": "zh",
@@ -164,6 +170,7 @@ def default_config() -> Dict[str, Any]:
             "library_zoom": 1.2,
             "show_thinking": False,
             "show_citations": False,
+            "show_tools": False,
             "library_split": 300,
             "library_text_height": 220,
             "scan_points": 10000,
@@ -200,6 +207,213 @@ def deep_merge(base: Dict[str, Any], update: Dict[str, Any]) -> Dict[str, Any]:
             out[key] = deep_merge(out[key], value)
         else:
             out[key] = value
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Saved model connections (multiple providers / API keys)
+# ---------------------------------------------------------------------------
+CONNECTION_FIELDS = (
+    "provider", "provider_name", "protocol", "base_url", "base_url_openai",
+    "base_url_anthropic", "model", "auth_header", "auth_prefix", "api_style",
+    "chat_path", "temperature", "max_tokens", "reasoning_effort",
+    "thinking_budget", "extra_headers", "models",
+)
+_MASKED_KEYS = ("", "***", "******", "••••", "…")
+
+
+def connection_id(provider: str, base_url: str) -> str:
+    """Stable identifier for one provider endpoint + credential pair."""
+    raw = f"{str(provider or 'custom').strip().lower()}|{str(base_url or '').strip().rstrip('/').lower()}"
+    return "c_" + hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
+
+
+def _clean_model_list(values: Any) -> List[str]:
+    out: List[str] = []
+    seen = set()
+    for item in values or []:
+        mid = item.get("id") if isinstance(item, dict) else item
+        text = str(mid or "").strip()
+        if not text or len(text) > 120 or text in seen:
+            continue
+        seen.add(text)
+        out.append(text)
+    return out[:400]
+
+
+def _mask_key(key: str) -> str:
+    key = str(key or "")
+    if not key:
+        return ""
+    if len(key) >= 10:
+        return key[:4] + "…" + key[-4:]
+    return "已配置"
+
+
+def public_connection(conn: Dict[str, Any]) -> Dict[str, Any]:
+    out = {}
+    for key in ("id", "label", "provider", "provider_name", "protocol",
+                "base_url", "base_url_openai", "base_url_anthropic", "model",
+                "models", "created", "updated"):
+        if key in conn:
+            out[key] = copy.deepcopy(conn[key])
+    key = str(conn.get("api_key") or "")
+    out["api_key"] = ""
+    out["has_key"] = bool(key)
+    out["key_hint"] = _mask_key(key)
+    return out
+
+
+def list_connections(cfg: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    cfg = cfg or load_config()
+    values = (cfg.get("llm") or {}).get("connections")
+    return [item for item in values or [] if isinstance(item, dict)]
+
+
+def public_connections(cfg: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    return [public_connection(item) for item in list_connections(cfg)]
+
+
+def find_connection(cfg: Dict[str, Any], cid: str) -> Optional[Dict[str, Any]]:
+    cid = str(cid or "").strip()
+    if not cid:
+        return None
+    for item in list_connections(cfg):
+        if str(item.get("id") or "") == cid:
+            return item
+    return None
+
+
+def _connection_label(provider_name: str, base_url: str, model: str) -> str:
+    name = str(provider_name or "自定义服务").strip()
+    try:
+        host = urllib.parse.urlparse(str(base_url or "")).hostname or ""
+    except Exception:
+        host = ""
+    label = f"{name} · {host}" if host else name
+    if model:
+        label += f" · {model}"
+    return label[:120]
+
+
+def upsert_connection(cfg: Dict[str, Any], data: Dict[str, Any],
+                      activate: bool = True) -> Dict[str, Any]:
+    """Insert or update one saved connection; never drops an existing key."""
+    if not isinstance(data, dict):
+        raise ValueError("连接配置必须是对象")
+    llm = cfg.setdefault("llm", {})
+    connections = llm.setdefault("connections", [])
+    if not isinstance(connections, list):
+        connections = []
+        llm["connections"] = connections
+    provider = str(data.get("provider") or "").strip()[:60]
+    base_url = str(data.get("base_url") or "").strip()[:520]
+    if not provider:
+        raise ValueError("连接缺少服务商")
+    if not base_url:
+        raise ValueError("连接缺少 Base URL")
+    cid = str(data.get("id") or "").strip()
+    if not cid:
+        cid = connection_id(provider, base_url)
+    existing = next((item for item in connections
+                     if isinstance(item, dict) and item.get("id") == cid), None)
+    if existing is None:
+        existing = {"id": cid, "created": time.time()}
+        connections.append(existing)
+    for field in CONNECTION_FIELDS:
+        if field in data and data.get(field) not in (None, ""):
+            if field == "models":
+                models = _clean_model_list(data.get("models"))
+                if models:
+                    existing["models"] = models
+            else:
+                existing[field] = copy.deepcopy(data[field])
+    key = str(data.get("api_key") or "")
+    if key and key not in _MASKED_KEYS:
+        existing["api_key"] = key
+    elif not existing.get("api_key"):
+        existing["api_key"] = ""
+    existing.setdefault("models", [])
+    existing.setdefault("protocol", existing.get("api_style") or "openai")
+    existing.setdefault("model", "")
+    existing["provider"] = provider
+    existing["base_url"] = base_url
+    existing["provider_name"] = str(existing.get("provider_name") or provider)[:120]
+    existing["label"] = _connection_label(existing["provider_name"], base_url,
+                                          str(existing.get("model") or ""))
+    existing["updated"] = time.time()
+    if activate:
+        llm["active_connection"] = cid
+        _apply_connection(llm, existing)
+    return existing
+
+
+def _apply_connection(llm: Dict[str, Any], conn: Dict[str, Any]) -> None:
+    for field in ("provider", "provider_name", "protocol", "base_url",
+                  "base_url_openai", "base_url_anthropic", "model",
+                  "auth_header", "auth_prefix", "api_style", "chat_path",
+                  "temperature", "max_tokens", "reasoning_effort",
+                  "thinking_budget", "extra_headers"):
+        if field in conn and conn.get(field) not in (None, ""):
+            llm[field] = copy.deepcopy(conn[field])
+    llm["provider"] = conn.get("provider") or llm.get("provider") or ""
+    llm["model"] = conn.get("model") or ""
+    llm["base_url"] = conn.get("base_url") or ""
+    if conn.get("api_key"):
+        llm["api_key"] = conn["api_key"]
+
+
+def activate_connection(cfg: Dict[str, Any], cid: str,
+                        model: str = "") -> Dict[str, Any]:
+    conn = find_connection(cfg, cid)
+    if not conn:
+        raise ValueError("连接不存在或已被删除")
+    if model:
+        model = str(model).strip()[:120]
+        if model:
+            conn["model"] = model
+            models = _clean_model_list(conn.get("models"))
+            if model not in models:
+                models.insert(0, model)
+            conn["models"] = models
+    conn["label"] = _connection_label(str(conn.get("provider_name") or ""),
+                                      str(conn.get("base_url") or ""),
+                                      str(conn.get("model") or ""))
+    cfg.setdefault("llm", {})["active_connection"] = str(conn.get("id") or "")
+    _apply_connection(cfg["llm"], conn)
+    return conn
+
+
+def delete_connection(cfg: Dict[str, Any], cid: str) -> bool:
+    llm = cfg.setdefault("llm", {})
+    connections = [item for item in llm.get("connections") or []
+                   if isinstance(item, dict) and str(item.get("id")) != str(cid)]
+    if len(connections) == len(llm.get("connections") or []):
+        return False
+    llm["connections"] = connections
+    if str(llm.get("active_connection") or "") == str(cid):
+        if connections:
+            activate_connection(cfg, str(connections[0].get("id") or ""))
+        else:
+            llm["active_connection"] = ""
+            for field in ("provider", "provider_name", "model", "api_key"):
+                llm[field] = ""
+    return True
+
+
+def cfg_for_connection(cfg: Dict[str, Any], cid: str,
+                       model: str = "") -> Dict[str, Any]:
+    """Return a copy of ``cfg`` whose llm block points at one saved connection."""
+    if not cid:
+        return copy.deepcopy(cfg)
+    conn = find_connection(cfg, cid)
+    if not conn:
+        raise ValueError("所选模型连接不存在")
+    out = copy.deepcopy(cfg)
+    _apply_connection(out.setdefault("llm", {}), conn)
+    if model:
+        out["llm"]["model"] = str(model).strip()[:120]
+    out["llm"]["active_connection"] = str(cid)
     return out
 
 
@@ -265,6 +479,8 @@ def _migrate_config(cfg: Dict[str, Any], stored: Dict[str, Any]) -> Dict[str, An
         ui["show_thinking"] = False
     if ui.get("show_citations") is None:
         ui["show_citations"] = False
+    if ui.get("show_tools") is None:
+        ui["show_tools"] = False
     # 4.3.x stored the library zoom only; new layout values get sane defaults.
     try:
         ui["library_split"] = max(220, min(620, int(ui.get("library_split", 300))))
@@ -280,6 +496,34 @@ def _migrate_config(cfg: Dict[str, Any], stored: Dict[str, Any]) -> Dict[str, An
     update.setdefault("use_model", True)
     update.setdefault("repo", PROJECT_URL)
     update.setdefault("skipped_version", "")
+
+    llm = cfg.setdefault("llm", {})
+    if not isinstance(llm.get("connections"), list):
+        llm["connections"] = []
+    # v4.5.0: turn a single legacy model configuration into a saved connection
+    # so the model picker has something to show after an in-place upgrade.
+    if not llm["connections"] and llm.get("provider") and llm.get("model"):
+        if llm.get("api_key") or stored.get("llm", {}).get("api_key"):
+            try:
+                conn = upsert_connection(cfg, {
+                    "provider": llm.get("provider"),
+                    "provider_name": llm.get("provider_name") or llm.get("provider"),
+                    "protocol": llm.get("protocol") or llm.get("api_style") or "openai",
+                    "base_url": llm.get("base_url") or llm.get("base_url_openai")
+                    or llm.get("base_url_anthropic") or "",
+                    "api_key": llm.get("api_key") or stored.get("llm", {}).get("api_key"),
+                    "model": llm.get("model"),
+                    "models": [llm.get("model")],
+                    "auth_header": llm.get("auth_header") or "Authorization",
+                    "auth_prefix": llm.get("auth_prefix", "Bearer "),
+                    "api_style": llm.get("api_style") or "openai",
+                    "chat_path": llm.get("chat_path") or "",
+                    "temperature": llm.get("temperature", 0.25),
+                    "max_tokens": llm.get("max_tokens", 16384),
+                }, activate=True)
+                llm["active_connection"] = conn.get("id", "")
+            except ValueError:
+                pass
     cfg["settings_version"] = SETTINGS_VERSION
     return cfg
 
@@ -337,6 +581,40 @@ def save_config(update: Dict[str, Any]) -> Dict[str, Any]:
             lib["sources_seeded"] = True
     merged = deep_merge(cfg, update)
     merged = _migrate_config(merged, merged)
+    # Keep the model-connection registry in sync with the active configuration.
+    if isinstance(llm, dict) and llm.get("provider"):
+        provider = str(llm.get("provider") or "")
+        base_url = str(llm.get("base_url") or llm.get("base_url_openai")
+                       or llm.get("base_url_anthropic") or "")
+        model = str(llm.get("model") or "")
+        if provider and base_url and model:
+            target_id = str(llm.get("active_connection") or "")
+            conn = find_connection(merged, target_id) if target_id else None
+            if conn is None:
+                conn = next((item for item in list_connections(merged)
+                             if item.get("provider") == provider
+                             and str(item.get("base_url") or "").rstrip("/")
+                             == base_url.rstrip("/")), None)
+            data = {field: merged["llm"].get(field) for field in CONNECTION_FIELDS
+                    if merged["llm"].get(field) not in (None, "")}
+            data["id"] = (conn or {}).get("id") or ""
+            incoming_key = str(llm.get("api_key") or "")
+            if not incoming_key and conn and str(conn.get("provider") or "") == provider:
+                incoming_key = str(conn.get("api_key") or "")
+            if not incoming_key:
+                same_active = (str(merged["llm"].get("provider") or "") == provider
+                               and str(merged["llm"].get("base_url") or "").rstrip("/")
+                               == base_url.rstrip("/"))
+                if same_active:
+                    incoming_key = str(merged["llm"].get("api_key") or "")
+            if incoming_key:
+                data["api_key"] = incoming_key
+            try:
+                saved = upsert_connection(merged, data, activate=True)
+                merged["llm"]["active_connection"] = saved.get("id", "")
+                _apply_connection(merged["llm"], saved)
+            except ValueError:
+                pass
     ensure_dirs()
     CONFIG_PATH.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
     try:
@@ -352,6 +630,7 @@ def public_config(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     cfg["llm"]["api_key"] = ""
     cfg["llm"]["has_key"] = bool(key)
     cfg["llm"]["key_hint"] = (key[:4] + "…" + key[-4:]) if len(key) >= 10 else ("已配置" if key else "")
+    cfg["llm"]["connections"] = public_connections(cfg)
     cfg["paths"] = path_summary()
     return cfg
 
@@ -369,6 +648,9 @@ def llm_status(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         "protocol": llm.get("protocol", "openai"),
         "api_style": llm.get("api_style", "openai"),
         "has_key": bool(llm.get("api_key")),
+        "active_connection": llm.get("active_connection", ""),
+        "connections": len([item for item in llm.get("connections") or []
+                            if isinstance(item, dict)]),
     }
 
 

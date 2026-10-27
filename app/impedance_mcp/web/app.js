@@ -30,6 +30,7 @@
     catalogLog: [],
     showThinking: false,
     showCitations: false,
+    showTools: false,
     scanAbort: null,
     scanStreaming: false,
     scanRevealed: 0,
@@ -87,8 +88,8 @@
       en: ["Documentation", "Application · code reference · AI interface · MCP protocol"],
     },
     about: {
-      zh: ["关于", "Impedance Matching AI v4.4.1"],
-      en: ["About", "Impedance Matching AI v4.4.1"],
+      zh: ["关于", "Impedance Matching AI v4.5.0"],
+      en: ["About", "Impedance Matching AI v4.5.0"],
     },
   };
 
@@ -397,13 +398,94 @@
   /* ------------------------------------------------------------------ */
   /* Markdown renderer                                                  */
   /* ------------------------------------------------------------------ */
+  const MEDIA_PREFIX = /^(?:https?:\/\/|data:(?:image|audio|video|application)\/|\/api\/(?:media|report)\/)/i;
+
+  function safeMediaUrl(url) {
+    const text = String(url || "").trim();
+    if (!text || text.length > 8_000_000) return "";
+    return MEDIA_PREFIX.test(text) ? text : "";
+  }
+
+  function mediaKind(url, fallback) {
+    const text = String(url || "");
+    const lower = text.toLowerCase();
+    if (/^data:image\//.test(lower) || /\.(png|jpe?g|gif|webp|svg|bmp)(\?|#|$)/.test(lower)) return "image";
+    if (/^data:video\//.test(lower) || /\.(mp4|webm|ogv|mov)(\?|#|$)/.test(lower)) return "video";
+    if (/^data:audio\//.test(lower) || /\.(mp3|wav|ogg|m4a|flac|aac)(\?|#|$)/.test(lower)) return "audio";
+    return fallback || "file";
+  }
+
+  function mediaName(url, fallback) {
+    try {
+      const clean = String(url || "").split("?")[0].split("#")[0];
+      const name = decodeURIComponent(clean.split("/").pop() || "");
+      return name && name.length <= 120 ? name : (fallback || "文件");
+    } catch (error) {
+      return fallback || "文件";
+    }
+  }
+
+  function mediaActions(url, kind, name) {
+    const safeUrl = escapeHtml(url);
+    const safeName = escapeHtml(name);
+    const copy = kind === "image" ? `<button class="btn tiny ghost" data-media-copy="${safeUrl}">复制图片</button>` : "";
+    return `<div class="media-actions">
+      <a class="btn tiny" href="${safeUrl}" download="${safeName}" target="_blank" rel="noreferrer"><svg><use href="#i-download"/></svg>下载</a>
+      ${copy}
+      <button class="btn tiny ghost" data-media-copy-link="${safeUrl}">复制链接</button>
+      <a class="btn tiny ghost" href="${safeUrl}" target="_blank" rel="noreferrer"><svg><use href="#i-external"/></svg>打开</a>
+    </div>`;
+  }
+
+  function mediaFigureHtml(item, inline) {
+    const url = safeMediaUrl(item.url);
+    if (!url) return "";
+    const kind = item.kind || mediaKind(url, item.type);
+    const name = mediaName(url, item.name || item.title || "媒体");
+    const title = item.title || name;
+    let body = "";
+    if (kind === "image") {
+      body = `<img loading="lazy" src="${escapeHtml(url)}" alt="${escapeHtml(title)}">`;
+    } else if (kind === "video") {
+      body = `<video controls preload="metadata" src="${escapeHtml(url)}"></video>`;
+    } else if (kind === "audio") {
+      body = `<audio controls preload="metadata" src="${escapeHtml(url)}"></audio>`;
+    } else {
+      body = `<div class="file-card-icon"><svg><use href="#i-docs"/></svg></div>`;
+    }
+    return `<figure class="md-media ${kind} ${inline ? "inline" : ""}" data-media-url="${escapeHtml(url)}">
+      <div class="media-frame">${body}</div>
+      <figcaption><b>${escapeHtml(title)}</b><small>${escapeHtml(kind.toUpperCase())}</small></figcaption>
+      ${mediaActions(url, kind, name)}
+    </figure>`;
+  }
+
   function inlineMd(text) {
     let value = escapeHtml(text);
     value = value.replace(/`([^`]+)`/g, (match, code) => `<code>${code}</code>`);
     value = value.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
     value = value.replace(/\*([^*]+)\*/g, "<em>$1</em>");
-    value = value.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-      '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+    value = value.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (match, label, url) => {
+      const safe = safeMediaUrl(url);
+      if (safe) {
+        const kind = mediaKind(safe);
+        const file = kind === "file";
+        return `<a href="${safe}" target="_blank" rel="noreferrer"${file ? ` download="${escapeHtml(mediaName(safe, label))}"` : ""}>${label}${file ? " ⬇" : ""}</a>`;
+      }
+      if (/^https?:\/\//i.test(url)) {
+        return `<a href="${url}" target="_blank" rel="noreferrer">${label}</a>`;
+      }
+      return match;
+    });
+    // Auto-link bare URLs without touching anchors we just generated.
+    const anchors = [];
+    value = value.replace(/<a\b[\s\S]*?<\/a>/g, (match) => {
+      anchors.push(match);
+      return `@@ANCHOR${anchors.length - 1}@@`;
+    });
+    value = value.replace(/(^|[\s(（])((?:https?:\/\/)[^\s<>()（）]+)/g,
+      (match, lead, url) => `${lead}<a href="${url}" target="_blank" rel="noreferrer">${url}</a>`);
+    value = value.replace(/@@ANCHOR(\d+)@@/g, (match, index) => anchors[Number(index)] || "");
     value = value.replace(/\[\[([^\]]+)\]\]/g, "<mark>$1</mark>");
     return value;
   }
@@ -413,6 +495,7 @@
     const codeBlocks = [];
     const inlineCodes = [];
     const mathItems = [];
+    const mediaItems = [];
     let text = String(source).replace(/```([a-zA-Z0-9_+-]*)\n?([\s\S]*?)```/g, (match, lang, code) => {
       codeBlocks.push(`<pre><code>${escapeHtml(code.replace(/\n$/, ""))}</code></pre>`);
       return `@@CODEBLOCK${codeBlocks.length - 1}@@`;
@@ -422,6 +505,13 @@
       inlineCodes.push(code);
       return `@@INLINECODE${inlineCodes.length - 1}@@`;
     });
+    text = text.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+      (match, alt, url, title) => {
+        const safe = safeMediaUrl(url);
+        if (!safe) return match;
+        mediaItems.push({ url: safe, alt, title });
+        return `@@MEDIA${mediaItems.length - 1}@@`;
+      });
     const stashMath = (raw, display) => {
       mathItems.push({ raw, display: !!display });
       return `@@MATH${mathItems.length - 1}@@`;
@@ -471,6 +561,27 @@
 
     for (const rawLine of lines) {
       const line = rawLine.replace(/\s+$/, "");
+      const mediaLine = line.trim().match(/^@@MEDIA(\d+)@@$/);
+      if (mediaLine) {
+        flushParagraph(); flushList(); flushTable();
+        const item = mediaItems[Number(mediaLine[1])];
+        if (item) {
+          out.push(mediaFigureHtml({ url: item.url, title: item.title || item.alt },
+            mediaKind(item.url) === "image"));
+        }
+        continue;
+      }
+      const linkedMedia = line.trim().match(/^\[([^\]]+)\]\(([^)\s]+)\)$/);
+      if (linkedMedia && safeMediaUrl(linkedMedia[2]) && mediaKind(linkedMedia[2]) !== "image") {
+        flushParagraph(); flushList(); flushTable();
+        out.push(mediaFigureHtml({ url: linkedMedia[2], title: linkedMedia[1] }, false));
+        continue;
+      }
+      if (/^(?:\/api\/(?:media|report)\/|https?:\/\/)\S+\.(?:mp4|webm|ogv|mov|mp3|wav|ogg|m4a|flac|aac|pdf|zip|docx?|xlsx?|pptx?|csv)(?:\?\S*)?$/i.test(line.trim())) {
+        flushParagraph(); flushList(); flushTable();
+        out.push(mediaFigureHtml({ url: line.trim(), title: mediaName(line.trim()) }, false));
+        continue;
+      }
       if (/^\s*\|.*\|\s*$/.test(line)) {
         flushParagraph(); flushList();
         const cells = line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
@@ -521,12 +632,31 @@
     html = html.replace(/@@MATH(\d+)@@/g, (match, index) => {
       const item = mathItems[Number(index)];
       if (!item) return "";
+      const raw = escapeHtml(item.raw);
       return item.display
-        ? `<span class="math-display">${escapeHtml(item.raw)}</span>`
-        : `<span class="math-inline">${escapeHtml(item.raw)}</span>`;
+        ? `<span class="math-display" data-latex="${raw}" title="点击复制 LaTeX 源码">${raw}</span>`
+        : `<span class="math-inline" data-latex="${raw}" title="点击复制 LaTeX 源码">${raw}</span>`;
+    });
+    html = html.replace(/@@MEDIA(\d+)@@/g, (match, index) => {
+      const item = mediaItems[Number(index)];
+      return item ? mediaFigureHtml({ url: item.url, title: item.title || item.alt }, true) : "";
     });
     html = html.replace(/@@CODEBLOCK(\d+)@@/g, (match, index) => codeBlocks[Number(index)] || "");
     return html;
+  }
+
+  function addMathCopyButtons(element) {
+    if (!element) return;
+    element.querySelectorAll(".math-display").forEach((host) => {
+      if (host.querySelector(".math-copy-btn")) return;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "math-copy-btn";
+      button.textContent = "复制 LaTeX";
+      button.title = "复制此公式的 LaTeX 源码";
+      button.dataset.latex = host.dataset.latex || host.textContent || "";
+      host.appendChild(button);
+    });
   }
 
   function typesetMath(element) {
@@ -534,7 +664,7 @@
     const run = () => {
       try {
         if (MathJax.typesetClear) MathJax.typesetClear([element]);
-        MathJax.typesetPromise([element]).catch(() => {});
+        MathJax.typesetPromise([element]).then(() => addMathCopyButtons(element)).catch(() => {});
       } catch (error) {
         /* a malformed formula must never break the answer */
       }
@@ -662,8 +792,16 @@
     let list = provider ? (provider.models || []).map((model) => ({
       id: model.id, name: model.name || model.id, meta: model,
     })) : [];
+    const llm = (STATE.config && STATE.config.llm) || {};
+    const savedConnections = (llm.connections || []).filter((item) => item.provider === providerId);
+    const savedModels = savedConnections.flatMap((item) =>
+      [item.model, ...(item.models || [])]).filter(Boolean);
+    savedModels.forEach((id) => {
+      if (!list.some((item) => item.id === id)) list.push({ id, name: id, meta: null });
+    });
     if (providerId === "custom") {
-      list = (STATE.models || []).map((id) => ({ id, name: id, meta: null }));
+      const discovered = new Set((STATE.models || []).concat(savedModels));
+      list = Array.from(discovered).map((id) => ({ id, name: id, meta: null }));
     }
     if (current && !list.some((item) => item.id === current) && providerId) {
       list.unshift({ id: current, name: current, meta: null });
@@ -676,6 +814,10 @@
   }
 
   function syncChatModelSelect() {
+    if (window.ChatUI) {
+      window.ChatUI.populateModelSelects();
+      return;
+    }
     const select = $("#modelSelect");
     if (!select) return;
     const llm = (STATE.config && STATE.config.llm) || {};
@@ -763,6 +905,7 @@
     $("#setLang").value = ui.lang || "zh";
     $("#setShowThinking").checked = ui.show_thinking === true;
     $("#setShowCitations").checked = ui.show_citations === true;
+    if ($("#setShowTools")) $("#setShowTools").checked = ui.show_tools === true;
     $("#setAutoUpdate").checked = updateCfg.auto_check !== false;
     $("#setUpdateUseModel").checked = updateCfg.use_model !== false;
     $("#setAutoIndex").checked = library.auto_index !== false;
@@ -779,7 +922,12 @@
     }
     STATE.showThinking = ui.show_thinking === true;
     STATE.showCitations = ui.show_citations === true;
+    STATE.showTools = ui.show_tools === true;
     syncDisplayToggles();
+    if (window.ChatUI) {
+      window.ChatUI.renderConnectionList(cfg);
+      window.ChatUI.setShowTools(STATE.showTools);
+    }
     const paths = cfg.paths || {};
     const readout = $("#settingsPathReadout");
     if (readout) {
@@ -804,6 +952,9 @@
     const profile = profileFromForm();
     const profiles = {};
     if (providerId && model) profiles[`${providerId}/${model}`] = profile;
+    const providerModels = provider
+      ? (provider.models || []).map((item) => item.id)
+      : (providerId === "custom" ? (STATE.models || []) : []);
     const llm = {
       provider: providerId,
       provider_name: provider ? providerLabel(provider) : (providerId === "custom" ? "Custom" : ""),
@@ -813,6 +964,7 @@
       base_url_openai: baseOpenai,
       base_url_anthropic: baseAnthropic,
       model,
+      models: providerModels,
       temperature: Number($("#setTemp").value),
       max_tokens: Number($("#setMaxTokens").value),
       reasoning_effort: $("#setReasoning").value || "",
@@ -856,7 +1008,8 @@
         return toast("配置不完整", "请填写 Base URL 和模型 ID。", "amber");
       }
       const existingKey = !!(STATE.config && STATE.config.llm && STATE.config.llm.has_key);
-      if (!key && (!existingKey || STATE.providerChanged)) {
+      const connectionKey = window.ChatUI && window.ChatUI.connectionHasKey(providerId, llm.base_url);
+      if (!key && !connectionKey && (!existingKey || STATE.providerChanged)) {
         return toast("请填写 API Key", "每个服务商都需要使用你自己的 Key；本软件不内置任何厂商密钥。", "amber", 5000);
       }
     }
@@ -866,6 +1019,7 @@
         assistant_open: !!STATE.config?.ui?.assistant_open,
         show_thinking: $("#setShowThinking").checked,
         show_citations: $("#setShowCitations").checked,
+        show_tools: $("#setShowTools") ? $("#setShowTools").checked : !!STATE.showTools,
       },
       library: {
         auto_index: $("#setAutoIndex").checked,
@@ -887,7 +1041,9 @@
       $("#saveHint").textContent = "已保存";
       STATE.showThinking = $("#setShowThinking").checked;
       STATE.showCitations = $("#setShowCitations").checked;
+      if ($("#setShowTools")) STATE.showTools = $("#setShowTools").checked;
       syncDisplayToggles();
+      if (window.ChatUI) window.ChatUI.renderConnectionList(result.config);
       if (window.Library) window.Library.applyConfig(result.config);
       if (window.I18N) {
         window.I18N.setLang(payload.ui.lang);
@@ -913,7 +1069,8 @@
       return;
     }
     const existingKey = !!(STATE.config && STATE.config.llm && STATE.config.llm.has_key);
-    if (!key && (!existingKey || STATE.providerChanged)) {
+    const connectionKey = window.ChatUI && window.ChatUI.connectionHasKey(providerId, llm.base_url);
+    if (!key && !connectionKey && (!existingKey || STATE.providerChanged)) {
       output.className = "inline-status err";
       output.textContent = "请填写该服务商的 API Key。";
       return;
@@ -1217,30 +1374,30 @@
     syncDisplayToggles();
   }
 
+  function initMathCopy() {
+    document.addEventListener("click", (event) => {
+      const host = event.target.closest("[data-latex]");
+      if (!host) return;
+      const selection = String(window.getSelection ? window.getSelection().toString() : "");
+      if (selection.trim()) return;
+      const latex = host.getAttribute("data-latex") || "";
+      if (!latex) return;
+      event.preventDefault();
+      event.stopPropagation();
+      copyText(latex, "已复制公式的 LaTeX 源码");
+    });
+  }
+
   function initChat() {
     const input = $("#chatInput");
-    input.addEventListener("input", () => {
-      input.style.height = "auto";
-      input.style.height = Math.min(200, input.scrollHeight) + "px";
-    });
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        sendChat();
-      }
-    });
     input.addEventListener("paste", handlePaste);
-    $("#btnSend").addEventListener("click", sendChat);
     $("#btnAttach").addEventListener("click", () => $("#fileInput").click());
     $("#fileInput").addEventListener("change", handleFiles);
-    $("#chatScroll").addEventListener("scroll", () => {
-      const element = $("#chatScroll");
-      chatAutoScroll = element.scrollHeight - element.scrollTop - element.clientHeight < 90;
-    });
     $$("#suggestGrid .suggest").forEach((button) => button.addEventListener("click", () => {
       $("#chatInput").value = button.dataset.prompt || "";
       $("#chatInput").focus();
-      sendChat();
+      if (window.ChatUI) window.ChatUI.sendFromPrompt(button.dataset.prompt || "");
+      else sendChat();
     }));
     ["#btnCopyMcp", "#btnCopyMcpSide", "#btnCopyMcpAbout", "#btnCopyMcpSettings"].forEach((selector) => {
       const button = $(selector);
@@ -1633,6 +1790,7 @@
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal: handlers.signal,
     });
     if (!response.ok) {
       let detail = {};
@@ -1644,7 +1802,9 @@
     const decoder = new TextDecoder();
     let buffer = "";
     let content = "";
+    let reasoning = "";
     let errored = false;
+    let media = [];
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -1664,11 +1824,16 @@
         try { data = JSON.parse(dataString); } catch (e) { continue; }
         if (eventName === "error") errored = true;
         if (eventName === "token") content += data.text || "";
-        if (eventName === "done" && data.content) content = data.content;
+        if (eventName === "reasoning") reasoning += data.text || "";
+        if (eventName === "done") {
+          if (data.content) content = data.content;
+          if (data.reasoning) reasoning = data.reasoning;
+          if (Array.isArray(data.media)) media = data.media;
+        }
         if (handlers.onEvent) handlers.onEvent(eventName, data);
       }
     }
-    return { content, errored };
+    return { content, reasoning, errored, media };
   }
 
   function handleChatEvent(eventName, data, assistant, options = {}) {
@@ -1722,6 +1887,7 @@
   }
 
   async function sendChat() {
+    if (window.ChatUI && window.ChatUI.mainSession) return window.ChatUI.mainSession.send();
     if (STATE.streaming) return;
     const input = $("#chatInput");
     const text = input.value.trim();
@@ -2997,7 +3163,9 @@
     booted = true;
     initNav();
     initChat();
+    if (window.ChatUI) window.ChatUI.init();
     initDisplayToggles();
+    initMathCopy();
     initDesignForm();
     initAnalysis();
     initStress();
@@ -3040,6 +3208,7 @@
     toast,
     t: T,
     escapeHtml,
+    copyText,
     renderMarkdown,
     typesetMath,
     showView,
@@ -3047,6 +3216,7 @@
     streamEvents,
     uploadBlobWithProgress,
     formatBytes,
+    renderAttachmentBar,
     makeAssistant,
     addUserMessage,
     handleChatEvent,

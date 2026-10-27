@@ -17,7 +17,7 @@ from typing import Any, Dict, Optional
 import numpy as np
 
 from . import (agent, attachments, code_docs, config, docs_hub, engine, knowledge,
-               library, llm, providers, reports, tools, update_check, usage)
+               library, llm, media, providers, reports, tools, update_check, usage)
 
 MAX_BODY = 160 * 1024 * 1024  # base64 textbook uploads
 JSON_LIMIT = 64 * 1024 * 1024
@@ -212,6 +212,8 @@ class Handler(BaseHTTPRequestHandler):
                     fuzzy=query.get("fuzzy", "1") not in ("0", "false")))
             if path == "/api/usage/summary":
                 return self._json(usage.summary())
+            if path.startswith("/api/media/"):
+                return self._serve_media(path.split("/")[-1])
             if path.startswith("/api/report/"):
                 return self._serve_report(path.split("/")[-1])
             if path in ("/", "/index.html"):
@@ -250,6 +252,8 @@ class Handler(BaseHTTPRequestHandler):
                 "/api/config": self._save_config,
                 "/api/config/test": self._test_llm,
                 "/api/models": self._models,
+                "/api/connections/activate": self._connections_activate,
+                "/api/connections/delete": self._connections_delete,
                 "/api/design": self._design,
                 "/api/scan": self._scan,
                 "/api/scan/stream": self._scan_stream,
@@ -325,6 +329,18 @@ class Handler(BaseHTTPRequestHandler):
         self._send(200, path.read_bytes(), ctype,
                    {"Content-Disposition": _inline_disposition(safe)})
 
+    def _serve_media(self, name: str) -> None:
+        path = media.resolve(urllib.parse.unquote(name))
+        if path is None:
+            return self._error("媒体文件不存在", status=404, code="not_found")
+        quoted = urllib.parse.quote(path.name, safe="")
+        disposition = (f'inline; filename="media{path.suffix}"; '
+                       f"filename*=UTF-8''{quoted}")
+        self._send(200, path.read_bytes(), media.content_type(path), {
+            "Content-Disposition": disposition,
+            "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:",
+        })
+
     # -- config / LLM -----------------------------------------------------
     def _save_config(self) -> None:
         data = self._body()
@@ -345,10 +361,27 @@ class Handler(BaseHTTPRequestHandler):
         data = self._body()
         posted = data.get("llm") if isinstance(data.get("llm"), dict) else None
         cfg = config.load_config()
+        connection_id = str(data.get("connection_id") or "").strip()
+        if connection_id:
+            try:
+                cfg = config.cfg_for_connection(cfg, connection_id)
+            except ValueError as exc:
+                raise ValueError(str(exc)) from exc
         if posted:
             key = posted.get("api_key")
             if key in ("", "***", "******"):
                 posted.pop("api_key", None)
+            if not connection_id and not posted.get("api_key"):
+                target_provider = str(posted.get("provider") or "")
+                target_base = str(posted.get("base_url") or "").rstrip("/").lower()
+                for candidate in config.list_connections(cfg):
+                    if (str(candidate.get("provider") or "") == target_provider
+                            and str(candidate.get("base_url") or "").rstrip("/").lower()
+                            == target_base):
+                        cfg = config.cfg_for_connection(
+                            cfg, str(candidate.get("id") or ""),
+                            str(posted.get("model") or ""))
+                        break
             cfg = config.deep_merge(cfg, {"llm": posted})
         return cfg
 
@@ -362,9 +395,49 @@ class Handler(BaseHTTPRequestHandler):
     def _models(self) -> None:
         cfg = self._merged_config()
         try:
-            return self._json(llm.list_models(cfg))
+            result = llm.list_models(cfg)
         except llm.LLMError as exc:
             return self._error(exc.message, exc.hint, 400, "llm_error")
+        cid = str(cfg.get("llm", {}).get("active_connection") or "")
+        models = result.get("models") or []
+        if cid and models:
+            try:
+                config.upsert_connection(cfg, {
+                    "id": cid,
+                    "provider": cfg["llm"].get("provider", ""),
+                    "provider_name": cfg["llm"].get("provider_name", ""),
+                    "protocol": cfg["llm"].get("protocol", "openai"),
+                    "base_url": cfg["llm"].get("base_url", ""),
+                    "model": cfg["llm"].get("model", ""),
+                    "models": models,
+                }, activate=False)
+                config.save_config({"llm": {"connections": cfg["llm"]["connections"],
+                                            "active_connection": cid}})
+            except Exception:
+                pass
+        return self._json(result)
+
+    def _connections_activate(self) -> None:
+        data = self._body()
+        cfg = config.load_config()
+        try:
+            conn = config.activate_connection(
+                cfg, str(data.get("id") or ""), str(data.get("model") or ""))
+        except ValueError as exc:
+            return self._error(str(exc), status=404, code="not_found")
+        merged = config.save_config({"llm": cfg.get("llm") or {}})
+        status = config.llm_status(merged)
+        return self._json({"ok": True, "connection": config.public_connection(conn),
+                           "config": config.public_config(merged), "llm": status})
+
+    def _connections_delete(self) -> None:
+        data = self._body()
+        cfg = config.load_config()
+        if not config.delete_connection(cfg, str(data.get("id") or "")):
+            return self._error("连接不存在", status=404, code="not_found")
+        merged = config.save_config({"llm": cfg.get("llm") or {}})
+        return self._json({"ok": True, "config": config.public_config(merged),
+                           "llm": config.llm_status(merged)})
 
     # -- design -----------------------------------------------------------
     def _design(self) -> None:
@@ -915,6 +988,13 @@ class Handler(BaseHTTPRequestHandler):
         attach = data.get("attachments") or []
         context = data.get("context") if isinstance(data.get("context"), dict) else None
         cfg = config.load_config()
+        connection_id = str(data.get("connection_id") or "").strip()
+        if connection_id:
+            try:
+                cfg = config.cfg_for_connection(cfg, connection_id,
+                                                str(data.get("model") or ""))
+            except ValueError as exc:
+                return self._error(str(exc), status=400, code="unknown_connection")
         model = str(data.get("model") or "").strip()
         if model and len(model) <= 120:
             cfg["llm"]["model"] = model

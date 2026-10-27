@@ -353,16 +353,26 @@ def get_smith_trajectory(args: Dict[str, Any]) -> Dict[str, Any]:
             })
         zl = complex(d["load"]["r"], d["load"]["x"])
         g = (zl - d["z0"]) / (zl + d["z0"])
-        return {
+        result = {
             "ok": True,
             "topology": d["topology"],
             "topology_name": d["topology_name"],
             "frequency_mhz": d["frequency_mhz"],
             "z0": d["z0"],
+            "load": d["load"],
             "load_gamma": {"re": g.real, "im": g.imag},
             "steps": steps,
             "summary": f"{d['topology_name']} 的 Smith 圆图轨迹共 {len(steps)} 段。",
         }
+        try:
+            from . import media
+            image = media.trajectory_media(result)
+            result["media"] = [image]
+            result["image_url"] = image["url"]
+            result["image_name"] = image["name"]
+        except Exception:
+            pass
+        return result
     except Exception as exc:  # noqa: BLE001
         return _err(exc)
 

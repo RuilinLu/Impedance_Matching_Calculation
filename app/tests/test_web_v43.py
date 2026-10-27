@@ -64,7 +64,7 @@ class WebApiTests(unittest.TestCase):
 
     def test_status_and_catalog(self):
         status = self.get_json("/api/status")
-        self.assertEqual(status["version"], "4.4.1")
+        self.assertEqual(status["version"], "4.5.0")
         self.assertIn("llm", status)
         self.assertNotIn("matlab", status)
         providers = self.get_json("/api/providers")

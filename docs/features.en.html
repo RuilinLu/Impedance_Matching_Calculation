@@ -8,7 +8,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 </script>
 <script src="vendor/mathjax/tex-svg-full.js"></script>
 </head><body><div class="layout"><aside>
-<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.4.1</small></div></div>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.5.0</small></div></div>
 <nav><a class="" href="index.html">文档首页</a>
 <a class="" href="features.zh.html">软件功能文档</a>
 <a class="" href="code.zh.html">代码参考文档</a>
@@ -377,17 +377,34 @@ z = \frac{Z_L}{Z_0}, \qquad
 <ul>
 <li>About two seconds after startup the app checks the latest GitHub Release. When a newer version exists, a dialog shows current/latest versions, release notes and (if a model is configured) a compatibility review.</li>
 <li><strong>Skip this version</strong> stores the version and stops proactive prompts. <strong>Open release page</strong> opens the browser; <strong>Download and install</strong> downloads with a percentage and launches the installer.</li>
-<li>The uninstaller asks whether to keep personal data. <strong>Yes</strong> keeps API keys, settings, index, uploads, reports, translation cache and search paths; <strong>No</strong> deletes them. In keep mode, files in the installation <code>TextBook</code> folder are first copied to the user-data directory.</li>
+<li>The uninstaller uses a checkbox to keep personal data. It is checked by default and preserves API keys, model connections, settings, index, uploads, reports, translation cache and search paths; only unchecking it deletes them. In keep mode, files in the installation <code>TextBook</code> folder are first copied to the user-data directory, and the next installer detects and reuses them.</li>
 </ul>
 <h3>11.6 Compatibility</h3>
-<p>4.4.0 reads 4.3.x <code>config.json</code>, textbook SQLite index, uploads and reports directly. New settings are merged with defaults without dropping old keys, and the index rebuilds automatically when paths change. 4.4.x is the compatibility baseline for later releases.</p>
+<p>4.4.0 reads 4.3.x <code>config.json</code>, textbook SQLite index, uploads and reports directly. New settings are merged with defaults without dropping old keys, and the index rebuilds automatically when paths change. 4.5.x remains compatible with 4.4.x data and interfaces and is the compatibility baseline for later releases.</p>
 <h2>12. v4.4.1 stability fixes</h2>
 <ul>
 <li><code>POST /api/stress</code> honours <code>sweep=false</code> and performs exactly one nodal solve; single-point worst voltage/current are no longer zero.</li>
 <li><code>POST /api/scan</code> accepts <code>points_budget</code>/<code>sim_points</code>; three-element scans add samples for wide capacitance ranges so coverage does not shrink as the range grows.</li>
 <li>Textbook translation raises its own output limit and retries with a shorter chunk, avoiding empty answers from thinking models.</li>
 <li>Documentation search highlights terms inside code blocks; long library paths wrap inside the sidebar.</li>
+</ul>
+<h2>13. v4.5.0 chat and multi-model work</h2>
+<h3>13.1 Long conversations and clearing</h3>
+<p>Chat messages no longer shrink inside the flex scroller, and the assistant's smooth-scroll queue was replaced by frame-throttled instant scrolling. Both the main panel and the floating assistant can scroll back through the full conversation. Each panel has a New conversation button that clears only the transcript, leaving reports, textbook index, uploads and settings intact.</p>
+<h3>13.2 Stop, edit and resend</h3>
+<p>During streaming the send button becomes a spinning stop control. Stopping aborts the request immediately, keeps the partial answer and shows a stopped note. Enter cannot send a second question while a response is running. Every user message offers Edit and Copy; saving an edit truncates the conversation at that question and resends it. A generation counter discards late events from a cleared or replaced stream.</p>
+<h3>13.3 Multi-provider connections</h3>
+<p>Settings → Model service lists saved connections. Every save stores provider, Base URL, model and key as one connection and makes it active; configuring another vendor keeps the previous one. The model pickers in both chat surfaces group models by connection and switch through <code>/api/connections/activate</code>, updating the status pill and usage accounting. Keys stay in the local config file; public API responses expose only <code>has_key</code> and a masked hint.</p>
+<h3>13.4 Multimodal output</h3>
+<p>Provider <code>image</code>, <code>audio</code>, <code>video</code> and <code>file</code> blocks become media events. Markdown images, video, audio, PDF and data files render as media cards with download, copy-image, copy-link and open actions. <code>get_smith_trajectory</code> now generates a Smith-chart SVG on the server (<code>/api/media/…</code>) that appears directly in chat and can be downloaded.</p>
+<h3>13.5 LaTeX copy</h3>
+<p>Every formula keeps its TeX source in <code>data-latex</code>. Click a formula to copy the TeX; display formulas also show a Copy LaTeX button on hover. Each answer offers Copy answer (Markdown plus TeX) and Copy all formulas, instead of copying MathJax's generated SVG text.</p>
+<h3>13.6 Display switches</h3>
+<p>Show thinking, Show references and Show tool calls are synchronised between settings, the main chat and the floating assistant. Tool cards are hidden by default behind a compact activity line, and web references render as clickable links.</p>
+<h3>13.7 Installer and data</h3>
+<p>The uninstaller now uses a custom form with a checked “keep my personal data, settings, textbook index and library” box; only unchecking it invokes <code>--delete-user-data</code>. The installer detects an existing config, textbook index or TextBook folder and shows a reuse confirmation page, so an in-place upgrade never clears keys or index data.</p>
+<ul>
 <li>MCP HTTP sessions have a TTL and a hard cap, so misbehaving clients cannot grow memory without bound.</li>
 </ul>
-<div class="footer">Impedance Matching AI v4.4.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
+<div class="footer">Impedance Matching AI v4.5.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
 </main></div></body></html>

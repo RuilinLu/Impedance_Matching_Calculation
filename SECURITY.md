@@ -1,14 +1,15 @@
 # Security Policy
 
 **Project:** Impedance Matching AI
-**Version:** 4.4.1
+**Version:** 4.5.0
 **Contacts:** GitHub Issues ｜ GitHub Security Advisory（私密披露）
 
 ## Supported versions
 
 | Version | Supported |
 |---|---|
-| 4.4.x | Yes |
+| 4.5.x | Yes |
+| 4.4.x | Yes (data-compatible) |
 | 4.3.x | Yes (data-compatible) |
 | 4.2.x | Security fixes only |
 | 4.1.x | No |

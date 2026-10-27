@@ -281,11 +281,11 @@ Copy the stdio configuration from Settings or About:
 
 - About two seconds after startup the app checks the latest GitHub Release. When a newer version exists, a dialog shows current/latest versions, release notes and (if a model is configured) a compatibility review.
 - **Skip this version** stores the version and stops proactive prompts. **Open release page** opens the browser; **Download and install** downloads with a percentage and launches the installer.
-- The uninstaller asks whether to keep personal data. **Yes** keeps API keys, settings, index, uploads, reports, translation cache and search paths; **No** deletes them. In keep mode, files in the installation `TextBook` folder are first copied to the user-data directory.
+- The uninstaller uses a checkbox to keep personal data. It is checked by default and preserves API keys, model connections, settings, index, uploads, reports, translation cache and search paths; only unchecking it deletes them. In keep mode, files in the installation `TextBook` folder are first copied to the user-data directory, and the next installer detects and reuses them.
 
 ### 11.6 Compatibility
 
-4.4.0 reads 4.3.x `config.json`, textbook SQLite index, uploads and reports directly. New settings are merged with defaults without dropping old keys, and the index rebuilds automatically when paths change. 4.4.x is the compatibility baseline for later releases.
+4.4.0 reads 4.3.x `config.json`, textbook SQLite index, uploads and reports directly. New settings are merged with defaults without dropping old keys, and the index rebuilds automatically when paths change. 4.5.x remains compatible with 4.4.x data and interfaces and is the compatibility baseline for later releases.
 
 
 ## 12. v4.4.1 stability fixes
@@ -294,4 +294,35 @@ Copy the stdio configuration from Settings or About:
 - `POST /api/scan` accepts `points_budget`/`sim_points`; three-element scans add samples for wide capacitance ranges so coverage does not shrink as the range grows.
 - Textbook translation raises its own output limit and retries with a shorter chunk, avoiding empty answers from thinking models.
 - Documentation search highlights terms inside code blocks; long library paths wrap inside the sidebar.
+
+## 13. v4.5.0 chat and multi-model work
+
+### 13.1 Long conversations and clearing
+
+Chat messages no longer shrink inside the flex scroller, and the assistant's smooth-scroll queue was replaced by frame-throttled instant scrolling. Both the main panel and the floating assistant can scroll back through the full conversation. Each panel has a New conversation button that clears only the transcript, leaving reports, textbook index, uploads and settings intact.
+
+### 13.2 Stop, edit and resend
+
+During streaming the send button becomes a spinning stop control. Stopping aborts the request immediately, keeps the partial answer and shows a stopped note. Enter cannot send a second question while a response is running. Every user message offers Edit and Copy; saving an edit truncates the conversation at that question and resends it. A generation counter discards late events from a cleared or replaced stream.
+
+### 13.3 Multi-provider connections
+
+Settings → Model service lists saved connections. Every save stores provider, Base URL, model and key as one connection and makes it active; configuring another vendor keeps the previous one. The model pickers in both chat surfaces group models by connection and switch through `/api/connections/activate`, updating the status pill and usage accounting. Keys stay in the local config file; public API responses expose only `has_key` and a masked hint.
+
+### 13.4 Multimodal output
+
+Provider `image`, `audio`, `video` and `file` blocks become media events. Markdown images, video, audio, PDF and data files render as media cards with download, copy-image, copy-link and open actions. `get_smith_trajectory` now generates a Smith-chart SVG on the server (`/api/media/…`) that appears directly in chat and can be downloaded.
+
+### 13.5 LaTeX copy
+
+Every formula keeps its TeX source in `data-latex`. Click a formula to copy the TeX; display formulas also show a Copy LaTeX button on hover. Each answer offers Copy answer (Markdown plus TeX) and Copy all formulas, instead of copying MathJax's generated SVG text.
+
+### 13.6 Display switches
+
+Show thinking, Show references and Show tool calls are synchronised between settings, the main chat and the floating assistant. Tool cards are hidden by default behind a compact activity line, and web references render as clickable links.
+
+### 13.7 Installer and data
+
+The uninstaller now uses a custom form with a checked “keep my personal data, settings, textbook index and library” box; only unchecking it invokes `--delete-user-data`. The installer detects an existing config, textbook index or TextBook folder and shows a reuse confirmation page, so an in-place upgrade never clears keys or index data.
+
 - MCP HTTP sessions have a TTL and a hard cap, so misbehaving clients cannot grow memory without bound.

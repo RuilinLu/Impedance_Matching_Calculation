@@ -8,7 +8,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 </script>
 <script src="vendor/mathjax/tex-svg-full.js"></script>
 </head><body><div class="layout"><aside>
-<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.4.1</small></div></div>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.5.0</small></div></div>
 <nav><a class="" href="index.html">文档首页</a>
 <a class="active" href="features.zh.html">软件功能文档</a>
 <a class="" href="code.zh.html">代码参考文档</a>
@@ -484,10 +484,10 @@ z = \frac{Z_L}{Z_0}, \qquad
 <ul>
 <li>启动约 2 秒后检查 GitHub 最新 Release；有更新时弹窗显示当前/最新版本、发布说明和（已配置模型时的）兼容性审查。</li>
 <li>“跳过此版本”会把版本写入配置，后续启动不再主动提醒；“打开发布页”可在浏览器查看；“下载并安装”会下载安装包并显示百分比，完成后启动安装程序。</li>
-<li>卸载时会询问是否保留个人数据。选择“是”保留 API Key、设置、索引、上传、报告、翻译缓存与搜索路径；选择“否”彻底删除。程序目录 <code>TextBook</code> 中的文件在保留模式下会先复制到用户数据目录。</li>
+<li>卸载器用复选框选择是否保留个人数据。默认勾选，保留 API Key、模型连接、设置、索引、上传、报告、翻译缓存与搜索路径；取消勾选才彻底删除。程序目录 <code>TextBook</code> 中的文件在保留模式下会先复制到用户数据目录，安装器下次会检测并复用。</li>
 </ul>
 <h3>11.6 兼容性</h3>
-<p>4.4.0 可直接读取 4.3.x 的 <code>config.json</code>、教材 SQLite 索引、上传文件与报告目录。新增配置项采用默认值合并，不会覆盖旧字段；教材索引在路径变化后会自动重建。4.4.x 作为后续版本的兼容基线，后续版本应继续支持这些数据和接口。</p>
+<p>4.4.0 可直接读取 4.3.x 的 <code>config.json</code>、教材 SQLite 索引、上传文件与报告目录。新增配置项采用默认值合并，不会覆盖旧字段；教材索引在路径变化后会自动重建。4.5.x 继续兼容 4.4.x 的数据与接口，并作为后续版本的兼容基线。</p>
 <h2>12. v4.4.1 稳定性修复</h2>
 <ul>
 <li>REST <code>POST /api/stress</code> 现在正确识别 <code>sweep=false</code>，单点模式只做 1 次节点求解；单点最坏电压/电流不再为 0。</li>
@@ -496,5 +496,30 @@ z = \frac{Z_L}{Z_0}, \qquad
 <li>文档中心搜索会在代码块中高亮命中词；教材库长路径在侧栏内换行。</li>
 <li>MCP HTTP 会话增加 TTL 与数量上限，异常客户端不会无限占用内存。</li>
 </ul>
-<div class="footer">Impedance Matching AI v4.4.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
+<h2>13. v4.5.0 聊天与多模型</h2>
+<h3>13.1 长对话与清空</h3>
+<p>主聊天和右侧浮动助手都使用独立的会话容器。消息子项不再参与 flex 收缩，滚动容器拥有完整高度；主聊天移除了逐 token 启动的平滑滚动队列，改为 <code>requestAnimationFrame</code> 节流并尊重用户上翻。浮动助手面板在打开后可以一直滚动到最早的消息。两个面板都有“新对话”按钮，清空只删除对话，不删除报告、教材索引、上传文件或个人设置。</p>
+<h3>13.2 停止、编辑与重新发送</h3>
+<ul>
+<li>流式回答期间发送键变为转圈停止键；点击后客户端立即中断请求，保留已经生成的文本并显示“已停止生成”。</li>
+<li>思考或回答期间按 Enter 不会重复发送。</li>
+<li>每条用户消息悬停时出现“编辑 / 复制”；编辑后保存会从该问题处截断后续对话并重新发送，后续上下文不会混入旧回答。</li>
+<li>会话使用 generation 序号，清空或重发后旧的流式响应会被丢弃，避免写回新对话。</li>
+</ul>
+<h3>13.3 多厂商模型连接</h3>
+<p>设置 → 模型服务底部列出已保存的模型连接。每次保存会把服务商、Base URL、模型与 Key 写入该连接，并设为当前连接；配置另一个厂商时会保留旧连接。主聊天和浮动助手的模型选择器按连接分组显示模型，切换后通过 <code>/api/connections/activate</code> 更新活动连接、状态栏和用量统计。密钥只保存在本机 <code>config.json</code>，公开接口只返回 <code>has_key</code> 与掩码提示。</p>
+<h3>13.4 多模态输出</h3>
+<ul>
+<li>模型响应中的 <code>image</code> / <code>audio</code> / <code>video</code> / <code>file</code> 内容块会转换为媒体事件。</li>
+<li>回答中的 Markdown 图片、视频、音频和 PDF/数据文件显示为媒体卡片，提供下载、复制图片、复制链接与打开。</li>
+<li><code>get_smith_trajectory</code> 会在服务端生成 Smith 圆图 SVG（<code>/api/media/…</code>），聊天中直接显示，可下载。</li>
+<li>媒体文件路径经过白名单与目录约束，不允许目录穿越。</li>
+</ul>
+<h3>13.5 LaTeX 复制</h3>
+<p>渲染时每个公式保留 <code>data-latex</code> 原文。点击行内公式或独立公式即可复制 TeX；独立公式悬停显示“复制 LaTeX”按钮；每条回答提供“复制回答（含 LaTeX 源码）”和“复制全部公式”。复制回答得到的是 Markdown + TeX，而不是 MathJax 生成的 SVG 文本。</p>
+<h3>13.6 显示开关</h3>
+<p>“展示思考链路”“显示引用”“显示工具调用”三个开关在设置、主聊天和浮动助手中同步。工具卡片默认隐藏，只显示一行“正在调用本地工具…”状态；网络引用会渲染为可点击链接。</p>
+<h3>13.7 安装与数据</h3>
+<p>卸载器改为自定义表单，默认勾选“保留我的个人数据、设置、教材索引与文件库”；取消勾选才会调用 <code>--delete-user-data</code>。安装器检测到 <code>%LOCALAPPDATA%\ImpedanceMatchingAI\data\config.json</code>、教材索引或 <code>TextBook</code> 时显示复用确认页，覆盖安装不会清空 Key 或索引。</p>
+<div class="footer">Impedance Matching AI v4.5.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
 </main></div></body></html>

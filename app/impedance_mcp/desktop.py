@@ -116,12 +116,35 @@ def main(argv: Optional[List[str]] = None) -> int:
                 return str(result[0])
 
             def open_external(self, url: str) -> bool:
-                """Open only the project's GitHub pages in the system browser."""
+                """Open public http(s) links (citations, docs) in the system browser."""
+                import ipaddress
+                import socket
+                import urllib.parse
                 import webbrowser
                 text = str(url or "").strip()
-                if not (text.startswith("https://github.com/SkywalkerHolmes/")
-                        or text.startswith("https://api.github.com/")):
+                try:
+                    parsed = urllib.parse.urlparse(text)
+                except Exception:
                     return False
+                if parsed.scheme not in ("http", "https") or not parsed.hostname:
+                    return False
+                if parsed.username or parsed.password:
+                    return False
+                try:
+                    infos = socket.getaddrinfo(
+                        parsed.hostname,
+                        parsed.port or (443 if parsed.scheme == "https" else 80),
+                        proto=socket.IPPROTO_TCP)
+                except Exception:
+                    return False
+                for info in infos:
+                    try:
+                        ip = ipaddress.ip_address(info[4][0])
+                    except ValueError:
+                        return False
+                    if (ip.is_private or ip.is_loopback or ip.is_reserved
+                            or ip.is_link_local or ip.is_multicast or ip.is_unspecified):
+                        return False
                 try:
                     webbrowser.open(text, new=2)
                     return True

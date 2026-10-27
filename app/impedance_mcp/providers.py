@@ -53,6 +53,83 @@ _KNOWN_MODEL_RE = re.compile(
     re.I,
 )
 
+# Models announced after the bundled providers.json snapshot.  Keeping them in
+# code means an in-place upgrade can use the newest chat/vision models even when
+# the on-disk catalog (or a user override) predates the release.
+CATALOG_SUPPLEMENTS: Dict[str, List[Dict[str, Any]]] = {
+    "zhipu": [
+        {"id": "glm-5.3", "name": "GLM-5.3", "context": 1000000, "max_output": 131072,
+         "vision": False, "tool_call": True, "reasoning": True},
+        {"id": "glm-5.3-flash", "name": "GLM-5.3-Flash", "context": 1000000,
+         "max_output": 131072, "vision": True, "tool_call": True, "reasoning": True},
+        {"id": "glm-5.3-flashx", "name": "GLM-5.3-FlashX", "context": 1000000,
+         "max_output": 131072, "vision": True, "tool_call": True, "reasoning": True,
+         "notes": "Faster Flash variant, about 200 tokens/s"},
+        {"id": "glm-5.3-flashx-legal", "name": "GLM-5.3-FlashX-Legal",
+         "context": 1000000, "max_output": 131072, "vision": False,
+         "tool_call": True, "reasoning": True},
+        {"id": "glm-5.2", "name": "GLM-5.2", "context": 1000000, "max_output": 131072,
+         "vision": False, "tool_call": True, "reasoning": True},
+        {"id": "glm-5.1", "name": "GLM-5.1", "context": 200000, "max_output": 131072,
+         "vision": False, "tool_call": True, "reasoning": True},
+        {"id": "glm-5", "name": "GLM-5", "context": 200000, "max_output": 131072,
+         "vision": False, "tool_call": True, "reasoning": True},
+        {"id": "glm-5-turbo", "name": "GLM-5-Turbo", "context": 200000,
+         "max_output": 131072, "vision": False, "tool_call": True, "reasoning": True},
+        {"id": "glm-4.7", "name": "GLM-4.7", "context": 200000, "max_output": 131072,
+         "vision": False, "tool_call": True, "reasoning": True},
+        {"id": "glm-4.7-flashx", "name": "GLM-4.7-FlashX", "context": 200000,
+         "max_output": 131072, "vision": False, "tool_call": True, "reasoning": True},
+        {"id": "glm-4.7-flash", "name": "GLM-4.7-Flash", "context": 200000,
+         "max_output": 131072, "vision": False, "tool_call": True, "reasoning": True},
+        {"id": "glm-4.6", "name": "GLM-4.6", "context": 200000, "max_output": 131072,
+         "vision": False, "tool_call": True, "reasoning": True},
+        {"id": "glm-4.6v", "name": "GLM-4.6V", "context": 128000, "max_output": 32768,
+         "vision": True, "tool_call": True, "reasoning": True},
+        {"id": "glm-4.6v-flash", "name": "GLM-4.6V-Flash", "context": 128000,
+         "max_output": 32768, "vision": True, "tool_call": True, "reasoning": True},
+        {"id": "glm-4.5-airx", "name": "GLM-4.5-AirX", "context": 128000,
+         "max_output": 98304, "vision": False, "tool_call": True, "reasoning": True},
+        {"id": "glm-4.1v-thinking-flashx", "name": "GLM-4.1V-Thinking-FlashX",
+         "context": 64000, "max_output": 16384, "vision": True, "tool_call": True,
+         "reasoning": True},
+        {"id": "glm-4.1v-thinking-flash", "name": "GLM-4.1V-Thinking-Flash",
+         "context": 64000, "max_output": 16384, "vision": True, "tool_call": True,
+         "reasoning": True},
+        {"id": "glm-4v-flash", "name": "GLM-4V-Flash", "context": 16000,
+         "max_output": 1024, "vision": True, "tool_call": True, "reasoning": False},
+        {"id": "glm-4-long", "name": "GLM-4-Long", "context": 1000000,
+         "max_output": 4096, "vision": False, "tool_call": True, "reasoning": False},
+        {"id": "glm-4-flashx-250414", "name": "GLM-4-FlashX-250414",
+         "context": 128000, "max_output": 16384, "vision": False,
+         "tool_call": True, "reasoning": False},
+        {"id": "glm-4-flash-250414", "name": "GLM-4-Flash-250414",
+         "context": 128000, "max_output": 16384, "vision": False,
+         "tool_call": True, "reasoning": False},
+    ],
+}
+
+
+def _apply_supplements(base: Dict[str, Any]) -> Dict[str, Any]:
+    providers = base.get("providers")
+    if not isinstance(providers, list):
+        return base
+    for provider in providers:
+        if not isinstance(provider, dict):
+            continue
+        extras = CATALOG_SUPPLEMENTS.get(str(provider.get("id") or ""))
+        if not extras:
+            continue
+        models = provider.setdefault("models", [])
+        existing = {str(item.get("id")) for item in models if isinstance(item, dict)}
+        for model in extras:
+            if model["id"] not in existing:
+                merged = copy.deepcopy(DEFAULT_PROFILE)
+                merged.update(copy.deepcopy(model))
+                merged.setdefault("name", model["id"])
+                models.append(merged)
+    return base
+
 
 # ---------------------------------------------------------------------------
 # Paths and loading
@@ -142,9 +219,9 @@ def load() -> Dict[str, Any]:
             "updated_at": patch.get("updated_at", ""),
             "source": patch.get("source", ""),
             "warnings": patch.get("warnings", []),
-            "version": patch.get("version", ""),
-        }
-    return base
+                "version": patch.get("version", ""),
+            }
+    return _apply_supplements(base)
 
 
 def all() -> List[Dict[str, Any]]:

@@ -5,9 +5,9 @@ Usage (from the project root):
     python release/build_exe.py --source-only
 
 Outputs:
-    release/Impedance_Matching_AI_v4.4.1_Source.zip
-    release/Impedance_Matching_AI_v4.4.1_Portable.exe
-    release/Impedance_Matching_AI_v4.4.1_MCP.exe
+    release/Impedance_Matching_AI_v4.5.0_Source.zip
+    release/Impedance_Matching_AI_v4.5.0_Portable.exe
+    release/Impedance_Matching_AI_v4.5.0_MCP.exe
     release/SHA256SUMS.txt
 """
 
@@ -22,7 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE = ROOT / "release"
 DIST = ROOT / "dist"
-VERSION = "4.4.1"
+VERSION = "4.5.0"
 APP_NAME = "ImpedanceMatchingAI"
 ICON = RELEASE / "icon.ico"
 VERSION_FILE = RELEASE / "version_info.txt"
@@ -38,6 +38,55 @@ def _safe(path: Path) -> str:
     if ROOT.resolve() not in resolved.parents and resolved != ROOT.resolve():
         raise ValueError(f"path outside project: {resolved}")
     return str(resolved)
+
+
+def write_version_info() -> None:
+    """Keep the Windows file/ProductVersion resources in sync with VERSION."""
+    parts = [int(item) for item in VERSION.split(".")]
+    while len(parts) < 4:
+        parts.append(0)
+    tuple_text = "(" + ", ".join(str(item) for item in parts) + ")"
+    version_text = ".".join(str(item) for item in parts)
+    for filename, internal, original, description in (
+        ("version_info.txt", "ImpedanceMatchingAI", "ImpedanceMatchingAI.exe",
+         "Impedance Matching AI - microwave matching, Smith chart and textbook study"),
+        ("version_info_mcp.txt", "ImpedanceMatchingAI_MCP", "ImpedanceMatchingAI_MCP.exe",
+         "Impedance Matching AI - MCP stdio / HTTP / SSE server"),
+    ):
+        content = f"""# PyInstaller version resource for Impedance Matching AI
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers={tuple_text},
+    prodvers={tuple_text},
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable(
+        '080404B0',
+        [
+          StringStruct('CompanyName', 'Impedance Matching AI contributors'),
+          StringStruct('FileDescription', '{description}'),
+          StringStruct('FileVersion', '{version_text}'),
+          StringStruct('InternalName', '{internal}'),
+          StringStruct('LegalCopyright', 'Copyright (c) 2025-2026 Nova, Echo, Iris, Lumen. MIT License.'),
+          StringStruct('OriginalFilename', '{original}'),
+          StringStruct('ProductName', 'Impedance Matching AI'),
+          StringStruct('ProductVersion', '{version_text}'),
+          StringStruct('Comments', 'https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation')
+        ]
+      )
+    ]),
+    VarFileInfo([VarStruct('Translation', [2052, 1200])])
+  ]
+)
+"""
+        (RELEASE / filename).write_text(content, encoding="utf-8", newline="\n")
 
 
 def _pyi(args: list) -> None:
@@ -135,11 +184,16 @@ def build_mcp() -> Path:
 
 def write_checksums() -> Path:
     target = RELEASE / "SHA256SUMS.txt"
+    support = {"build_exe.py", "icon.ico", "RELEASE_NOTES.md", "soak_test.py",
+               "version_info.txt", "version_info_mcp.txt"}
     lines = []
     for path in sorted(RELEASE.iterdir()):
-        if path.is_file() and path.name != "SHA256SUMS.txt":
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
-            lines.append(f"{digest}  {path.name}")
+        if not path.is_file() or path.name == "SHA256SUMS.txt":
+            continue
+        if path.name not in support and f"_v{VERSION}_" not in path.name:
+            continue
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        lines.append(f"{digest}  {path.name}")
     target.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     return target
 
@@ -149,6 +203,7 @@ def main() -> int:
     parser.add_argument("--source-only", action="store_true")
     args = parser.parse_args()
     RELEASE.mkdir(exist_ok=True)
+    write_version_info()
     source = build_source_zip()
     print(f"Source: {source} ({source.stat().st_size / 1024 / 1024:.1f} MB)")
     if not args.source_only:

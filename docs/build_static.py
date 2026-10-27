@@ -70,11 +70,11 @@ options:{{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}}}}
 </script>
 <script src="vendor/mathjax/tex-svg-full.js"></script>
 </head><body><div class="layout"><aside>
-<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.4.1</small></div></div>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.5.0</small></div></div>
 <nav>{nav}</nav></aside><main>
 <div class="top"><span class="tag">离线文档</span><a href="index.html">← 返回文档首页</a></div>
 {content}
-<div class="footer">Impedance Matching AI v4.4.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
+<div class="footer">Impedance Matching AI v4.5.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
 </main></div></body></html>
 """
 
@@ -197,7 +197,7 @@ def _index() -> Path:
                 images += f'<figure><img src="assets/{name}" alt="{caption}"><figcaption>{caption}</figcaption></figure>'
     content = f"""
 <h1>Impedance Matching AI 离线说明书</h1>
-<p class="lead">v4.4.1 · 微波阻抗匹配、Smith 圆图、教材检索与 MCP 服务</p>
+<p class="lead">v4.5.0 · 微波阻抗匹配、Smith 圆图、教材检索与 MCP 服务</p>
 <blockquote>本软件是独立开源项目，不绑定任何平台或活动。所有计算、绘图、教材索引与 MCP 服务都在本机完成；只有 AI 对话会把当前问题与用户主动选择的附件发送给用户配置的模型服务商。</blockquote>
 <h2>文档分类</h2>
 {''.join(cards)}
@@ -251,7 +251,7 @@ def _install_help() -> Path:
 <h1>安装与卸载</h1>
 <h2>安装</h2>
 <ol>
-<li>运行 <code>Impedance_Matching_AI_v4.4.1_Setup.exe</code>。</li>
+<li>运行 <code>Impedance_Matching_AI_v4.5.0_Setup.exe</code>。</li>
 <li>选择安装目录（默认 <code>%LOCALAPPDATA%\\Programs\\Impedance Matching AI</code>）。程序、MCP 服务与 <code>TextBook/</code> 会跟随所选目录。</li>
 <li>安装程序会安装原生窗口、MCP 服务、离线说明书与 MathJax，并创建桌面/开始菜单快捷方式。</li>
 <li>首次启动会创建用户数据目录（<code>%LOCALAPPDATA%\\ImpedanceMatchingAI</code>）与教材数据库。</li>
@@ -274,7 +274,7 @@ def _install_help() -> Path:
 <ul>
 <li>关闭正在运行的主程序与 MCP 进程；</li>
 <li>删除程序文件、快捷方式、注册表项与 MCP 客户端配置；</li>
-<li><b>询问是否保留个人数据</b>：选择“是”保留 API Key、界面设置、教材索引、上传/报告、翻译缓存与教材搜索路径，重装后可直接复用；选择“否”彻底删除 <code>%LOCALAPPDATA%\\ImpedanceMatchingAI</code> 下的数据。</li>
+<li><b>用复选框选择是否保留个人数据</b>：默认勾选，保留 API Key、模型连接、界面设置、教材索引、上传/报告、翻译缓存与教材搜索路径，重装后自动检测并复用；取消勾选会彻底删除 <code>%LOCALAPPDATA%\\ImpedanceMatchingAI</code> 下的数据且不可恢复。</li>
 <li>保留模式下，程序目录 <code>TextBook</code> 中的文件会先复制到用户数据目录，再删除程序目录；自定义教材搜索目录永远不会被卸载程序删除。</li>
 <li>不会删除共享的 Microsoft Edge WebView2 Runtime。</li>
 </ul>

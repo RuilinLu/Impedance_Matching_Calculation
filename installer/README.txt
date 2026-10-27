@@ -1,4 +1,4 @@
-Impedance Matching AI v4.4.0
+Impedance Matching AI v4.5.0
 
 安装内容：
   ImpedanceMatchingAI.exe       主程序（原生 WebView2 窗口）
@@ -22,9 +22,10 @@ Impedance Matching AI v4.4.0
   4. 创建开始菜单、可选桌面快捷方式与“一键卸载”。
 
 卸载：
-  使用开始菜单/桌面的“一键卸载 Impedance Matching AI”。卸载会关闭主程序与
-  MCP 进程，删除程序文件、快捷方式、MCP 客户端配置，以及
-  %LOCALAPPDATA%\ImpedanceMatchingAI 下的 API Key、上传、报告、教材索引与缓存。
+  使用开始菜单/桌面的“一键卸载 Impedance Matching AI”。卸载器会用复选框询问是否
+  保留 API Key、模型连接、界面设置、上传、报告、教材索引与缓存：
+  - 默认勾选“保留”：下次安装会自动检测并复用这些数据；
+  - 取消勾选：彻底删除 %LOCALAPPDATA%\ImpedanceMatchingAI 下的个人数据（不可恢复）。
   共享的 WebView2 Runtime 不会被删除。
 
 系统要求：Windows 10/11 x64。

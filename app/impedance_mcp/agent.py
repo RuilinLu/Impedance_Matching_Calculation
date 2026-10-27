@@ -58,6 +58,8 @@ SYSTEM_PROMPT = f"""你是「Impedance Matching AI」的微波与射频智能体
 10. S11 低于 -60 dB 时按“< -60 dB（理想匹配）”表述，不要写 -300 dB 这类超出测量范围的数值。
 11. 涉及教材内容时，先调用 search_textbooks 或 read_textbook_page，引用必须带书名与页码；不要凭记忆伪造页码。
 12. 扫描页没有文字层时，read_textbook_page 可能返回页面截图；只有模型支持视觉时才描述图像细节，否则请用户 OCR。
+13. 引用网络资料时必须保留完整 URL，用 Markdown 链接 [标题](https://…) 的形式给出，方便用户直接打开核验；不要编造链接。
+14. get_smith_trajectory 会同时返回可下载的 Smith 圆图 SVG（image_url），需要展示轨迹图片时应在回答中说明该图。
 
 【拓扑速查】
 - l_right：R_L<50Ω，源端并联 C1 + 串联 L/C2；元件最少。
@@ -119,7 +121,8 @@ def _tool_ui_data(name: str, result: Dict[str, Any]) -> Dict[str, Any]:
         "export_design_report": ("path", "format"),
         "get_system_status": ("version", "llm", "mcp"),
         "get_topology_guide": ("topology",),
-        "get_smith_trajectory": ("topology", "topology_name", "steps"),
+        "get_smith_trajectory": ("topology", "topology_name", "steps",
+                                 "image_url", "image_name", "media", "load"),
         "list_presets": ("presets",),
         "convert_impedance_admittance": ("mode", "display", "result"),
         "search_textbooks": ("query", "count", "results", "citations"),
@@ -223,6 +226,8 @@ def run_chat(
     last_model = ""
     last_resp: Dict[str, Any] = {}
     reasoning_total = ""
+    media_total: List[Dict[str, Any]] = []
+    media_seen = set()
 
     def emit_reasoning(text: str) -> None:
         nonlocal reasoning_total
@@ -232,6 +237,17 @@ def run_chat(
         reasoning_total += text
         for index in range(0, len(text), 240):
             emit("reasoning", {"text": text[index:index + 240]})
+
+    def emit_media(items: Any) -> None:
+        for item in items or []:
+            if not isinstance(item, dict):
+                continue
+            key = (item.get("type"), item.get("url"))
+            if not item.get("url") or key in media_seen:
+                continue
+            media_seen.add(key)
+            media_total.append(item)
+            emit("media", item)
 
     for step in range(max_steps + 1):
         emit("status", {"state": "thinking",
@@ -243,6 +259,7 @@ def run_chat(
         last_resp = resp
         last_model = str(resp.get("model") or (cfg.get("llm") or {}).get("model") or "")
         emit_reasoning(resp.get("reasoning") or "")
+        emit_media(resp.get("media") or [])
         usage_total = usage.add_usage(usage_total, usage.normalize_usage(resp.get("usage") or {}))
 
         calls = resp.get("tool_calls") or []
@@ -270,6 +287,7 @@ def run_chat(
                         usage_total, usage.normalize_usage(retry.get("usage") or {}))
                     last_model = str(retry.get("model") or last_model)
                     retry_text = (retry.get("content") or "").strip()
+                    emit_media(retry.get("media") or [])
                     if retry_text:
                         final = (final + "\n\n" + retry_text).strip() if final else retry_text
                     finish_reason = str(retry.get("finish_reason") or finish_reason)
@@ -299,6 +317,7 @@ def run_chat(
                 "elapsed_s": elapsed,
                 "used_tools": used_tools,
                 "reasoning": reasoning_total,
+                "media": media_total,
             }
             emit("usage", stats)
             emit("done", result)
@@ -340,6 +359,7 @@ def run_chat(
                 "data": ui,
                 "elapsed_ms": elapsed_ms,
             })
+            emit_media(result.get("media") or [])
             for citation in result.get("citations") or []:
                 if isinstance(citation, dict):
                     emit("citation", citation)
@@ -380,7 +400,7 @@ def run_chat(
     usage.record(profile, usage_total, last_model, elapsed, "chat", stats)
     result = {"ok": True, "content": final, "usage": usage_total, "stats": stats,
               "model": last_model, "elapsed_s": elapsed, "used_tools": used_tools,
-              "reasoning": reasoning_total}
+              "reasoning": reasoning_total, "media": media_total}
     emit("usage", stats)
     emit("done", result)
     return result

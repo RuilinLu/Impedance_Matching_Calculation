@@ -8,12 +8,11 @@
 
   const STATE = {
     open: false,
-    streaming: false,
-    messages: [],
     attachments: [],
     pendingContext: null,
     unread: false,
     initialized: false,
+    session: null,
   };
 
   function init() {
@@ -21,22 +20,10 @@
     STATE.initialized = true;
     $("#qaToggle").addEventListener("click", () => setOpen(true));
     $("#qaCollapse").addEventListener("click", () => setOpen(false));
-    $("#qaSend").addEventListener("click", send);
     $("#qaAttach").addEventListener("click", () => $("#qaFileInput").click());
     $("#qaFileInput").addEventListener("change", (event) => {
       uploadFiles(event.target.files);
       event.target.value = "";
-    });
-    $("#qaInput").addEventListener("keydown", (event) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        send();
-      }
-    });
-    $("#qaInput").addEventListener("input", () => {
-      const input = $("#qaInput");
-      input.style.height = "auto";
-      input.style.height = Math.min(140, input.scrollHeight) + "px";
     });
     $("#qaInput").addEventListener("paste", handlePaste);
     const composer = $(".qa-composer");
@@ -67,6 +54,49 @@
         updateContextLabel();
       }
     });
+
+    STATE.session = window.ChatUI.createSession({
+      name: "quick",
+      root: $("#qaMessages"),
+      scroller: $("#qaMessages"),
+      input: $("#qaInput"),
+      sendButton: $("#qaSend"),
+      stats: "#qaStats",
+      modelSelect: $("#qaModelSelect"),
+      getAttachments: () => STATE.attachments,
+      clearAttachments: () => {
+        STATE.attachments = [];
+        renderAttachments();
+      },
+      buildContext: () => {
+        const base = IMP().buildContext() || {};
+        return Object.assign({}, base, STATE.pendingContext || {});
+      },
+      maxInputHeight: 130,
+      onFinish: () => {
+        if (!STATE.open) {
+          STATE.unread = true;
+          $("#qaToggle").classList.add("unread");
+        }
+      },
+      onClear: () => {
+        STATE.attachments = [];
+        renderAttachments();
+        STATE.pendingContext = null;
+      },
+    });
+    STATE.session.init();
+    window.ChatUI.bindModelSelect($("#qaModelSelect"));
+    const newChat = $("#qaNewChat");
+    if (newChat) {
+      newChat.addEventListener("click", () => {
+        if (!STATE.session.messages.length) return;
+        if (!window.confirm("清空右侧助手的当前对话？")) return;
+        STATE.session.clear();
+        IMP().toast("已清空对话", "", "ok", 1800);
+      });
+    }
+    window.ChatUI.applyToolVisibility();
   }
 
   function setOpen(open) {
@@ -78,6 +108,7 @@
       $("#qaToggle").classList.remove("unread");
       setTimeout(() => $("#qaInput").focus(), 120);
       updateContextLabel();
+      if (STATE.session) STATE.session.scrollToBottom(true);
     }
   }
 
@@ -172,101 +203,12 @@
     }));
   }
 
-  function addUser(text, attachments) {
-    IMP().addUserMessage($("#qaMessages"), text, attachments);
-    scroll();
-  }
-
-  function makeAssistant() {
-    return IMP().makeAssistant($("#qaMessages"));
-  }
-
-  function scroll() {
-    const element = $("#qaMessages");
-    if (element) element.scrollTop = element.scrollHeight;
-  }
-
-  function buildPayload() {
-    const text = $("#qaInput").value.trim();
-    if (!text && !STATE.attachments.length) return null;
-    if (STATE.attachments.some((item) => item.uploading)) {
-      IMP().toast("附件仍在上传", "请等待上传百分比到 100% 后再发送。", "amber");
-      return null;
-    }
-    const attachments = STATE.attachments.filter((item) => !item.uploading);
-    const base = IMP().buildContext() || {};
-    const context = Object.assign({}, base, STATE.pendingContext || {});
-    if (attachments.length) {
-      context.attachments = attachments.map((item) => ({
-        name: item.name, kind: item.kind, chars: item.chars,
-      }));
-    }
-    const userText = text || "请阅读附件并总结与当前界面相关的关键信息。";
-    addUser(userText, attachments);
-    STATE.messages.push({
-      role: "user",
-      content: userText + (attachments.length ? `\n[附件: ${attachments.map((item) => item.name).join(", ")}]` : ""),
-    });
-    const payload = {
-      messages: STATE.messages.slice(-14),
-      attachments: attachments.map((item) => ({ id: item.id, name: item.name })),
-      model: $("#modelSelect") ? $("#modelSelect").value : "",
-      context,
-    };
-    $("#qaInput").value = "";
-    $("#qaInput").style.height = "auto";
-    STATE.attachments = [];
-    renderAttachments();
-    STATE.pendingContext = null;
-    return { payload, userText };
-  }
-
-  async function send() {
-    if (STATE.streaming) return;
-    const built = buildPayload();
-    if (!built) return;
-    const llm = (IMP().state.config && IMP().state.config.llm) || {};
-    if (!llm.provider || !llm.has_key || !llm.base_url || !llm.model) {
-      IMP().toast("请先配置模型服务", "点击设置，选择服务商并填写 API Key。", "amber", 5000);
-      IMP().openSettings();
-      return;
-    }
-    STATE.streaming = true;
-    $("#qaSend").disabled = true;
-    const assistant = makeAssistant();
-    try {
-      const result = await IMP().streamChat(built.payload, {
-        onEvent: (eventName, data) => IMP().handleChatEvent(eventName, data, assistant, { statsTarget: "#qaStats" }),
-      });
-      if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
-      if (!assistant.errored) {
-        IMP().finishAssistant(assistant, result.content || assistant.buffer || "（未收到回答）",
-          result.reasoning || "");
-        STATE.messages.push({ role: "assistant", content: result.content || assistant.buffer || "" });
-        if (STATE.messages.length > 20) STATE.messages = STATE.messages.slice(-20);
-      }
-      scroll();
-    } catch (error) {
-      if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
-      assistant.md.innerHTML = `<div class="error-box"><b>智能体暂时不可用</b><p>${IMP().escapeHtml(error.message)}</p></div>`;
-      IMP().toast("助手调用失败", error.message, "err", 6000);
-    } finally {
-      STATE.streaming = false;
-      $("#qaSend").disabled = false;
-      if (!STATE.open) {
-        STATE.unread = true;
-        $("#qaToggle").classList.add("unread");
-      }
-      scroll();
-    }
-  }
-
   function openWithPrompt(prompt, context) {
     init();
     setOpen(true);
     STATE.pendingContext = context || null;
     $("#qaInput").value = prompt || "";
-    setTimeout(send, 80);
+    setTimeout(() => STATE.session.send(), 80);
   }
 
   window.Assistant = {
