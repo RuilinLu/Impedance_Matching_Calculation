@@ -391,16 +391,6 @@ def run_http(host: str = "127.0.0.1", port: int = 8790) -> None:
             session_seen[sid] = time.time()
         return sid, srv
 
-    def _session(sid: Optional[str]) -> tuple:
-        if sid:
-            with lock:
-                srv = sessions.get(sid)
-                if srv is not None:
-                    session_seen[sid] = time.time()
-            if srv is not None:
-                return sid, srv
-        return _new_session()
-
     def _drop_session(sid: Optional[str]) -> None:
         if not sid:
             return
@@ -496,7 +486,16 @@ def run_http(host: str = "127.0.0.1", port: int = 8790) -> None:
             if method == "initialize" or not sid_header:
                 sid, srv = _new_session()
             else:
-                sid, srv = _session(sid_header)
+                with lock:
+                    srv = sessions.get(sid_header)
+                    if srv is not None:
+                        session_seen[sid_header] = time.time()
+                if srv is None:
+                    self._send_json(
+                        MCPServer._error(None, -32000, "Unknown or expired session"),
+                        404)
+                    return
+                sid = sid_header
             response = srv.handle(msg)
             if srv.exiting:
                 _drop_session(sid)

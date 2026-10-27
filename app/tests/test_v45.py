@@ -5,9 +5,11 @@ from __future__ import annotations
 import concurrent.futures
 import http.client
 import json
+import os
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -15,7 +17,7 @@ from unittest import mock
 APP = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(APP))
 
-from impedance_mcp import agent, config, llm, media, tools, web_server  # noqa: E402
+from impedance_mcp import agent, config, library, llm, media, tools, web_server  # noqa: E402
 
 SECRET_A = "unit-test-key-aaaaaaaaaaaa"
 SECRET_B = "unit-test-key-bbbbbbbbbbbb"
@@ -165,6 +167,48 @@ class MediaTests(TempDataMixin, unittest.TestCase):
         self.assertTrue(path.read_bytes().startswith(b"<svg"))
         self.assertIsNone(media.resolve("../config.json"))
         self.assertIsNone(media.resolve("not-a-media-file.exe"))
+
+
+class LibraryConcurrencyTests(TempDataMixin, unittest.TestCase):
+    def test_searches_do_not_fail_while_indexing(self):
+        books = config.LIBRARY_DIR / "books"
+        books.mkdir(parents=True, exist_ok=True)
+        for index in range(6):
+            (books / f"book{index}.txt").write_text(
+                ("Smith chart matching network impedance VSWR " * 200)
+                + f"\nbook {index}\n", encoding="utf-8")
+        library.init_db(force=True)
+        errors = []
+        stop = threading.Event()
+
+        def index_worker():
+            try:
+                library.sync_index(force=True, ocr_first_pages=0)
+            except Exception as exc:  # noqa: BLE001
+                errors.append(("index", repr(exc)))
+            finally:
+                stop.set()
+
+        def search_worker():
+            while not stop.is_set():
+                try:
+                    result = library.search("Smith", limit=5)
+                    if not result.get("ok"):
+                        errors.append(("search", result))
+                except Exception as exc:  # noqa: BLE001
+                    errors.append(("search", repr(exc)))
+
+        index_thread = threading.Thread(target=index_worker, daemon=True)
+        index_thread.start()
+        threads = [threading.Thread(target=search_worker, daemon=True) for _ in range(8)]
+        for thread in threads:
+            thread.start()
+        index_thread.join(timeout=60)
+        stop.set()
+        for thread in threads:
+            thread.join(timeout=10)
+        self.assertFalse(errors, errors[:5])
+        self.assertGreaterEqual(library.status().get("docs", 0), 6)
 
 
 class WebApiTests(TempDataMixin, unittest.TestCase):
@@ -340,6 +384,82 @@ class UiAssetTests(unittest.TestCase):
         self.assertIn("保留我的个人数据、设置、教材索引与文件库", script)
         self.assertIn("--delete-user-data", script)
         self.assertIn("--keep-user-data", script)
+
+
+class McpHttpSessionTests(TempDataMixin, unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import socket
+        import subprocess
+
+        probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        probe.bind(("127.0.0.1", 0))
+        cls.port = probe.getsockname()[1]
+        probe.close()
+        cls.proc = None
+
+    def setUp(self):
+        super().setUp()
+        import subprocess
+        env = {**os.environ, "IMPEDANCE_DATA_ROOT": str(self.root),
+               "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"}
+        self.proc = subprocess.Popen(
+            [sys.executable, str(APP / "run_mcp.py"), "--http", str(self.port)],
+            cwd=str(APP.parent), env=env,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        deadline = time.time() + 20
+        while time.time() < deadline:
+            try:
+                conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=1)
+                conn.request("GET", "/health")
+                if conn.getresponse().status == 200:
+                    conn.close()
+                    return
+                conn.close()
+            except Exception:
+                time.sleep(0.2)
+        self.fail("MCP HTTP server did not start")
+
+    def tearDown(self):
+        if self.proc is not None:
+            try:
+                self.proc.terminate()
+                self.proc.wait(timeout=5)
+            except Exception:
+                self.proc.kill()
+        super().tearDown()
+
+    def rpc(self, method, params, request_id=1, sid=None):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=20)
+        headers = {"Content-Type": "application/json",
+                   "Accept": "application/json, text/event-stream"}
+        if sid:
+            headers["Mcp-Session-Id"] = sid
+        body = json.dumps({"jsonrpc": "2.0", "id": request_id,
+                           "method": method, "params": params}).encode()
+        conn.request("POST", "/mcp", body=body, headers=headers)
+        response = conn.getresponse()
+        raw = response.read().decode("utf-8", "replace")
+        new_sid = response.getheader("Mcp-Session-Id")
+        status = response.status
+        conn.close()
+        return status, raw, new_sid
+
+    def test_unknown_session_is_rejected(self):
+        status, raw, sid = self.rpc("initialize", {
+            "protocolVersion": "2025-06-18", "capabilities": {},
+            "clientInfo": {"name": "unit", "version": "1"},
+        })
+        self.assertEqual(status, 200)
+        self.assertTrue(sid)
+        status, raw, _ = self.rpc("tools/list", {}, request_id=2, sid=sid)
+        self.assertEqual(status, 200)
+        self.assertIn("design_matching_network", raw)
+        status, raw, _ = self.rpc("tools/list", {}, request_id=3, sid="deadbeef")
+        self.assertEqual(status, 404)
+        self.assertIn("Unknown or expired session", raw)
+        status, _, _ = self.rpc("tools/list", {}, request_id=4, sid=sid)
+        self.assertEqual(status, 200)
 
 
 class AgentMediaTests(unittest.TestCase):

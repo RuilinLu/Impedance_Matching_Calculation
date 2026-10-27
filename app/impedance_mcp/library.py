@@ -66,13 +66,20 @@ def cache_dir() -> Path:
     return config.LIBRARY_DIR / "cache"
 
 
+_DB_READY = {"path": "", "ok": False}
+
+
 def _connect() -> sqlite3.Connection:
     config.ensure_dirs()
     config.LIBRARY_DIR.mkdir(parents=True, exist_ok=True)
     cache_dir().mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(db_path()), timeout=30)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
+    # Do not switch journal_mode on every connection: while another thread or
+    # process is writing, that PRAGMA can fail immediately with "database is
+    # locked" even though the normal busy handler would wait.  WAL is enabled
+    # once in init_db(); reads and writes then use a 30 s busy timeout.
+    conn.execute("PRAGMA busy_timeout=30000")
     conn.execute("PRAGMA synchronous=NORMAL")
     return conn
 
@@ -91,63 +98,77 @@ def _db():
             pass
 
 
-def init_db() -> None:
-    with _db() as conn:
-        conn.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS docs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                path TEXT UNIQUE NOT NULL,
-                title TEXT NOT NULL,
-                lang TEXT DEFAULT 'en',
-                pages INTEGER DEFAULT 0,
-                mtime REAL DEFAULT 0,
-                size INTEGER DEFAULT 0,
-                indexed_at TEXT DEFAULT '',
-                ocr_pages INTEGER DEFAULT 0,
-                needs_ocr INTEGER DEFAULT 0,
-                error TEXT DEFAULT ''
-            );
-            CREATE TABLE IF NOT EXISTS pages (
-                doc_id INTEGER NOT NULL,
-                page INTEGER NOT NULL,
-                text TEXT DEFAULT '',
-                source TEXT DEFAULT 'text',
-                boxes TEXT DEFAULT '',
-                PRIMARY KEY (doc_id, page)
-            );
-            CREATE TABLE IF NOT EXISTS translations (
-                doc_id INTEGER NOT NULL,
-                page INTEGER NOT NULL,
-                lang TEXT NOT NULL,
-                text TEXT NOT NULL,
-                model TEXT DEFAULT '',
-                created_at TEXT DEFAULT '',
-                PRIMARY KEY (doc_id, page, lang)
-            );
-            CREATE TABLE IF NOT EXISTS meta (
-                k TEXT PRIMARY KEY,
-                v TEXT NOT NULL
-            );
-            """
-        )
-        try:
-            conn.execute(
-                "CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts "
-                "USING fts5(doc_id UNINDEXED, page UNINDEXED, text, tokenize='trigram')"
+def init_db(force: bool = False) -> None:
+    path = db_path()
+    key = str(path)
+    with _LOCK:
+        if (not force and _DB_READY["ok"] and _DB_READY["path"] == key
+                and path.exists()):
+            return
+        with _db() as conn:
+            try:
+                conn.execute("PRAGMA journal_mode=WAL")
+            except sqlite3.OperationalError:
+                # Another process may hold the database; normal busy timeouts
+                # still apply and a later init can switch to WAL.
+                pass
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS docs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    path TEXT UNIQUE NOT NULL,
+                    title TEXT NOT NULL,
+                    lang TEXT DEFAULT 'en',
+                    pages INTEGER DEFAULT 0,
+                    mtime REAL DEFAULT 0,
+                    size INTEGER DEFAULT 0,
+                    indexed_at TEXT DEFAULT '',
+                    ocr_pages INTEGER DEFAULT 0,
+                    needs_ocr INTEGER DEFAULT 0,
+                    error TEXT DEFAULT ''
+                );
+                CREATE TABLE IF NOT EXISTS pages (
+                    doc_id INTEGER NOT NULL,
+                    page INTEGER NOT NULL,
+                    text TEXT DEFAULT '',
+                    source TEXT DEFAULT 'text',
+                    boxes TEXT DEFAULT '',
+                    PRIMARY KEY (doc_id, page)
+                );
+                CREATE TABLE IF NOT EXISTS translations (
+                    doc_id INTEGER NOT NULL,
+                    page INTEGER NOT NULL,
+                    lang TEXT NOT NULL,
+                    text TEXT NOT NULL,
+                    model TEXT DEFAULT '',
+                    created_at TEXT DEFAULT '',
+                    PRIMARY KEY (doc_id, page, lang)
+                );
+                CREATE TABLE IF NOT EXISTS meta (
+                    k TEXT PRIMARY KEY,
+                    v TEXT NOT NULL
+                );
+                """
             )
-            conn.execute("INSERT OR REPLACE INTO meta(k,v) VALUES('fts','trigram')")
-        except sqlite3.OperationalError:
-            conn.execute(
-                "CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts "
-                "USING fts5(doc_id UNINDEXED, page UNINDEXED, text)"
-            )
-            conn.execute("INSERT OR REPLACE INTO meta(k,v) VALUES('fts','unicode61')")
-        conn.commit()
-        if _meta(conn, "ocr_box_version") != "2":
-            _repair_ocr_boxes(conn)
-            _set_meta(conn, "ocr_box_version", "2")
+            try:
+                conn.execute(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts "
+                    "USING fts5(doc_id UNINDEXED, page UNINDEXED, text, tokenize='trigram')"
+                )
+                conn.execute("INSERT OR REPLACE INTO meta(k,v) VALUES('fts','trigram')")
+            except sqlite3.OperationalError:
+                conn.execute(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts "
+                    "USING fts5(doc_id UNINDEXED, page UNINDEXED, text)"
+                )
+                conn.execute("INSERT OR REPLACE INTO meta(k,v) VALUES('fts','unicode61')")
             conn.commit()
+            if _meta(conn, "ocr_box_version") != "2":
+                _repair_ocr_boxes(conn)
+                _set_meta(conn, "ocr_box_version", "2")
+                conn.commit()
+        _DB_READY["path"] = key
+        _DB_READY["ok"] = True
 
 
 def _repair_ocr_boxes(conn: sqlite3.Connection) -> None:

@@ -103,7 +103,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 <tr>
 <td><code>library</code></td>
 <td><code>impedance_mcp\library.py</code></td>
-<td>1289</td>
+<td>1310</td>
 <td>45</td>
 <td>教材库：PDF 索引、全文/模糊搜索、OCR、页面渲染、引用截图与学术翻译。</td>
 </tr>
@@ -117,7 +117,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 <tr>
 <td><code>mcp_server</code></td>
 <td><code>impedance_mcp\mcp_server.py</code></td>
-<td>654</td>
+<td>653</td>
 <td>8</td>
 <td>MCP stdio / Streamable HTTP / legacy SSE 服务器，暴露工具、资源与提示模板。</td>
 </tr>
@@ -5198,7 +5198,7 @@ capacitance range can only grow the grey region, never shrink it.</p>
 <h3><code>library</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\library.py</code></li>
-<li>行数：1289</li>
+<li>行数：1310</li>
 <li>作用：教材库：PDF 索引、全文/模糊搜索、OCR、页面渲染、引用截图与学术翻译。</li>
 </ul>
 <p>Textbook library: indexing, full-text search, OCR, page rendering and translation.</p>
@@ -5273,14 +5273,20 @@ vision-capable model.</p>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
+<td><code>_DB_READY</code></td>
+<td>69</td>
+<td><code>{&#x27;path&#x27;: &#x27;&#x27;, &#x27;ok&#x27;: False}</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
 <td><code>_WORD_RE</code></td>
-<td>785</td>
+<td>806</td>
 <td><code>re.compile(&#x27;[a-zA-Z0-9_./+\\-]{2,}\|[\\u4e00-\\u9fff]{2,}&#x27;)</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>_TRANSLATION_SYSTEM</code></td>
-<td>1153</td>
+<td>1174</td>
 <td><code>{&#x27;zh&#x27;: &#x27;你是电磁场与微波技术领域的学术翻译。把教材原文翻译成规范、准确的简体中文。专业术语采用国内学术界通用译法，首次出现时在括号中保留英文原词；公式、</code></td>
 <td>模块级配置/常量</td>
 </tr>
@@ -5299,18 +5305,38 @@ vision-capable model.</p>
 <p><pre><code>_connect() -&gt; sqlite3.Connection</code></pre></p>
 <p><strong>返回</strong>：<code>sqlite3.Connection</code></p>
 <p><strong>局部变量</strong>：<code>conn</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 69 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 72 行</p>
 <h5><code>library._db</code></h5>
 <p><pre><code>_db()</code></pre></p>
 <p><strong>说明</strong>：</p>
 <p>Commit and close a connection, which keeps Windows temp files removable.</p>
 <p><strong>局部变量</strong>：<code>conn</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 81 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 88 行</p>
 <h5><code>library.init_db</code></h5>
-<p><pre><code>init_db() -&gt; None</code></pre></p>
+<p><pre><code>init_db(force: bool = False) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>force</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>局部变量</strong>：<code>conn</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 94 行</p>
+<p><strong>局部变量</strong>：<code>path</code>、<code>key</code>、<code>conn</code></p>
+<p><strong>源码</strong>：<code>library.py</code> 第 101 行</p>
 <h5><code>library._repair_ocr_boxes</code></h5>
 <p><pre><code>_repair_ocr_boxes(conn: sqlite3.Connection) -&gt; None</code></pre></p>
 <table>
@@ -5340,7 +5366,7 @@ vision-capable model.</p>
 most horizontal coordinates to 1.0.  Those cached boxes cannot be
 repaired without the page image, so remove them and let OCR run again.</p>
 <p><strong>局部变量</strong>：<code>rows</code>、<code>stale</code>、<code>row</code>、<code>doc_id</code>、<code>total</code>、<code>degenerate</code>、<code>line</code>、<code>page</code>、<code>boxes</code>、<code>box</code>、<code>xs</code>、<code>point</code>、<code>item</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 153 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 174 行</p>
 <h5><code>library._meta</code></h5>
 <p><pre><code>_meta(conn: sqlite3.Connection, key: str) -&gt; str</code></pre></p>
 <table>
@@ -5372,7 +5398,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>row</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 198 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 219 行</p>
 <h5><code>library._set_meta</code></h5>
 <p><pre><code>_set_meta(conn: sqlite3.Connection, key: str, value: str) -&gt; None</code></pre></p>
 <table>
@@ -5410,7 +5436,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 203 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 224 行</p>
 <h5><code>library.source_dirs</code></h5>
 <p><pre><code>source_dirs() -&gt; List[Path]</code></pre></p>
 <p><strong>返回</strong>：<code>List[Path]</code></p>
@@ -5420,12 +5446,12 @@ repaired without the page image, so remove them and let OCR run again.</p>
 books) are resolved dynamically so moving the installation cannot leave a
 stale absolute path behind.  User-added folders keep their priority order.</p>
 <p><strong>局部变量</strong>：<code>dirs</code>、<code>builtin_keys</code>、<code>configured</code>、<code>legacy</code>、<code>out</code>、<code>seen</code>、<code>item</code>、<code>resolver</code>、<code>key</code>、<code>path</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 211 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 232 行</p>
 <h5><code>library._iter_sources</code></h5>
 <p><pre><code>_iter_sources() -&gt; Iterable[Path]</code></pre></p>
 <p><strong>返回</strong>：<code>Iterable[Path]</code></p>
 <p><strong>局部变量</strong>：<code>root</code>、<code>path</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 254 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 275 行</p>
 <h5><code>library._clean_title</code></h5>
 <p><pre><code>_clean_title(path: Path) -&gt; str</code></pre></p>
 <table>
@@ -5450,7 +5476,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>title</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 265 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 286 行</p>
 <h5><code>library._detect_lang</code></h5>
 <p><pre><code>_detect_lang(text: str) -&gt; str</code></pre></p>
 <table>
@@ -5475,7 +5501,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>sample</code>、<code>cjk</code>、<code>latin</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 274 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 295 行</p>
 <h5><code>library._normalize_text</code></h5>
 <p><pre><code>_normalize_text(text: str) -&gt; str</code></pre></p>
 <table>
@@ -5499,7 +5525,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 287 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 308 行</p>
 <h5><code>library._open_document</code></h5>
 <p><pre><code>_open_document(path: Path)</code></pre></p>
 <table>
@@ -5523,7 +5549,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </tbody>
 </table>
 <p><strong>可能抛出</strong>：<code>RuntimeError</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 294 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 315 行</p>
 <h5><code>library._read_text_document</code></h5>
 <p><pre><code>_read_text_document(path: Path) -&gt; List[str]</code></pre></p>
 <table>
@@ -5548,7 +5574,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>List[str]</code></p>
 <p><strong>局部变量</strong>：<code>raw</code>、<code>text</code>、<code>enc</code>、<code>size</code>、<code>i</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 302 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 323 行</p>
 <h5><code>library._fts_delete</code></h5>
 <p><pre><code>_fts_delete(conn: sqlite3.Connection, doc_id: int) -&gt; None</code></pre></p>
 <table>
@@ -5579,7 +5605,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 316 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 337 行</p>
 <h5><code>library._fts_upsert</code></h5>
 <p><pre><code>_fts_upsert(conn: sqlite3.Connection, doc_id: int, page: int, text: str) -&gt; None</code></pre></p>
 <table>
@@ -5624,7 +5650,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 320 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 341 行</p>
 <h5><code>library._index_document</code></h5>
 <p><pre><code>_index_document(conn: sqlite3.Connection, path: Path, ocr_first_pages: int = 2) -&gt; int</code></pre></p>
 <table>
@@ -5664,7 +5690,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 <p><strong>返回</strong>：<code>int</code></p>
 <p><strong>可能抛出</strong>：<code>RuntimeError</code></p>
 <p><strong>局部变量</strong>：<code>stat</code>、<code>existing</code>、<code>title</code>、<code>page_count</code>、<code>needs_ocr</code>、<code>lang</code>、<code>pages</code>、<code>now</code>、<code>doc</code>、<code>suffix</code>、<code>size</code>、<code>texts</code>、<code>candidates</code>、<code>page_no</code>、<code>meta</code>、<code>meta_title</code>、<code>index</code>、<code>info</code>、<code>full_text</code>、<code>doc_id</code>、<code>cur</code>、<code>text</code>、<code>page</code>、<code>source</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 329 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 350 行</p>
 <h5><code>library.sync_index</code></h5>
 <p><pre><code>sync_index(force: bool = False, ocr_first_pages: int = 2, limit: Optional[int] = None) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -5705,7 +5731,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 <p><strong>说明</strong>：</p>
 <p>Synchronise <code><code>docs</code><code>/</code><code>pages</code></code> with the files on disk.</p>
 <p><strong>局部变量</strong>：<code>sources</code>、<code>conn</code>、<code>known</code>、<code>live</code>、<code>path</code>、<code>path_str</code>、<code>row</code>、<code>p</code>、<code>old_id</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 424 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 445 行</p>
 <h5><code>library.start_index</code></h5>
 <p><pre><code>start_index(force: bool = False, ocr_first_pages: int = 2) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -5737,15 +5763,15 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>thread</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 488 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 509 行</p>
 <h5><code>library.status</code></h5>
 <p><pre><code>status() -&gt; Dict[str, Any]</code></pre></p>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>state</code>、<code>conn</code>、<code>docs</code>、<code>pages</code>、<code>total_pages</code>、<code>needs_ocr</code>、<code>ocr_pages</code>、<code>translations</code>、<code>fts</code>、<code>p</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 503 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 524 行</p>
 <h5><code>library._ocr_engine</code></h5>
 <p><pre><code>_ocr_engine()</code></pre></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 539 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 560 行</p>
 <h5><code>library._page_numpy</code></h5>
 <p><pre><code>_page_numpy(doc, page_no: int, dpi: int = 220)</code></pre></p>
 <table>
@@ -5783,7 +5809,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </tbody>
 </table>
 <p><strong>局部变量</strong>：<code>page</code>、<code>scale</code>、<code>pix</code>、<code>arr</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 548 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 569 行</p>
 <h5><code>library._normalize_box</code></h5>
 <p><pre><code>_normalize_box(box: Any, width: float, height: float) -&gt; List[List[float]]</code></pre></p>
 <table>
@@ -5822,7 +5848,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>List[List[float]]</code></p>
 <p><strong>局部变量</strong>：<code>pts</code>、<code>point</code>、<code>x</code>、<code>y</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 560 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 581 行</p>
 <h5><code>library.ocr_page</code></h5>
 <p><pre><code>ocr_page(doc_id: int, page_no: int, force: bool = False) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -5861,7 +5887,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>pdf</code>、<code>conn</code>、<code>doc</code>、<code>engine</code>、<code>page</code>、<code>arr</code>、<code>lines</code>、<code>texts</code>、<code>height</code>、<code>width</code>、<code>item</code>、<code>text</code>、<code>row</code>、<code>result</code>、<code>box</code>、<code>score</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 571 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 592 行</p>
 <h5><code>library.ocr_document</code></h5>
 <p><pre><code>ocr_document(doc_id: int, start: int = 1, end: Optional[int] = None, max_pages: int = 40) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -5909,12 +5935,12 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 <p><strong>说明</strong>：</p>
 <p>OCR a page range in the background and return progress immediately.</p>
 <p><strong>局部变量</strong>：<code>pages</code>、<code>conn</code>、<code>doc</code>、<code>total</code>、<code>page_no</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 645 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 666 行</p>
 <h5><code>library.doc_list</code></h5>
 <p><pre><code>doc_list() -&gt; List[Dict[str, Any]]</code></pre></p>
 <p><strong>返回</strong>：<code>List[Dict[str, Any]]</code></p>
 <p><strong>局部变量</strong>：<code>out</code>、<code>row</code>、<code>conn</code>、<code>rows</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 676 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 697 行</p>
 <h5><code>library.doc_info</code></h5>
 <p><pre><code>doc_info(doc_id: int) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -5939,7 +5965,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>conn</code>、<code>row</code>、<code>toc</code>、<code>pdf</code>、<code>level</code>、<code>title</code>、<code>page_no</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 700 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 721 行</p>
 <h5><code>library.page_info</code></h5>
 <p><pre><code>page_info(doc_id: int, page_no: int, lang: str = &#x27;zh&#x27;) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -5978,7 +6004,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>boxes</code>、<code>translation</code>、<code>conn</code>、<code>doc</code>、<code>row</code>、<code>page_text</code>、<code>page_lang</code>、<code>target_lang</code>、<code>trans</code>、<code>trans_any</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 734 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 755 行</p>
 <h5><code>library._query_terms</code></h5>
 <p><pre><code>_query_terms(query: str) -&gt; List[str]</code></pre></p>
 <table>
@@ -6003,7 +6029,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>List[str]</code></p>
 <p><strong>局部变量</strong>：<code>q</code>、<code>terms</code>、<code>token</code>、<code>out</code>、<code>seen</code>、<code>t</code>、<code>key</code>、<code>i</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 788 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 809 行</p>
 <h5><code>library._score_text</code></h5>
 <p><pre><code>_score_text(text: str, terms: List[str], title: str = &#x27;&#x27;) -&gt; float</code></pre></p>
 <table>
@@ -6042,7 +6068,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>float</code></p>
 <p><strong>局部变量</strong>：<code>lower</code>、<code>title_l</code>、<code>score</code>、<code>index</code>、<code>term</code>、<code>t</code>、<code>count</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 812 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 833 行</p>
 <h5><code>library._snippet</code></h5>
 <p><pre><code>_snippet(text: str, terms: List[str], radius: int = 150) -&gt; Tuple[str, int]</code></pre></p>
 <table>
@@ -6081,7 +6107,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>Tuple[str, int]</code></p>
 <p><strong>局部变量</strong>：<code>plain</code>、<code>lower</code>、<code>positions</code>、<code>term</code>、<code>start</code>、<code>end</code>、<code>snippet</code>、<code>pattern</code>、<code>marked</code>、<code>pos</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 828 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 849 行</p>
 <h5><code>library._fuzzy_terms</code></h5>
 <p><pre><code>_fuzzy_terms(conn: sqlite3.Connection, terms: List[str]) -&gt; List[str]</code></pre></p>
 <table>
@@ -6115,7 +6141,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 <p><strong>说明</strong>：</p>
 <p>Correct common ASCII typos using a small sampled vocabulary.</p>
 <p><strong>局部变量</strong>：<code>ascii_terms</code>、<code>sample_rows</code>、<code>vocab</code>、<code>row</code>、<code>out</code>、<code>term</code>、<code>word</code>、<code>matches</code>、<code>t</code>、<code>m</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 848 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 869 行</p>
 <h5><code>library._ocr_rects</code></h5>
 <p><pre><code>_ocr_rects(boxes: List[Dict[str, Any]], terms: List[str]) -&gt; List[List[float]]</code></pre></p>
 <table>
@@ -6147,7 +6173,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>List[List[float]]</code></p>
 <p><strong>局部变量</strong>：<code>rects</code>、<code>line</code>、<code>text</code>、<code>box</code>、<code>xs</code>、<code>ys</code>、<code>term</code>、<code>p</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 870 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 891 行</p>
 <h5><code>library._text_rects</code></h5>
 <p><pre><code>_text_rects(doc_id: int, page_no: int, terms: List[str]) -&gt; List[List[float]]</code></pre></p>
 <table>
@@ -6186,7 +6212,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 </table>
 <p><strong>返回</strong>：<code>List[List[float]]</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>rects</code>、<code>merged</code>、<code>rect</code>、<code>conn</code>、<code>doc</code>、<code>pdf</code>、<code>page</code>、<code>width</code>、<code>height</code>、<code>term</code>、<code>item</code>、<code>hits</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 883 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 904 行</p>
 <h5><code>library._all_pages</code></h5>
 <p><pre><code>_all_pages(conn: sqlite3.Connection, doc_id: Optional[int]) -&gt; List[sqlite3.Row]</code></pre></p>
 <table>
@@ -6222,7 +6248,7 @@ stale absolute path behind.  User-added folders keep their priority order.</p>
 <p>Keeping the SQL statement free of user-derived fragments also keeps the
 query safe for arbitrary textbook search input.</p>
 <p><strong>局部变量</strong>：<code>rows</code>、<code>wanted</code>、<code>row</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 934 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 955 行</p>
 <h5><code>library.search</code></h5>
 <p><pre><code>search(query: str, doc_id: Optional[int] = None, limit: int = 24, fuzzy: bool = True, with_rects: bool = True) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -6275,7 +6301,7 @@ query safe for arbitrary textbook search input.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>terms</code>、<code>conn</code>、<code>rows</code>、<code>scored</code>、<code>row</code>、<code>per_doc</code>、<code>chosen</code>、<code>results</code>、<code>term</code>、<code>score</code>、<code>did</code>、<code>boxes</code>、<code>rects</code>、<code>snippet</code>、<code>offset</code>、<code>t</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 951 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 972 行</p>
 <h5><code>library.ai_search</code></h5>
 <p><pre><code>ai_search(query: str, cfg: Dict[str, Any], doc_id: Optional[int] = None, lang: str = &#x27;zh&#x27;, limit: int = 24) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -6330,7 +6356,7 @@ query safe for arbitrary textbook search input.</p>
 <p><strong>说明</strong>：</p>
 <p>Expand a natural-language question into search terms with the LLM.</p>
 <p><strong>局部变量</strong>：<code>terms</code>、<code>note</code>、<code>merged</code>、<code>term</code>、<code>results</code>、<code>prompt</code>、<code>resp</code>、<code>raw</code>、<code>match</code>、<code>item</code>、<code>data</code>、<code>result</code>、<code>key</code>、<code>x</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1010 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1031 行</p>
 <h5><code>library._doc_path</code></h5>
 <p><pre><code>_doc_path(doc_id: int) -&gt; Optional[Path]</code></pre></p>
 <table>
@@ -6355,7 +6381,7 @@ query safe for arbitrary textbook search input.</p>
 </table>
 <p><strong>返回</strong>：<code>Optional[Path]</code></p>
 <p><strong>局部变量</strong>：<code>conn</code>、<code>row</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1058 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1079 行</p>
 <h5><code>library._cache_key</code></h5>
 <p><pre><code>_cache_key(path: Path, page_no: int, dpi: int, suffix: str = &#x27;&#x27;) -&gt; str</code></pre></p>
 <table>
@@ -6401,7 +6427,7 @@ query safe for arbitrary textbook search input.</p>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>stat</code>、<code>raw</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1067 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1088 行</p>
 <h5><code>library.render_page</code></h5>
 <p><pre><code>render_page(doc_id: int, page_no: int, zoom: float = 1.0) -&gt; bytes</code></pre></p>
 <table>
@@ -6441,7 +6467,7 @@ query safe for arbitrary textbook search input.</p>
 <p><strong>返回</strong>：<code>bytes</code></p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>dpi</code>、<code>key</code>、<code>target</code>、<code>pdf</code>、<code>page</code>、<code>scale</code>、<code>max_side</code>、<code>pix</code>、<code>data</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1073 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1094 行</p>
 <h5><code>library.crop_page</code></h5>
 <p><pre><code>crop_page(doc_id: int, page_no: int, rects: List[List[float]], margin: float = 0.06, dpi: int = 220) -&gt; bytes</code></pre></p>
 <table>
@@ -6495,7 +6521,7 @@ query safe for arbitrary textbook search input.</p>
 <p><strong>返回</strong>：<code>bytes</code></p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>pdf</code>、<code>page</code>、<code>clip</code>、<code>zoom</code>、<code>pix</code>、<code>width</code>、<code>height</code>、<code>x0</code>、<code>y0</code>、<code>x1</code>、<code>y1</code>、<code>pad_x</code>、<code>pad_y</code>、<code>r</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1102 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1123 行</p>
 <h5><code>library.page_image_base64</code></h5>
 <p><pre><code>page_image_base64(doc_id: int, page_no: int, dpi: int = 160) -&gt; Optional[Dict[str, str]]</code></pre></p>
 <table>
@@ -6534,7 +6560,7 @@ query safe for arbitrary textbook search input.</p>
 </table>
 <p><strong>返回</strong>：<code>Optional[Dict[str, str]]</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>pdf</code>、<code>page</code>、<code>scale</code>、<code>pix</code>、<code>data</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1132 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1153 行</p>
 <h5><code>library.translate_page</code></h5>
 <p><pre><code>translate_page(doc_id: int, page_no: int, cfg: Dict[str, Any], target_lang: Optional[str] = None) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -6580,7 +6606,7 @@ query safe for arbitrary textbook search input.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>info</code>、<code>text</code>、<code>source_lang</code>、<code>target</code>、<code>llm_cfg</code>、<code>chunk</code>、<code>prompt</code>、<code>resp</code>、<code>translated</code>、<code>used_short</code>、<code>model</code>、<code>created</code>、<code>conn</code>、<code>row</code>、<code>configured</code>、<code>retry_prompt</code>、<code>short</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1167 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1188 行</p>
 <h5><code>library.add_book</code></h5>
 <p><pre><code>add_book(filename: str, content_b64: str) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -6613,7 +6639,7 @@ query safe for arbitrary textbook search input.</p>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
 <p><strong>局部变量</strong>：<code>original</code>、<code>suffix</code>、<code>target_dir</code>、<code>safe</code>、<code>book_dir</code>、<code>target</code>、<code>raw</code>、<code>conn</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1260 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1281 行</p>
 <h3><code>llm</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\llm.py</code></li>
@@ -7491,7 +7517,7 @@ Vision content, tool calls and cache-aware usage accounting are supported.</p>
 <h3><code>mcp_server</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\mcp_server.py</code></li>
-<li>行数：654</li>
+<li>行数：653</li>
 <li>作用：MCP stdio / Streamable HTTP / legacy SSE 服务器，暴露工具、资源与提示模板。</li>
 </ul>
 <p>MCP (Model Context Protocol) server over stdio / optional local HTTP.</p>
@@ -7678,7 +7704,7 @@ GET    /health                 service metadata</p>
 </table>
 <p><strong>返回</strong>：<code>int</code></p>
 <p><strong>局部变量</strong>：<code>args</code>、<code>port</code>、<code>i</code></p>
-<p><strong>源码</strong>：<code>mcp_server.py</code> 第 637 行</p>
+<p><strong>源码</strong>：<code>mcp_server.py</code> 第 636 行</p>
 <h4>类 <code>MCPServer</code></h4>
 <table>
 <thead>
