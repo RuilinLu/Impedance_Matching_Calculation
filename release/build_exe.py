@@ -29,7 +29,7 @@ VERSION_FILE = RELEASE / "version_info.txt"
 
 SOURCE_SKIP_DIRS = {".git", "TextBook", "data", "dist", "build", "__pycache__",
                     ".mimosa", ".pytest_cache", ".venv", "venv"}
-SOURCE_SKIP_SUFFIXES = {".pyc", ".pyo", ".exe", ".zip", ".7z"}
+SOURCE_SKIP_SUFFIXES = {".pyc", ".pyo", ".exe", ".zip", ".7z", ".log"}
 SOURCE_SKIP_NAMES = {"SHA256SUMS.txt"}
 
 

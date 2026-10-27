@@ -279,13 +279,33 @@ def analyze_network(
     except for topologies that require them).
     Returns Zin, VSWR, S11, node voltages and per-element peak stress.
     """
+    try:
+        frequency_mhz = float(frequency_mhz)
+        z0 = float(z0)
+        power_w = float(power_w)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("频率、系统阻抗与功率必须是数值") from exc
+    if not all(math.isfinite(value) for value in (frequency_mhz, z0, power_w)):
+        raise ValueError("频率、系统阻抗与功率必须是有限数值")
+    if frequency_mhz <= 0:
+        raise ValueError("频率必须大于 0 MHz")
+    if z0 <= 0:
+        raise ValueError("系统阻抗必须大于 0 Ω")
+    if power_w < 0:
+        raise ValueError("功率不能为负")
     f = float(frequency_mhz) * 1e6
     w = 2 * math.pi * f
     L_h = float(components.get("L_uH", 0.0) or 0.0) * 1e-6
     c1 = float(components.get("C1_pF", 0.0) or 0.0) * 1e-12
     c2 = float(components.get("C2_pF", 0.0) or 0.0) * 1e-12
     c3 = float(components.get("C3_pF", 0.0) or 0.0) * 1e-12
+    if not all(math.isfinite(value) for value in (L_h, c1, c2, c3)):
+        raise ValueError("元件值必须是有限数值")
+    if min(L_h, c1, c2, c3) < 0:
+        raise ValueError("元件值不能为负")
     zl = complex(load)
+    if not math.isfinite(zl.real) or not math.isfinite(zl.imag):
+        raise ValueError("负载阻抗必须是有限数值")
     if zl.real <= 0:
         raise ValueError("负载实部必须大于 0 Ω")
     if abs(zl) == 0:
@@ -591,6 +611,22 @@ def design_network(
     L and C3 are free; if omitted they are selected automatically.
     topology='auto' tries all five networks and picks a practical winner.
     """
+    try:
+        frequency_mhz = float(frequency_mhz)
+        load_r = float(load_r)
+        load_x = float(load_x)
+        z0 = float(z0)
+    except (TypeError, ValueError) as exc:
+        raise DesignError("invalid_input", "频率、负载与系统阻抗必须是数值") from exc
+    if not all(math.isfinite(value) for value in (frequency_mhz, load_r, load_x, z0)):
+        raise DesignError("invalid_input", "频率、负载与系统阻抗必须是有限数值")
+    if frequency_mhz <= 0:
+        raise DesignError("invalid_frequency", "频率必须大于 0 MHz")
+    if load_r <= 0:
+        raise DesignError("invalid_load", "负载实部必须大于 0 Ω")
+    if z0 <= 0:
+        raise DesignError("invalid_z0", "系统阻抗必须大于 0 Ω")
+
     if str(topology).strip().lower() in ("auto", "自动", "best"):
         alternatives = suggest_topologies(frequency_mhz, complex(load_r, load_x), z0)
         if not alternatives:
@@ -988,6 +1024,12 @@ def scan_matchable_range(
     if L_uh is None:
         raise DesignError("missing_L", "正向扫描需要指定电感 L")
     L = float(L_uh) * 1e-6
+    if not math.isfinite(f) or f <= 0:
+        raise DesignError("invalid_frequency", "频率必须大于 0 MHz")
+    if not math.isfinite(z0) or z0 <= 0:
+        raise DesignError("invalid_z0", "系统阻抗必须大于 0 Ω")
+    if not math.isfinite(L) or L <= 0:
+        raise DesignError("invalid_L", "电感 L 必须是大于 0 的有限数值")
 
     def rng(values, default):
         if values is None:
@@ -1124,6 +1166,18 @@ def bandwidth(
     """Frequency sweep with fixed components; returns the contiguous VSWR band."""
     top = canonical_topology(topology)
     f0 = float(frequency_mhz)
+    span = float(span)
+    vswr_limit = float(vswr_limit)
+    if not all(math.isfinite(value) for value in (f0, span, vswr_limit)):
+        raise ValueError("频率、扫描范围与 VSWR 门限必须是有限数值")
+    if f0 <= 0:
+        raise ValueError("频率必须大于 0 MHz")
+    if span <= 0:
+        raise ValueError("扫描范围必须大于 0")
+    if vswr_limit <= 0:
+        raise ValueError("VSWR 门限必须大于 0")
+    if complex(load).real <= 0 or not math.isfinite(complex(load).real):
+        raise ValueError("负载实部必须大于 0 Ω")
     fmin = max(f0 * (1.0 - span), 1e-6)
     fmax = f0 * (1.0 + span)
     freqs = np.linspace(fmin, fmax, points)

@@ -8,11 +8,12 @@ import sys
 import threading
 import unittest
 from pathlib import Path
+from urllib.parse import quote
 
 APP = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(APP))
 
-from impedance_mcp import web_server  # noqa: E402
+from impedance_mcp import attachments, web_server  # noqa: E402
 
 
 class WebApiTests(unittest.TestCase):
@@ -110,6 +111,54 @@ class WebApiTests(unittest.TestCase):
         self.assertEqual(info["kind"], "code")
         self.assertGreater(info["chars"], 0)
         self.assertNotIn("text", info)
+        # The wire payload is trimmed, but the follow-up chat lookup must still
+        # see the extracted text in the server-side cache.
+        cached = attachments.load_attachment(info["id"])
+        self.assertIn("Smith chart demo", cached.get("text") or "")
+
+    def test_missing_fields_are_400(self):
+        status, raw = self.request("POST", "/api/design", {})
+        self.assertEqual(status, 400)
+        self.assertEqual(json.loads(raw.decode("utf-8"))["error_code"], "bad_request")
+
+    def test_invalid_engineering_inputs(self):
+        design = self.post_json("/api/design", {
+            "topology": "auto", "frequency_mhz": 0, "load_r": 20,
+        })
+        self.assertFalse(design["ok"])
+        self.assertEqual(design["error_code"], "invalid_frequency")
+        design = self.post_json("/api/design", {
+            "topology": "auto", "frequency_mhz": 2450, "load_r": 20, "load_x": "nan",
+        })
+        self.assertFalse(design["ok"])
+        self.assertEqual(design["error_code"], "invalid_input")
+        scan = self.post_json("/api/scan", {
+            "topology": "l_right", "frequency_mhz": 2450, "L_uh": 0, "steps": 10,
+        })
+        self.assertFalse(scan["ok"])
+        self.assertEqual(scan["error_code"], "invalid_L")
+        status, _ = self.request("POST", "/api/convert", {"mode": "bad", "real": 50})
+        self.assertEqual(status, 400)
+
+    def test_post_body_does_not_poison_keepalive(self):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=30)
+        # /api/providers/reset ignores its body; the server must still drain it.
+        conn.request("POST", "/api/providers/reset", body=b"{}",
+                     headers={"Content-Type": "application/json"})
+        first = conn.getresponse()
+        first.read()
+        self.assertEqual(first.status, 200)
+        conn.request("GET", "/api/health")
+        second = conn.getresponse()
+        payload = json.loads(second.read().decode("utf-8"))
+        conn.close()
+        self.assertEqual(second.status, 200)
+        self.assertTrue(payload["ok"])
+
+    def test_long_docs_query_is_capped(self):
+        search = self.get_json("/api/docs/search?q=" + quote("a" * 5000) + "&lang=zh")
+        self.assertTrue(search["ok"])
+        self.assertEqual(search["query"][:1], "a")
 
 
 if __name__ == "__main__":

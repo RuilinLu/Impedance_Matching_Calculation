@@ -10,10 +10,10 @@ readme = { text = "Impedance Matching AI — standalone matching calculator, tex
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-  { name = "Ruilin Lu", email = "Lu_Skywalker2915@sjtu.edu.cn" },
-  { name = "Keji Lu" },
-  { name = "Zhiyi Lin" },
-  { name = "Yunlei Zhang" },
+  { name = "Nova" },
+  { name = "Echo" },
+  { name = "Iris" },
+  { name = "Lumen" },
 ]
 dependencies = [
   "numpy>=1.24",

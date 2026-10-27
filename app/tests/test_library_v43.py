@@ -94,6 +94,15 @@ class LibraryTests(unittest.TestCase):
         result = library.ocr_page(scan_doc["id"], 1, force=True)
         self.assertTrue(result["ok"], result)
         self.assertIn("Smith", result["text"])
+        widths = []
+        for line in result.get("lines") or []:
+            xs = [point[0] for point in line.get("box") or []]
+            if xs:
+                widths.append(max(xs) - min(xs))
+        self.assertTrue(widths, "OCR returned no boxes")
+        # Boxes are normalized against the rendered pixmap, not PDF points.
+        self.assertGreater(min(widths), 0.002)
+        self.assertLessEqual(max(widths), 1.0)
         search = library.search("Smith chart", limit=4)
         self.assertTrue(any(item["source"] == "ocr" for item in search["results"]))
 
@@ -102,6 +111,8 @@ class LibraryTests(unittest.TestCase):
             b"# Smith chart notes\nImpedance matching example").decode())
         self.assertTrue(result["ok"])
         library.sync_index(ocr_first_pages=0)
+        titles = {item["title"] for item in library.doc_list()}
+        self.assertIn("note", titles)
         search = library.search("impedance matching", limit=4)
         self.assertGreaterEqual(search["count"], 1)
 

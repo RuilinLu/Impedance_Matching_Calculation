@@ -5,7 +5,7 @@
 一个可独立运行的 Windows 桌面软件，也是一个标准 MCP 服务器。它把匹配网络设计、节点法复核、Smith 圆图、教材全文/OCR/翻译、四类工程文档和工具调用大模型放进同一个本地应用。
 
 > 独立开源项目 · MIT License · 不绑定任何平台或模型厂商
-> 开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾
+> 开发者：Nova（诺瓦）、Echo（回声）、Iris（鸢尾）、Lumen（流明）
 
 ---
 
@@ -31,7 +31,7 @@ Release 提供完整安装程序、Windows 便携版、MCP 独立程序和源码
 
 | 资产 | 用途 |
 |---|---|
-| `Impedance_Matching_AI_v4.3.0_Setup.exe` | 约 365 MB · 完整安装程序：主程序 + MCP + 离线说明书 + 教材数据库 + VC++/WebView2 检测 |
+| `Impedance_Matching_AI_v4.3.0_Setup.exe` | 约 367 MB · 完整安装程序：主程序 + MCP + 离线说明书 + 教材数据库初始化 + VC++/WebView2 检测 |
 | `Impedance_Matching_AI_v4.3.0_Portable.exe` | 免安装便携版，双击即用 |
 | `Impedance_Matching_AI_v4.3.0_MCP.exe` | 独立 MCP 服务（stdio / HTTP / SSE） |
 | `Impedance_Matching_AI_v4.3.0_Source.zip` | 干净源码，不含教材、用户数据、API Key |
@@ -165,7 +165,7 @@ app/
     web_server.py      # 本地 API
     web/               # 前端（含 vendor/mathjax）
     docs_content/      # 四域 Markdown 文档
-  tests/               # 51 项单元测试
+  tests/               # 56 项单元测试
 docs/
   build_static.py      # 生成安装包内的离线 HTML 说明书
   assets/              # 界面截图
@@ -183,7 +183,8 @@ release/
 python -m unittest discover -s app/tests -v
 ```
 
-- **51 项单元测试**：计算内核、物理审计、MCP 协议、教材索引/OCR、DOCX 教材、任意附件、引用裁剪、模型目录/费用/谷时窗口、Web API、智能体工具循环、视觉消息。
+- **56 项单元测试**：计算内核、物理审计、MCP 协议、教材索引/OCR、DOCX 教材、任意附件、引用裁剪、模型目录/费用/谷时窗口、Web API、智能体工具循环、视觉消息、附件缓存与长查询上限。
+- **长时间随机/并发跑测**：2 小时 25.3 万次工程迭代与 2 小时 60.2 万次 HTTP 请求，0 失败；MCP 15 分钟 1.07 万次调用，0 失败。
 - **19 本中英文教材实测**：2197 页文字层索引、36 页 OCR、Smith chart / 反射系数 / 公式检索与页码定位。
 - **DeepSeek 实际 API 实测**：`deepseek-flash` 连接、工具调用、LaTeX 回答、缓存命中率、上下文占用与费用统计。
 - **安装/卸载实测**：静默安装到测试目录，确认主程序、MCP、docs、TextBook、数据库、快捷方式与注册表；静默卸载后确认程序目录、用户数据、快捷方式与注册项全部清除。

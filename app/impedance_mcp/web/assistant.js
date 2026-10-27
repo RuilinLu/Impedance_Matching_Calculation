@@ -22,6 +22,11 @@
     $("#qaToggle").addEventListener("click", () => setOpen(true));
     $("#qaCollapse").addEventListener("click", () => setOpen(false));
     $("#qaSend").addEventListener("click", send);
+    $("#qaAttach").addEventListener("click", () => $("#qaFileInput").click());
+    $("#qaFileInput").addEventListener("change", (event) => {
+      uploadFiles(event.target.files);
+      event.target.value = "";
+    });
     $("#qaInput").addEventListener("keydown", (event) => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
@@ -154,7 +159,7 @@
     const bar = $("#qaAttachmentBar");
     if (!bar) return;
     bar.innerHTML = STATE.attachments.map((item, index) =>
-      `<span class="attachment-chip">${IMP().escapeHtml(item.name)}<button data-qa-remove="${index}"><svg><use href="#i-close"/></svg></button></span>`).join("");
+      `<span class="attachment-chip">${IMP().escapeHtml(item.name)} <small>${IMP().escapeHtml(item.kind || "")} · ${Number(item.chars || 0)} 字${item.image_count ? ` · ${item.image_count} 图` : ""}</small><button data-qa-remove="${index}"><svg><use href="#i-close"/></svg></button></span>`).join("");
     bar.querySelectorAll("[data-qa-remove]").forEach((button) => button.addEventListener("click", () => {
       STATE.attachments.splice(Number(button.dataset.qaRemove), 1);
       renderAttachments();

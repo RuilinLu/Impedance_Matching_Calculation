@@ -51,12 +51,12 @@ APP_NAME = "Impedance Matching AI"
 APP_NAME_ZH = "阻抗匹配智能计算与仿真"
 PROJECT_URL = "https://github.com/RuilinLu/Impedance_Matching_Calculation"
 TEAM = [
-    {"name": "卢瑞林", "role": "项目负责人 / 计算内核与智能体架构"},
-    {"name": "卢柯吉", "role": "数值算法与仿真验证"},
-    {"name": "林芷伊", "role": "交互设计、可视化与文档"},
-    {"name": "张昀蕾", "role": "测试、教材整理与用户研究"},
+    {"name": "Nova（诺瓦）", "role": "项目负责人 / 计算内核与智能体架构"},
+    {"name": "Echo（回声）", "role": "数值算法与仿真验证"},
+    {"name": "Iris（鸢尾）", "role": "交互设计、可视化与文档"},
+    {"name": "Lumen（流明）", "role": "测试、教材整理与用户研究"},
 ]
-AUTHOR_EMAILS = ["radarlurui@gmail.com", "Lu_Skywalker2915@sjtu.edu.cn"]
+AUTHOR_EMAILS: List[str] = []
 
 
 def ensure_dirs() -> None:

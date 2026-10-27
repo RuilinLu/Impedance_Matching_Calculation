@@ -56,12 +56,15 @@ class Handler(BaseHTTPRequestHandler):
                     "hint": hint}, status)
 
     def _body(self) -> Dict[str, Any]:
+        if getattr(self, "_body_cache", None) is not None:
+            return self._body_cache
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             raise ValueError("无效的 Content-Length")
         if length <= 0:
-            return {}
+            self._body_cache = {}
+            return self._body_cache
         if length > MAX_BODY:
             raise ValueError(f"请求体过大（上限 {MAX_BODY // 1024 // 1024} MB）")
         raw = self.rfile.read(length)
@@ -71,6 +74,7 @@ class Handler(BaseHTTPRequestHandler):
             raise ValueError(f"请求体不是合法 JSON：{exc}") from exc
         if not isinstance(data, dict):
             raise ValueError("请求体必须是 JSON 对象")
+        self._body_cache = data
         return data
 
     def log_message(self, fmt: str, *args: Any) -> None:  # noqa: A003
@@ -208,7 +212,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
+        self._body_cache = None
         try:
+            # Always consume the request body before dispatching.  Otherwise a
+            # route that ignores the body leaves "{}" in the keep-alive socket
+            # and the next request line becomes "{}GET ..." (HTTP 501).
+            self._body()
             routes = {
                 "/api/chat": self._chat,
                 "/api/config": self._save_config,
@@ -242,6 +251,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._error("未知接口", status=404, code="not_found")
         except BrokenPipeError:
             return
+        except (KeyError, TypeError) as exc:
+            return self._error(f"参数错误：{exc}", "请检查必填字段与数值类型。",
+                               status=400, code="bad_request")
         except ValueError as exc:
             return self._error(str(exc), status=400, code="bad_request")
         except Exception as exc:  # noqa: BLE001
@@ -338,13 +350,17 @@ class Handler(BaseHTTPRequestHandler):
 
     def _scan(self) -> None:
         data = self._body()
-        result = engine.scan_matchable_range(
-            data["topology"], float(data["frequency_mhz"]),
-            float(data.get("z0", 50.0)), float(data["L_uh"]),
-            data.get("c1_range_pf"), data.get("c2_range_pf"), data.get("c3_range_pf"),
-            int(data.get("steps", 45)),
-        )
-        return self._json(result)
+        try:
+            result = engine.scan_matchable_range(
+                data["topology"], float(data["frequency_mhz"]),
+                float(data.get("z0", 50.0)), float(data["L_uh"]),
+                data.get("c1_range_pf"), data.get("c2_range_pf"), data.get("c3_range_pf"),
+                int(data.get("steps", 45)),
+            )
+            return self._json(result)
+        except engine.DesignError as exc:
+            return self._json({"ok": False, "error_code": exc.code,
+                               "message": exc.message, "hint": exc.hint}, 200)
 
     def _evaluate(self) -> None:
         data = self._body()
@@ -395,6 +411,8 @@ class Handler(BaseHTTPRequestHandler):
     def _convert(self) -> None:
         data = self._body()
         mode = str(data.get("mode", "z2y")).lower()
+        if mode not in ("z2y", "y2z"):
+            return self._error("mode 必须是 z2y 或 y2z", status=400, code="bad_request")
         value = complex(float(data["real"]), float(data.get("imag", 0.0)))
         if mode == "z2y":
             result = engine.z_to_y(value)
@@ -413,30 +431,38 @@ class Handler(BaseHTTPRequestHandler):
         name = str(data.get("name") or "attachment")
         content = data.get("content_base64") or data.get("content") or ""
         info = attachments.save_upload(name, content)
-        info.pop("text", None)
-        info.pop("images", None)
-        info.pop("path", None)
-        return self._json(info)
+        # Keep text/images in the server-side cache for the follow-up chat
+        # call; only the wire payload is trimmed.
+        public = dict(info)
+        public.pop("text", None)
+        public.pop("images", None)
+        public.pop("path", None)
+        return self._json(public)
 
     def _upload_text(self) -> None:
         data = self._body()
         info = attachments.save_text(str(data.get("text") or ""),
                                      str(data.get("name") or ""))
-        info.pop("text", None)
-        info.pop("images", None)
-        info.pop("path", None)
-        return self._json(info)
+        public = dict(info)
+        public.pop("text", None)
+        public.pop("images", None)
+        public.pop("path", None)
+        return self._json(public)
 
     def _report(self) -> None:
         data = self._body()
-        design = engine.design_network(
-            data.get("topology", "auto"), float(data["frequency_mhz"]),
-            float(data["load_r"]), float(data.get("load_x", 0.0)),
-            float(data.get("z0", 50.0)),
-            L_uh=None if data.get("L_uh") in (None, "", 0) else float(data["L_uh"]),
-            c3_pf=None if data.get("c3_pf") in (None, "", 0) else float(data["c3_pf"]),
-            power_w=float(data.get("power_w", 1.0)),
-        )
+        try:
+            design = engine.design_network(
+                data.get("topology", "auto"), float(data["frequency_mhz"]),
+                float(data["load_r"]), float(data.get("load_x", 0.0)),
+                float(data.get("z0", 50.0)),
+                L_uh=None if data.get("L_uh") in (None, "", 0) else float(data["L_uh"]),
+                c3_pf=None if data.get("c3_pf") in (None, "", 0) else float(data["c3_pf"]),
+                power_w=float(data.get("power_w", 1.0)),
+            )
+        except engine.DesignError as exc:
+            return self._json({"ok": False, "error_code": exc.code,
+                               "message": exc.message, "hint": exc.hint}, 200)
         if data.get("C1_pF") and data.get("C2_pF"):
             comps = {
                 "L_uH": float(data["L_uh"]),
@@ -461,6 +487,8 @@ class Handler(BaseHTTPRequestHandler):
             design["bandwidth"] = engine.bandwidth(design["topology"], fm, zl, comps, z0)
             design["sensitivity"] = engine.sensitivity(design["topology"], fm, zl, comps, z0)
         fmt = str(data.get("format", "html")).lower()
+        if fmt not in ("html", "md", "markdown"):
+            return self._error("报告格式只支持 html 或 md", status=400, code="bad_request")
         path = reports.generate(design, fmt=fmt, note=str(data.get("note", "")))
         return self._json({"ok": True, "path": str(path),
                            "url": f"/api/report/{path.name}",

@@ -167,10 +167,12 @@ def list_docs(lang: str = "zh") -> Dict[str, Any]:
 
 
 def _terms(query: str) -> List[str]:
-    q = (query or "").strip()
+    # Cap pathological pastes: a 10k-character query otherwise creates huge
+    # tokens and makes local scoring take tens of seconds.
+    q = (query or "").strip()[:400]
     terms: List[str] = []
     for token in _TERM_RE.findall(q):
-        token = token.strip("._-/")
+        token = token.strip("._-/")[:80]
         if len(token) >= 2:
             terms.append(token)
     if len(q) <= 80 and q not in terms:
@@ -269,6 +271,9 @@ def search_docs(query: str, category: Optional[str] = None,
         return {"ok": True, "query": query, "results": [], "count": 0}
     lang = "en" if str(lang).lower().startswith("en") else "zh"
     terms = _terms(query)
+    # Fuzzy similarity is quadratic in query length; a pasted paragraph must
+    # not stall the local search for every document block.
+    fuzzy_query = query.casefold()[:200]
     categories = ([_category(category)] if category else CATEGORIES)
     categories = [c for c in categories if c]
     results = []
@@ -279,7 +284,7 @@ def search_docs(query: str, category: Optional[str] = None,
             score = _score(block["text"], terms, block["heading"])
             if score <= 0 and fuzzy:
                 ratio = difflib.SequenceMatcher(
-                    None, query.casefold(), block["text"][:600].casefold()).ratio()
+                    None, fuzzy_query, block["text"][:600].casefold()).ratio()
                 if ratio >= 0.62:
                     score = ratio * 3
             if score > 0:

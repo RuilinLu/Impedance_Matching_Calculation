@@ -2,7 +2,7 @@
 
 **Project:** Impedance Matching AI
 **Version:** 4.3.0
-**Contacts:** radarlurui@gmail.com ｜ Lu_Skywalker2915@sjtu.edu.cn
+**Contacts:** GitHub Issues ｜ GitHub Security Advisory（私密披露）
 
 ## Supported versions
 
@@ -15,7 +15,8 @@
 
 ## Reporting a vulnerability
 
-Please email both contacts above with:
+Please open a private GitHub Security Advisory (or, for non-sensitive reports, a
+GitHub Issue) at <https://github.com/RuilinLu/Impedance_Matching_Calculation> with:
 
 - affected version and file hash;
 - reproduction steps;

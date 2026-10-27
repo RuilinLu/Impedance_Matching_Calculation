@@ -477,7 +477,8 @@
       STATE.providers = result.providers || [];
       populateProviderSelect();
     } catch (error) {
-      STATE.providers = [];
+      // Keep the last good catalog so a transient 5xx cannot empty the
+      // provider selector or block saving other settings.
       toast("服务商目录加载失败", error.message, "err", 6000);
     }
   }
@@ -498,6 +499,7 @@
   function populateProviderSelect() {
     const select = $("#setProvider");
     if (!select) return;
+    const current = select.value;
     const featured = STATE.providers.filter((provider) => provider.featured);
     const rest = STATE.providers.filter((provider) => !provider.featured);
     const option = (provider) => `<option value="${escapeHtml(provider.id)}">${escapeHtml(providerLabel(provider))}</option>`;
@@ -505,6 +507,8 @@
       (featured.length ? `<optgroup label="常用 / Featured">${featured.map(option).join("")}</optgroup>` : "") +
       (rest.length ? `<optgroup label="全部 / All (${rest.length})">${rest.map(option).join("")}</optgroup>` : "") +
       `<option value="custom">自定义 OpenAI 兼容服务</option>`;
+    select.value = current;
+    if (select.value !== current) select.value = "";
   }
 
   function updateProviderNote(id) {
@@ -1828,7 +1832,7 @@
     setTimeout(() => smith._notify(), 0);
   }
 
-  function renderComponentGrid(components, topology) {
+  function renderComponentGrid(components, topology, design) {
     const en = window.I18N && window.I18N.lang === "en";
     const labels = en
       ? {
@@ -1856,7 +1860,11 @@
         : topology === "pi1" ? labels.srcShunt : labels.loadShunt;
       items.push(["C3", labels.C3, fmtComp(components, "C3"), c3role]);
     } else {
-      items.push(["Zin", labels.Zin, "—", labels.checked]);
+      const zin = design && (design.input_impedance_display
+        || (design.verification && design.verification.input_impedance
+          ? `Z = ${Number(design.verification.input_impedance.re).toFixed(2)}${design.verification.input_impedance.im >= 0 ? "+" : ""}${Number(design.verification.input_impedance.im).toFixed(2)} Ω`
+          : ""));
+      items.push(["Zin", labels.Zin, zin || "—", labels.checked]);
     }
     $("#componentGrid").innerHTML = items.slice(0, 4).map(([symbol, name, value, role]) =>
       `<div class="component-item"><span>${escapeHtml(name)}<small>${escapeHtml(symbol)}</small></span><b>${escapeHtml(value)}</b><small>${escapeHtml(role)}</small></div>`
@@ -1897,7 +1905,7 @@
     let body = "";
     if (topology === "l_right") body = shunt(180, "C1", C1) + `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(330, "L", L) + series(470, "C2", C2);
     else if (topology === "l_left") body = `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(320, "L", L) + series(440, "C2", C2) + shunt(640, "C1", C1);
-    else if (topology === "t") body = series(170, "C3", C3) + `<line x1="232" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + shunt(400, "L+C2", `${L} / ${C2}`) + series(540, "C1", C1);
+    else if (topology === "t") body = `<line x1="120" y1="83" x2="170" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(170, "C3", C3) + `<line x1="232" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + shunt(400, "L+C2", `${L} / ${C2}`) + series(540, "C1", C1);
     else if (topology === "pi1") body = shunt(180, "C3", C3) + `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(330, "L", L) + series(450, "C2", C2) + shunt(640, "C1", C1);
     else if (topology === "pi2") body = shunt(180, "C1", C1) + `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>` + series(330, "L", L) + series(450, "C2", C2) + shunt(640, "C3", C3);
     else body = `<line x1="120" y1="83" x2="700" y2="83" stroke="#3c5978" stroke-width="1.8"/>`;
@@ -2023,8 +2031,10 @@
       z0: result.z0 || 50,
       scanPoints: result.points || [],
     });
-    const centerX = (result.r_max + result.r_min) / 2;
-    const centerY = (result.x_max + result.x_min) / 2;
+    const centerX = Number.isFinite(result.r_p05) && Number.isFinite(result.r_p95)
+      ? (result.r_p05 + result.r_p95) / 2 : (result.r_max + result.r_min) / 2;
+    const centerY = Number.isFinite(result.x_p05) && Number.isFinite(result.x_p95)
+      ? (result.x_p05 + result.x_p95) / 2 : (result.x_max + result.x_min) / 2;
     const en = window.I18N && window.I18N.lang === "en";
     const topology = escapeHtml(TOPO_SHORT[result.topology] || result.topology);
     $("#scanSummary").innerHTML = en

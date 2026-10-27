@@ -250,7 +250,7 @@ def markdown_report(d: Dict[str, Any], note: str = "") -> str:
         lines.append("- 无显著风险；仍建议用实际元件模型复核。")
     if note:
         lines += ["", "## 8. 备注", "", note]
-    lines += ["", "---", "", "开发者：卢瑞林、卢柯吉、林芷伊、张昀蕾 ｜ 上海交通大学集成电路学院",
+    lines += ["", "---", "", "开发者：Nova（诺瓦）、Echo（回声）、Iris（鸢尾）、Lumen（流明）",
               f"软件版本 v{config.VERSION} ｜ {config.RELEASE_DATE}"]
     return "\n".join(lines)
 
@@ -353,7 +353,7 @@ footer{{padding:20px 44px 30px;color:var(--muted);font-size:11.5px;border-top:1p
 <h2>6. 风险提示</h2><ul class="warn">{warn}</ul>
 {note_html}
 </section>
-<footer>开发者：{_e(team)} ｜ 上海交通大学集成电路学院<br>
+<footer>开发者：{_e(team)}<br>
 软件版本 v{config.VERSION} ｜ 更新日期 {config.RELEASE_DATE} ｜ 本报告由完整网络节点法自动生成</footer>
 </div></body></html>"""
 

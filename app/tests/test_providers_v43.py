@@ -81,6 +81,22 @@ class ProviderTests(unittest.TestCase):
         self.assertNotIn("deepseek-second-model", ids)
         self.assertIn("deepseek-new-model", ids)
 
+    def test_backup_exists_on_first_update(self):
+        providers.reset_override()
+        if providers.backup_path().exists():
+            providers.backup_path().unlink()
+        result = providers.save_patch([{
+            "id": "deepseek",
+            "models": [{"id": "deepseek-first-update", "name": "First"}],
+        }], source="unit-test-first")
+        self.assertTrue(result["ok"])
+        self.assertTrue(providers.backup_path().exists())
+        rollback = providers.rollback()
+        self.assertTrue(rollback["ok"])
+        ids = {model["id"] for model in providers.find("deepseek")["models"]}
+        self.assertNotIn("deepseek-first-update", ids)
+        self.assertEqual(len(providers.all()), 20)
+
     def test_usage_record_and_summary(self):
         profile = providers.model_meta("deepseek", "deepseek-flash")
         record = usage.record(profile, {

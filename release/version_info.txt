@@ -19,11 +19,11 @@ VSVersionInfo(
           StringStruct('FileDescription', 'Impedance Matching AI - microwave matching, Smith chart and textbook study'),
           StringStruct('FileVersion', '4.3.0.0'),
           StringStruct('InternalName', 'ImpedanceMatchingAI'),
-          StringStruct('LegalCopyright', 'Copyright (c) 2025-2026 Ruilin Lu, Keji Lu, Zhiyi Lin, Yunlei Zhang. MIT License.'),
+          StringStruct('LegalCopyright', 'Copyright (c) 2025-2026 Nova, Echo, Iris, Lumen. MIT License.'),
           StringStruct('OriginalFilename', 'ImpedanceMatchingAI.exe'),
           StringStruct('ProductName', 'Impedance Matching AI'),
           StringStruct('ProductVersion', '4.3.0.0'),
-          StringStruct('Comments', 'radarlurui@gmail.com | https://github.com/RuilinLu/Impedance_Matching_Calculation')
+          StringStruct('Comments', 'https://github.com/RuilinLu/Impedance_Matching_Calculation')
         ]
       )
     ]),

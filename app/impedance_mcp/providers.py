@@ -175,6 +175,22 @@ def model_meta(provider_id: str, model_id: str) -> Dict[str, Any]:
             merged["provider_name"] = provider.get("name_zh") or provider.get("name") or provider_id
             merged["pricing_schedule"] = provider.get("pricing_schedule") or {}
             return merged
+    # A custom/unknown provider may still serve a model that exists in the
+    # catalog (for example a compatible DeepSeek endpoint).  Reuse that
+    # model's capabilities and pricing instead of falling back to zeros.
+    if str(model_id).strip():
+        for item in all():
+            for model in item.get("models", []):
+                if str(model.get("id")) == str(model_id):
+                    merged = _merge_model(DEFAULT_PROFILE, model)
+                    merged["provider"] = provider.get("id", provider_id)
+                    merged["provider_name"] = (provider.get("name_zh") or provider.get("name")
+                                               or item.get("name_zh") or item.get("name")
+                                               or provider_id)
+                    merged["pricing_schedule"] = (provider.get("pricing_schedule")
+                                                  or item.get("pricing_schedule") or {})
+                    merged["profile_source"] = item.get("id", "")
+                    return merged
     merged = copy.deepcopy(DEFAULT_PROFILE)
     merged.update({"id": model_id, "name": model_id,
                    "provider": provider_id,
@@ -319,13 +335,14 @@ def save_patch(providers: List[Dict[str, Any]], source: str,
     if not clean:
         return {"ok": False, "message": "没有可写入的有效厂商条目",
                 "errors": errors[:20], "warnings": warnings[:40]}
-    current = _read_json(override_path())
-    if current:
-        try:
-            backup_path().write_text(
-                json.dumps(current, ensure_ascii=False, indent=1), encoding="utf-8")
-        except Exception:
-            pass
+    current = _read_json(override_path()) or {
+        "version": "override", "providers": [], "updated_at": "",
+    }
+    try:
+        backup_path().write_text(
+            json.dumps(current, ensure_ascii=False, indent=1), encoding="utf-8")
+    except Exception:
+        pass
     merged = {str(p.get("id")): p for p in current.get("providers", [])
               if isinstance(p, dict) and p.get("id")}
     for provider in clean:
@@ -533,6 +550,9 @@ def update_from_provider_api(cfg: Dict[str, Any]) -> Dict[str, Any]:
     if not active or not key:
         return {"ok": False, "message": "请先配置当前服务商与 API Key"}
     provider = find(active) or {}
+    if not provider:
+        return {"ok": False,
+                "message": "当前是自定义服务，不会写入 20 家内置厂商目录；请先选择内置服务商。"}
     url = provider.get("models_url") or ""
     if not url:
         style = str((cfg.get("llm") or {}).get("api_style") or "openai")

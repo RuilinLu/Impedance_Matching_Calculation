@@ -348,6 +348,32 @@
   function askDoc() {
     if (!window.Assistant) return;
     const selection = String(window.getSelection ? window.getSelection().toString() : "").slice(0, 1500);
+    const mark = STATE.matches[STATE.matchIndex];
+    let heading = "";
+    let blockText = "";
+    if (mark) {
+      const owner = mark.closest("p, li, td, th, pre, blockquote, h2, h3, h4, h5, h6")
+        || mark.parentElement;
+      if (owner) blockText = String(owner.textContent || "").trim().slice(0, 1200);
+      let node = owner;
+      const content = $("#docsContent");
+      while (node && node !== content && !heading) {
+        let previous = node.previousElementSibling;
+        while (previous) {
+          if (/^H[1-6]$/.test(previous.tagName)) {
+            heading = String(previous.textContent || "").trim();
+            break;
+          }
+          const nested = previous.querySelector("h2, h3, h4, h5, h6");
+          if (nested) {
+            heading = String(nested.textContent || "").trim();
+            break;
+          }
+          previous = previous.previousElementSibling;
+        }
+        node = node.parentElement;
+      }
+    }
     const prompt = window.I18N && window.I18N.lang === "en"
       ? `Explain the selected part of "${STATE.title}" and how it applies to this software.`
       : `请解释《${STATE.title}》中我选中的内容，并说明它在本软件中的对应实现。`;
@@ -355,8 +381,8 @@
       docs: {
         category: STATE.category,
         title: STATE.title,
-        heading: STATE.matches.length ? "" : "",
-        selection,
+        heading,
+        selection: selection || blockText,
       },
     });
   }

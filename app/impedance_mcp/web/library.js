@@ -35,10 +35,10 @@
     $("#btnAddBook").addEventListener("click", () => $("#bookInput").click());
     $("#bookInput").addEventListener("change", handleBookUpload);
     $("#btnReindex").addEventListener("click", reindex);
-    $("#btnLibrarySearch").addEventListener("click", runSearch);
+    $("#btnLibrarySearch").addEventListener("click", () => runSearch(false));
     $("#btnLibraryAi").addEventListener("click", runAiSearch);
     $("#libraryQuery").addEventListener("keydown", (event) => {
-      if (event.key === "Enter") runSearch();
+      if (event.key === "Enter") runSearch(false);
     });
     $("#libraryBookFilter").addEventListener("input", (event) => {
       STATE.filter = event.target.value.trim().toLowerCase();

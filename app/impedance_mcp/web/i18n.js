@@ -244,7 +244,7 @@
     "about.layerCoreText": "Python analytical/nodal kernel · SQLite textbook index · RapidOCR · AST documentation",
     "about.mcp": "MCP access",
     "about.mcpText": "Add the configuration below to ZCode / Claude Desktop / any MCP client to use matching, textbook and documentation tools:",
-    "about.devs": "Developers: Ruilin Lu, Keji Lu, Zhiyi Lin, Yunlei Zhang",
+    "about.devs": "Developers: Nova, Echo, Iris, Lumen",
     "top.noModel": "No model service",
     "top.books": "books",
     "stats.cache": "Cache",

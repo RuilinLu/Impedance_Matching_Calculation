@@ -143,6 +143,55 @@ def init_db() -> None:
             )
             conn.execute("INSERT OR REPLACE INTO meta(k,v) VALUES('fts','unicode61')")
         conn.commit()
+        if _meta(conn, "ocr_box_version") != "2":
+            _repair_ocr_boxes(conn)
+            _set_meta(conn, "ocr_box_version", "2")
+            conn.commit()
+
+
+def _repair_ocr_boxes(conn: sqlite3.Connection) -> None:
+    """Drop OCR pages whose boxes were normalized against PDF points.
+
+    v4.3.0-rc rendered at 220 dpi but divided by the point size, collapsing
+    most horizontal coordinates to 1.0.  Those cached boxes cannot be
+    repaired without the page image, so remove them and let OCR run again.
+    """
+    rows = conn.execute(
+        "SELECT doc_id, page, boxes FROM pages WHERE source='ocr' AND boxes != ''"
+    ).fetchall()
+    stale = []
+    for row in rows:
+        try:
+            boxes = json.loads(row["boxes"])
+        except Exception:
+            continue
+        total = degenerate = 0
+        for line in boxes if isinstance(boxes, list) else []:
+            box = line.get("box") if isinstance(line, dict) else None
+            xs = []
+            for point in box or []:
+                try:
+                    xs.append(float(point[0]))
+                except (TypeError, ValueError, IndexError):
+                    continue
+            if not xs:
+                continue
+            total += 1
+            if max(xs) - min(xs) < 0.002:
+                degenerate += 1
+        if total and degenerate / total > 0.5:
+            stale.append((int(row["doc_id"]), int(row["page"])))
+    for doc_id, page in stale:
+        conn.execute("DELETE FROM pages WHERE doc_id=? AND page=?", (doc_id, page))
+        conn.execute("DELETE FROM pages_fts WHERE doc_id=? AND page=?", (doc_id, page))
+    for doc_id in {item[0] for item in stale}:
+        conn.execute(
+            "UPDATE docs SET ocr_pages=(SELECT COUNT(*) FROM pages "
+            "WHERE pages.doc_id=docs.id AND source='ocr'), "
+            "needs_ocr=MAX(pages - (SELECT COUNT(*) FROM pages "
+            "WHERE pages.doc_id=docs.id AND text != ''), 0) WHERE id=?",
+            (doc_id,),
+        )
 
 
 def _meta(conn: sqlite3.Connection, key: str) -> str:
@@ -526,8 +575,10 @@ def ocr_page(doc_id: int, page_no: int, force: bool = False) -> Dict[str, Any]:
         result, _elapse = engine(arr)
         lines: List[Dict[str, Any]] = []
         texts: List[str] = []
-        width = float(page.rect.width)
-        height = float(page.rect.height)
+        # OCR boxes come back in rendered-pixel coordinates.  Normalize by the
+        # pixmap size, not by the PDF point size (220 dpi is ~3x larger).
+        height = float(arr.shape[0]) or 1.0
+        width = float(arr.shape[1]) or 1.0
         for item in result or []:
             try:
                 box, text, score = item[0], str(item[1]), float(item[2])
@@ -660,9 +711,12 @@ def page_info(doc_id: int, page_no: int, lang: str = "zh") -> Dict[str, Any]:
         row = conn.execute(
             "SELECT * FROM pages WHERE doc_id=? AND page=?", (doc_id, page_no)
         ).fetchone()
+        page_text = (row["text"] if row else "") or ""
+        page_lang = _detect_lang(page_text) or doc["lang"] or "unknown"
+        target_lang = "zh" if page_lang != "zh" else "en"
         trans = conn.execute(
             "SELECT * FROM translations WHERE doc_id=? AND page=? AND lang=?",
-            (doc_id, page_no, lang),
+            (doc_id, page_no, target_lang),
         ).fetchone()
         trans_any = conn.execute(
             "SELECT * FROM translations WHERE doc_id=? AND page=? ORDER BY created_at DESC LIMIT 1",
@@ -681,8 +735,8 @@ def page_info(doc_id: int, page_no: int, lang: str = "zh") -> Dict[str, Any]:
         "page": int(page_no),
         "pages": int(doc["pages"]),
         "title": doc["title"],
-        "lang": doc["lang"],
-        "text": (row["text"] if row else "") or "",
+        "lang": page_lang,
+        "text": page_text,
         "source": (row["source"] if row else "none") or "none",
         "needs_ocr": bool(row is None or row["source"] == "none"),
         "boxes": boxes,
@@ -703,12 +757,12 @@ _WORD_RE = re.compile(r"[a-zA-Z0-9_./+\-]{2,}|[\u4e00-\u9fff]{2,}")
 
 
 def _query_terms(query: str) -> List[str]:
-    q = (query or "").strip()
+    q = (query or "").strip()[:400]
     if not q:
         return []
     terms: List[str] = []
     for token in _WORD_RE.findall(q):
-        token = token.strip("._-/")
+        token = token.strip("._-/")[:80]
         if len(token) >= 2:
             terms.append(token)
     if len(q) <= 80 and q not in terms:
@@ -1094,7 +1148,9 @@ def translate_page(doc_id: int, page_no: int, cfg: Dict[str, Any],
             "message": "当前页没有可翻译的文字层，请先 OCR 或使用视觉模型读图。",
             "hint": "点击「OCR 本页」，然后在设置中选择支持图像理解的模型。",
         }
-    source_lang = info.get("lang") or "unknown"
+    source_lang = _detect_lang(text)
+    if source_lang == "unknown":
+        source_lang = info.get("lang") or "unknown"
     target = target_lang or ("zh" if source_lang != "zh" else "en")
     with _db() as conn:
         row = conn.execute(
@@ -1118,7 +1174,20 @@ def translate_page(doc_id: int, page_no: int, cfg: Dict[str, Any],
     ], timeout=120)
     translated = (resp.get("content") or "").strip()
     if not translated:
-        return {"ok": False, "message": "模型没有返回译文"}
+        # Thinking models occasionally return an empty final message.  Retry
+        # once with an explicit "output only the translation" instruction.
+        retry_prompt = (
+            "上一条请求没有返回可见译文。请忽略任何思考过程，直接输出完整译文，"
+            "不要解释、不要重复原文。\n\n" + chunk
+        )
+        resp = llm.chat(cfg, [
+            {"role": "system", "content": _TRANSLATION_SYSTEM.get(target, _TRANSLATION_SYSTEM["zh"])},
+            {"role": "user", "content": retry_prompt},
+        ], timeout=120)
+        translated = (resp.get("content") or "").strip()
+    if not translated:
+        return {"ok": False, "message": "模型没有返回译文",
+                "hint": "请重试；若持续失败，可在设置中换用非思考模型或提高最大输出 token。"}
     model = str(resp.get("model") or "")
     created = datetime.now().isoformat(timespec="seconds")
     with _db() as conn:
@@ -1154,7 +1223,11 @@ def add_book(filename: str, content_b64: str) -> Dict[str, Any]:
     target_dir = config.LIBRARY_DIR / "books"
     target_dir.mkdir(parents=True, exist_ok=True)
     safe = re.sub(r"[^\w\u4e00-\u9fff.\-]+", "_", original)[:100]
-    target = target_dir / f"{uuid.uuid4().hex[:8]}_{safe}"
+    # Keep the user-visible filename intact by giving each upload its own
+    # folder; a UUID prefix in the filename leaked into titles and citations.
+    book_dir = target_dir / uuid.uuid4().hex[:8]
+    book_dir.mkdir(parents=True, exist_ok=True)
+    target = book_dir / safe
     target.write_bytes(raw)
     init_db()
     with _db() as conn:
