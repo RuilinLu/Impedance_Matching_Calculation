@@ -305,16 +305,94 @@ def _clean_shortcuts(profiles: List[Path], app_dir: Optional[Path], dry_run: boo
                 _remove_tree(base, dry_run)
 
 
+def _preserve_textbook(app_dir: Optional[Path], dry_run: bool) -> str:
+    """Copy the install-directory TextBook into the persistent data root."""
+    if app_dir is None:
+        return ""
+    source = app_dir / "TextBook"
+    if not source.is_dir():
+        return ""
+    try:
+        from . import config
+        target = config.PROJECT_ROOT / "TextBook"
+    except Exception:
+        target = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / APP_DIR_NAME / "TextBook"
+    try:
+        if source.resolve() == target.resolve():
+            return ""
+    except OSError:
+        pass
+    _say(f"preserve {source} -> {target}", dry_run)
+    if dry_run:
+        return str(target)
+    try:
+        target.mkdir(parents=True, exist_ok=True)
+        count = 0
+        for item in source.rglob("*"):
+            if not item.is_file() or item.name.startswith("."):
+                continue
+            relative = item.relative_to(source)
+            destination = target / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, destination)
+            count += 1
+        _say(f"preserved {count} textbook file(s)", dry_run)
+        return str(target)
+    except Exception as exc:  # noqa: BLE001
+        _say(f"skip textbook preservation: {exc}", dry_run)
+        return ""
+
+
+def _remove_data_root(dry_run: bool) -> List[str]:
+    """Delete application data without wiping an unrelated custom directory."""
+    removed: List[str] = []
+    try:
+        from . import config
+        data_root = config.PROJECT_ROOT
+    except Exception:
+        data_root = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / APP_DIR_NAME
+    # Refuse to touch a custom root that does not look like our own data tree.
+    looks_ours = ((data_root / "data" / "config.json").is_file()
+                  or (data_root / "data" / "library").is_dir())
+    if not looks_ours:
+        _say(f"skip data root {data_root}: not an application data directory", dry_run)
+        return removed
+    for sub in ("data", "webview", "TextBook"):
+        target = data_root / sub
+        if _remove_tree(target, dry_run):
+            removed.append(str(target))
+    if data_root.name.lower() == APP_DIR_NAME.lower() and _remove_tree(data_root, dry_run):
+        removed.append(str(data_root))
+    return removed
+
+
 def cleanup(app_dir: Optional[Path] = None, dry_run: bool = False,
-            keep_mcp_config: bool = False) -> Dict[str, Any]:
+            keep_mcp_config: bool = False, keep_user_data: bool = False,
+            preserve_textbook: bool = False,
+            delete_user_data: bool = False) -> Dict[str, Any]:
+    """Remove program integration; personal data is kept unless explicitly deleted.
+
+    ``delete_user_data`` must be supplied by the caller.  This fail-safe default
+    prevents an uninstaller/check-function mistake from wiping user settings.
+    """
     profiles = list(_profiles())
-    removed = []
+    removed: List[str] = []
+    preserved = ""
+    if preserve_textbook and not delete_user_data:
+        preserved = _preserve_textbook(app_dir, dry_run)
+    if delete_user_data:
+        for profile in profiles:
+            for dir_name in (APP_DIR_NAME, *OLD_APP_DIR_NAMES):
+                for base in (profile / "AppData" / "Local" / dir_name,
+                             profile / "AppData" / "Roaming" / dir_name):
+                    if _remove_tree(base, dry_run):
+                        removed.append(str(base))
+        removed.extend(_remove_data_root(dry_run))
+        if app_dir is not None:
+            textbook = app_dir / "TextBook"
+            if _remove_tree(textbook, dry_run):
+                removed.append(str(textbook))
     for profile in profiles:
-        for dir_name in (APP_DIR_NAME, *OLD_APP_DIR_NAMES):
-            for base in (profile / "AppData" / "Local" / dir_name,
-                         profile / "AppData" / "Roaming" / dir_name):
-                if _remove_tree(base, dry_run):
-                    removed.append(str(base))
         if not keep_mcp_config:
             _clean_mcp_configs(profile, app_dir, dry_run)
     _clean_registry(dry_run)
@@ -325,7 +403,10 @@ def cleanup(app_dir: Optional[Path] = None, dry_run: bool = False,
             _remove_tree(item, dry_run)
     for item in temp.glob("imp_install*.log"):
         _remove_tree(item, dry_run)
-    return {"ok": True, "profiles": len(profiles), "removed": removed, "dry_run": dry_run}
+    return {"ok": True, "profiles": len(profiles), "removed": removed,
+            "dry_run": dry_run, "keep_user_data": not delete_user_data,
+            "deleted_user_data": delete_user_data,
+            "preserved_textbook": preserved}
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -333,10 +414,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--app-dir", default="")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--keep-mcp-config", action="store_true")
+    parser.add_argument("--keep-user-data", action="store_true")
+    parser.add_argument("--preserve-textbook", action="store_true")
+    parser.add_argument("--delete-user-data", action="store_true")
     args = parser.parse_args(argv)
     app_dir = Path(args.app_dir).resolve() if args.app_dir else None
     result = cleanup(app_dir=app_dir, dry_run=args.dry_run,
-                     keep_mcp_config=args.keep_mcp_config)
+                     keep_mcp_config=args.keep_mcp_config,
+                     keep_user_data=args.keep_user_data,
+                     preserve_textbook=args.preserve_textbook,
+                     delete_user_data=args.delete_user_data)
     _say(json.dumps(result, ensure_ascii=False), args.dry_run)
     return 0
 

@@ -1,14 +1,15 @@
 # Security Policy
 
 **Project:** Impedance Matching AI
-**Version:** 4.3.0
+**Version:** 4.4.0
 **Contacts:** GitHub Issues ｜ GitHub Security Advisory（私密披露）
 
 ## Supported versions
 
 | Version | Supported |
 |---|---|
-| 4.3.x | Yes |
+| 4.4.x | Yes |
+| 4.3.x | Yes (data-compatible) |
 | 4.2.x | Security fixes only |
 | 4.1.x | No |
 | 4.0.x | No |
@@ -40,10 +41,17 @@ Please do not open a public issue for an unpatched vulnerability.
 - No telemetry, analytics, or automatic upload of designs is implemented.
 - The desktop UI runs in a native WebView2 window; no external browser is
   launched and no console window is shown.
-- The uninstaller stops running instances, then removes program files, user
-  profiles' `%LOCALAPPDATA%`/`%APPDATA%` data, API keys, uploads, reports,
-  WebView2 cache, matching MCP client entries, shortcuts and app-specific
-  registry keys. Shared Microsoft WebView2 Runtime is not removed.
+- The uninstaller stops running instances, then asks whether to keep personal
+  data. Keeping it preserves API keys, settings, textbook index, uploads,
+  reports, translation cache and search paths for the next install; deleting it
+  removes the local data tree. In both modes it removes matching MCP client
+  entries, shortcuts and app-specific registry keys. Shared Microsoft WebView2
+  Runtime is not removed.
+- The optional update checker contacts `api.github.com` only, validates the
+  scheme, host and resolved public IP, follows redirects only to allow-listed
+  GitHub hosts, and downloads installers to a fixed path inside the local data
+  directory. The configured model may receive public release notes for a
+  compatibility summary; no personal data is sent.
 
 ## Model catalog updates
 

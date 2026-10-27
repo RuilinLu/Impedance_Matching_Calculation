@@ -4,18 +4,26 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import re
 import threading
+import time
 import traceback
 import urllib.parse
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import numpy as np
+
 from . import (agent, attachments, code_docs, config, docs_hub, engine, knowledge,
-               library, llm, providers, reports, tools, usage)
+               library, llm, providers, reports, tools, update_check, usage)
 
 MAX_BODY = 160 * 1024 * 1024  # base64 textbook uploads
 JSON_LIMIT = 64 * 1024 * 1024
+MAX_CHUNK = 8 * 1024 * 1024
+MAX_CHUNK_TOTAL = 120 * 1024 * 1024
+CHUNK_ID_PATTERN = re.compile(r"^[a-f0-9]{16,64}$")
 
 
 def _inline_disposition(name: str) -> str:
@@ -144,6 +152,16 @@ class Handler(BaseHTTPRequestHandler):
                     state["started"] = True
                     library.start_index()
                 return self._json(state)
+            if path == "/api/library/sources":
+                return self._json(self._library_sources_payload())
+            if path == "/api/update/progress":
+                return self._json({"ok": True, **update_check.download_progress()})
+            if path == "/api/update/check":
+                query = self._query()
+                result = update_check.check(
+                    force=query.get("force", "0") not in ("0", "false", ""),
+                    use_model=query.get("use_model", "1") not in ("0", "false"))
+                return self._json(result)
             if path == "/api/library/docs":
                 return self._json({"ok": True, "documents": library.doc_list()})
             if path == "/api/library/doc":
@@ -214,6 +232,9 @@ class Handler(BaseHTTPRequestHandler):
         path = parsed.path
         self._body_cache = None
         try:
+            # Raw binary chunk upload: do not try to decode it as JSON.
+            if path == "/api/upload/chunk":
+                return self._upload_chunk()
             # Always consume the request body before dispatching.  Otherwise a
             # route that ignores the body leaves "{}" in the keep-alive socket
             # and the next request line becomes "{}GET ..." (HTTP 501).
@@ -225,16 +246,21 @@ class Handler(BaseHTTPRequestHandler):
                 "/api/models": self._models,
                 "/api/design": self._design,
                 "/api/scan": self._scan,
+                "/api/scan/stream": self._scan_stream,
                 "/api/evaluate": self._evaluate,
                 "/api/stress": self._stress,
+                "/api/stress/stream": self._stress_stream,
                 "/api/bandwidth": self._bandwidth,
                 "/api/suggest": self._suggest,
                 "/api/convert": self._convert,
                 "/api/upload": self._upload,
+                "/api/upload/init": self._upload_init,
+                "/api/upload/complete": self._upload_complete,
                 "/api/upload-text": self._upload_text,
                 "/api/report": self._report,
                 "/api/docs/ai_search": self._docs_ai_search,
                 "/api/library/index": self._library_index,
+                "/api/library/sources": self._library_sources_save,
                 "/api/library/ocr": self._library_ocr,
                 "/api/library/ocr_book": self._library_ocr_book,
                 "/api/library/translate": self._library_translate,
@@ -244,6 +270,10 @@ class Handler(BaseHTTPRequestHandler):
                 "/api/providers/rollback": self._providers_rollback,
                 "/api/providers/reset": self._providers_reset,
                 "/api/usage/clear": self._usage_clear,
+                "/api/update/check": self._update_check,
+                "/api/update/download": self._update_download,
+                "/api/update/install": self._update_install,
+                "/api/update/skip": self._update_skip,
             }
             handler = routes.get(path)
             if handler:
@@ -448,6 +478,295 @@ class Handler(BaseHTTPRequestHandler):
         public.pop("images", None)
         public.pop("path", None)
         return self._json(public)
+
+    # -- progressive analysis --------------------------------------------
+    def _sse_start(self) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache, no-transform")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+
+    def _sse_emit(self, event: str, payload: Dict[str, Any]) -> None:
+        body = f"event: {event}\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+        self.wfile.write(body.encode("utf-8"))
+        self.wfile.flush()
+
+    def _scan_stream(self) -> None:
+        data = self._body()
+        try:
+            plan = engine.scan_plan(
+                data["topology"], float(data["frequency_mhz"]),
+                float(data.get("z0", 50.0)), float(data["L_uh"]),
+                data.get("c1_range_pf"), data.get("c2_range_pf"),
+                data.get("c3_range_pf"),
+                steps=int(data.get("steps", 45)),
+                points_budget=int(data.get("points_budget")
+                                   or data.get("max_points") or 0),
+            )
+        except engine.DesignError as exc:
+            return self._json({"ok": False, "error_code": exc.code,
+                               "message": exc.message, "hint": exc.hint}, 200)
+        self._sse_start()
+        started = time.perf_counter()
+        accumulator = engine.ScanAccumulator(plan["z0"], grid=160)
+        batch = []
+        try:
+            self._sse_emit("meta", {
+                "ok": True, "topology": plan["topology"],
+                "total": plan["total"], "per_dimension": plan["per"],
+                "grid_steps": plan["grid_steps"], "dims": plan["dims"],
+                "frequency_mhz": plan["frequency_mhz"], "z0": plan["z0"],
+            })
+            for loads, connect in engine.iter_scan_groups(plan):
+                raw = np.asarray(loads, dtype=np.complex128).ravel()
+                accumulator.add(raw, connect=connect)
+                valid = raw[np.isfinite(raw) & (raw.real > 0)]
+                if valid.size:
+                    gamma = (valid - plan["z0"]) / (valid + plan["z0"])
+                    for point, g in zip(valid, gamma):
+                        batch.append({"re": float(point.real), "im": float(point.imag),
+                                      "g": {"re": float(g.real), "im": float(g.imag),
+                                            "magnitude": float(abs(g))}})
+                if len(batch) >= 500:
+                    self._sse_emit("points", {
+                        "points": batch,
+                        "evaluated": accumulator.evaluated,
+                        "valid": accumulator.valid,
+                        "total": plan["total"],
+                    })
+                    batch = []
+            if batch:
+                self._sse_emit("points", {
+                    "points": batch,
+                    "evaluated": accumulator.evaluated,
+                    "valid": accumulator.valid,
+                    "total": plan["total"],
+                })
+            elapsed = int((time.perf_counter() - started) * 1000)
+            result = accumulator.finish(plan, elapsed_ms=elapsed, limit_points=0)
+            self._sse_emit("done", result)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        except Exception as exc:  # noqa: BLE001
+            traceback.print_exc()
+            try:
+                self._sse_emit("error", {"message": f"扫描失败：{exc}"})
+            except Exception:
+                pass
+        finally:
+            self.close_connection = True
+
+    def _stress_stream(self) -> None:
+        data = self._body()
+        params = {
+            "topology": data["topology"],
+            "frequency_mhz": float(data["frequency_mhz"]),
+            "load_r": float(data["load_r"]),
+            "load_x": float(data.get("load_x", 0.0)),
+            "L_uh": float(data["L_uh"]),
+            "c1_pf": float(data["C1_pF"]),
+            "c2_pf": float(data["C2_pF"]),
+            "c3_pf": float(data.get("C3_pF", 0.0)),
+            "power_w": float(data.get("power_w", 10.0)),
+            "z0": float(data.get("z0", 50.0)),
+            "rated_voltage": (None if data.get("rated_voltage") in (None, "", 0)
+                              else float(data["rated_voltage"])),
+            "sweep": bool(data.get("sweep", True)),
+            "sweep_points": int(data.get("sweep_points", 21)),
+            "frequency_span": float(data.get("frequency_span", 0.2)),
+        }
+        self._sse_start()
+        try:
+            self._sse_emit("meta", {
+                "ok": True, "sweep_points": params["sweep_points"],
+                "frequency_span": params["frequency_span"],
+                "total": ((max(2, min(params["sweep_points"], 41)) ** 2) + 1
+                          if params["sweep"] else 1),
+            })
+
+            def progress(info: Dict[str, Any]) -> None:
+                self._sse_emit("progress", info)
+
+            result = engine.voltage_stress(progress=progress, **params)
+            self._sse_emit("done", result)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        except Exception as exc:  # noqa: BLE001
+            traceback.print_exc()
+            try:
+                self._sse_emit("error", {"message": f"耐压分析失败：{exc}"})
+            except Exception:
+                pass
+        finally:
+            self.close_connection = True
+
+    # -- chunked uploads --------------------------------------------------
+    def _chunk_paths(self, upload_id: str):
+        if not CHUNK_ID_PATTERN.match(str(upload_id or "")):
+            raise ValueError("无效的上传会话")
+        base = config.UPLOAD_CHUNK_DIR.resolve()
+        base.mkdir(parents=True, exist_ok=True)
+        meta = (base / (upload_id + ".json")).resolve()
+        part = (base / (upload_id + ".part")).resolve()
+        if meta.parent != base or part.parent != base:
+            raise ValueError("上传路径越界")
+        return meta, part
+
+    def _upload_init(self) -> None:
+        data = self._body()
+        name = str(data.get("name") or "attachment")[:200]
+        size = int(data.get("size") or 0)
+        if size <= 0:
+            return self._error("文件为空", status=400, code="bad_request")
+        if size > MAX_CHUNK_TOTAL:
+            return self._error(
+                f"文件过大（上限 {MAX_CHUNK_TOTAL // 1024 // 1024} MB）",
+                status=413, code="too_large")
+        config.ensure_dirs()
+        cutoff = time.time() - 24 * 3600
+        for stale in config.UPLOAD_CHUNK_DIR.glob("*"):
+            try:
+                if stale.is_file() and stale.stat().st_mtime < cutoff:
+                    stale.unlink()
+            except Exception:
+                pass
+        upload_id = uuid.uuid4().hex
+        meta, part = self._chunk_paths(upload_id)
+        meta.write_text(json.dumps({"name": name, "size": size, "received": 0,
+                                    "created": time.time()}, ensure_ascii=False),
+                        encoding="utf-8")
+        part.touch()
+        return self._json({"ok": True, "upload_id": upload_id, "size": size,
+                           "chunk_size": 2 * 1024 * 1024})
+
+    def _upload_chunk(self) -> None:
+        query = self._query()
+        upload_id = query.get("upload_id", "")
+        try:
+            meta_path, part_path = self._chunk_paths(upload_id)
+        except ValueError as exc:
+            return self._error(str(exc), status=400, code="bad_request")
+        if not meta_path.is_file() or not part_path.is_file():
+            return self._error("上传会话不存在或已过期", status=404, code="not_found")
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            return self._error("无效的 Content-Length", status=400, code="bad_request")
+        if length <= 0 or length > MAX_CHUNK:
+            return self._error("分块大小无效", status=400, code="bad_request")
+        raw = self.rfile.read(length)
+        if len(raw) != length:
+            return self._error("分块读取不完整", status=400, code="bad_request")
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except Exception:
+            return self._error("上传会话元数据损坏", status=500, code="server_error")
+        current = part_path.stat().st_size
+        if current != int(meta.get("received") or 0):
+            return self._error("分块顺序错误，请重新上传", status=409, code="conflict")
+        if current + len(raw) > int(meta.get("size") or 0):
+            return self._error("上传内容超过声明大小", status=413, code="too_large")
+        with part_path.open("ab") as handle:
+            handle.write(raw)
+        meta["received"] = current + len(raw)
+        meta_path.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+        total = int(meta.get("size") or 0)
+        return self._json({"ok": True, "received": meta["received"], "total": total,
+                           "percent": round(100.0 * meta["received"] / max(1, total), 1)})
+
+    def _upload_complete(self) -> None:
+        data = self._body()
+        upload_id = str(data.get("upload_id") or "")
+        try:
+            meta_path, part_path = self._chunk_paths(upload_id)
+        except ValueError as exc:
+            return self._error(str(exc), status=400, code="bad_request")
+        if not meta_path.is_file() or not part_path.is_file():
+            return self._error("上传会话不存在或已过期", status=404, code="not_found")
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except Exception:
+            return self._error("上传会话元数据损坏", status=500, code="server_error")
+        received = part_path.stat().st_size
+        if received != int(meta.get("size") or 0):
+            return self._error("上传尚未完成", status=409, code="incomplete")
+        raw = part_path.read_bytes()
+        info = attachments.save_bytes(str(meta.get("name") or "attachment"), raw)
+        try:
+            part_path.unlink()
+            meta_path.unlink()
+        except Exception:
+            pass
+        public = dict(info)
+        public.pop("text", None)
+        public.pop("images", None)
+        public.pop("path", None)
+        return self._json(public)
+
+    # -- library paths ----------------------------------------------------
+    def _library_sources_payload(self) -> Dict[str, Any]:
+        cfg = config.load_config()
+        sources = config.resolve_library_sources(cfg)
+        return {
+            "ok": True,
+            "install_dir": str(config.INSTALL_DIR),
+            "data_dir": str(config.PROJECT_ROOT),
+            "data_root_file": str(config.DATA_ROOT_FILE),
+            "sources": sources,
+            "current": next((item["path"] for item in sources
+                             if item["enabled"] and item["exists"]), ""),
+            "status": library.status(),
+        }
+
+    def _library_sources_save(self) -> None:
+        data = self._body()
+        sources = data.get("sources")
+        if not isinstance(sources, list):
+            return self._error("sources 必须是数组", status=400, code="bad_request")
+        for item in sources:
+            if not isinstance(item, dict):
+                return self._error("路径条目格式错误", status=400, code="bad_request")
+            if str(item.get("kind") or "") == "custom":
+                path = Path(str(item.get("path") or ""))
+                if not path.is_dir():
+                    return self._error(f"目录不存在：{path}",
+                                       "请选择本机已存在的文件夹。", 400, "invalid_path")
+        config.save_library_sources(sources)
+        if data.get("reindex", True):
+            library.start_index(force=False)
+        return self._json(self._library_sources_payload())
+
+    # -- updates ----------------------------------------------------------
+    def _update_check(self) -> None:
+        data = self._body()
+        result = update_check.check(
+            force=bool(data.get("force", False)),
+            use_model=(None if data.get("use_model") is None
+                       else bool(data.get("use_model"))),
+        )
+        return self._json(result)
+
+    def _update_download(self) -> None:
+        data = self._body()
+        try:
+            progress = update_check.start_download(str(data.get("url") or ""))
+        except ValueError as exc:
+            return self._error(str(exc), status=400, code="bad_url")
+        return self._json({"ok": True, **progress})
+
+    def _update_install(self) -> None:
+        try:
+            result = update_check.install_downloaded()
+        except ValueError as exc:
+            return self._error(str(exc), status=400, code="not_ready")
+        return self._json(result)
+
+    def _update_skip(self) -> None:
+        data = self._body()
+        update_check.skip_version(str(data.get("version") or ""))
+        return self._json({"ok": True})
 
     def _report(self) -> None:
         data = self._body()

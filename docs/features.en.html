@@ -8,7 +8,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 </script>
 <script src="vendor/mathjax/tex-svg-full.js"></script>
 </head><body><div class="layout"><aside>
-<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.3.0</small></div></div>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.4.0</small></div></div>
 <nav><a class="" href="index.html">文档首页</a>
 <a class="" href="features.zh.html">软件功能文档</a>
 <a class="" href="code.zh.html">代码参考文档</a>
@@ -345,5 +345,41 @@ z = \frac{Z_L}{Z_0}, \qquad
 </tr>
 </tbody>
 </table>
-<div class="footer">Impedance Matching AI v4.3.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
+<h2>11. v4.4 operations</h2>
+<h3>11.1 Library paths and panel sizes</h3>
+<ol>
+<li>Open <strong>Textbook Library</strong> and click <strong>Paths</strong>.</li>
+<li>The dialog shows the installation directory, user-data directory and current library. The installation <code>TextBook</code> folder is resolved dynamically, so moving the application does not leave a stale path.</li>
+<li>Folders are scanned top to bottom. Each row can be enabled, moved up/down or removed. Enter an absolute path at the bottom, or use <strong>Browse…</strong> in the desktop window.</li>
+<li><strong>Save and reindex</strong> rescans every enabled folder in the background. Missing folders are marked and skipped.</li>
+<li>Drag the vertical handle between search results and the reader to change their widths, and the horizontal handle between the page and the original/translation panes to change their heights. Sizes persist across restarts.</li>
+</ol>
+<h3>11.2 Smith scan and simulation points</h3>
+<ul>
+<li><strong>Simulation points</strong> is the number of real component combinations (default 10,000, maximum 250,000). Two-element topologies distribute it over C1/C2; three-element topologies over C1/C2/C3.</li>
+<li>While scanning, the progress bar reports evaluated/total and valid points, and real points appear on the chart. The grey region is drawn only after all points finish.</li>
+<li>The region is rasterised from the parameter-grid curves and the strips between adjacent curves, not from a convex hull. Capacitance values use logarithmic spacing, so widening a range cannot shrink the covered area.</li>
+<li>Increase the point count for a smoother boundary, or lower it for a quick preview. <strong>Stop scan</strong> aborts the stream.</li>
+</ul>
+<h3>11.3 Stress sweep and evidence</h3>
+<ul>
+<li>With <strong>Frequency × power sweep</strong> enabled, every combination in ±frequency span and 10 %–100 % power performs a full nodal solve. The UI reports solve count, elapsed time and the worst frequency/power/element.</li>
+<li>A <code>*</code> in the peak-voltage column means the worst value over the sweep; hover for the nominal value. Safety factors use the worst voltage.</li>
+<li>With the sweep off only the nominal point is solved. A single linear solve is genuinely fast for a network with at most three nodes; the UI now shows the solve count and elapsed time.</li>
+</ul>
+<h3>11.4 Uploads and chat display</h3>
+<ul>
+<li>Pasted screenshots/files appear immediately with a spinner, uploaded percentage and progress bar. Sending is blocked until every attachment reaches 100 %.</li>
+<li>The <strong>Thinking</strong> and <strong>References</strong> chips under the composer control the default expanded state. Each answer has its own collapsible thinking and sources sections and nothing is lost when collapsed.</li>
+<li>The same defaults can be changed under Settings → Interface and apply to both the main chat and the floating assistant.</li>
+</ul>
+<h3>11.5 Updates and uninstall</h3>
+<ul>
+<li>About two seconds after startup the app checks the latest GitHub Release. When a newer version exists, a dialog shows current/latest versions, release notes and (if a model is configured) a compatibility review.</li>
+<li><strong>Skip this version</strong> stores the version and stops proactive prompts. <strong>Open release page</strong> opens the browser; <strong>Download and install</strong> downloads with a percentage and launches the installer.</li>
+<li>The uninstaller asks whether to keep personal data. <strong>Yes</strong> keeps API keys, settings, index, uploads, reports, translation cache and search paths; <strong>No</strong> deletes them. In keep mode, files in the installation <code>TextBook</code> folder are first copied to the user-data directory.</li>
+</ul>
+<h3>11.6 Compatibility</h3>
+<p>4.4.0 reads 4.3.x <code>config.json</code>, textbook SQLite index, uploads and reports directly. New settings are merged with defaults without dropping old keys, and the index rebuilds automatically when paths change. 4.4.0 is the compatibility baseline for later releases.</p>
+<div class="footer">Impedance Matching AI v4.4.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
 </main></div></body></html>

@@ -8,7 +8,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 </script>
 <script src="vendor/mathjax/tex-svg-full.js"></script>
 </head><body><div class="layout"><aside>
-<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.3.0</small></div></div>
+<div class="brand"><div><b>Impedance Matching AI</b><small>离线说明书 · v4.4.0</small></div></div>
 <nav><a class="" href="index.html">文档首页</a>
 <a class="" href="features.zh.html">软件功能文档</a>
 <a class="" href="code.zh.html">代码参考文档</a>
@@ -40,29 +40,29 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 <tr>
 <td><code>agent</code></td>
 <td><code>impedance_mcp\agent.py</code></td>
-<td>373</td>
+<td>386</td>
 <td>5</td>
 <td>内置 AI 智能体的工具调用循环、流式事件、系统提示词与结果裁剪。</td>
 </tr>
 <tr>
 <td><code>attachments</code></td>
 <td><code>impedance_mcp\attachments.py</code></td>
-<td>537</td>
-<td>20</td>
+<td>546</td>
+<td>21</td>
 <td>任意类型附件的接收、文本抽取、图片/扫描页视觉输入与剪贴板内容处理。</td>
 </tr>
 <tr>
 <td><code>cleanup</code></td>
 <td><code>impedance_mcp\cleanup.py</code></td>
-<td>345</td>
-<td>13</td>
+<td>432</td>
+<td>15</td>
 <td>卸载与残留数据清理。</td>
 </tr>
 <tr>
 <td><code>config</code></td>
 <td><code>impedance_mcp\config.py</code></td>
-<td>256</td>
-<td>11</td>
+<td>518</td>
+<td>22</td>
 <td>路径、版本、默认配置、密钥隐藏与 MCP 启动命令。</td>
 </tr>
 <tr>
@@ -75,7 +75,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 <tr>
 <td><code>desktop</code></td>
 <td><code>impedance_mcp\desktop.py</code></td>
-<td>148</td>
+<td>194</td>
 <td>3</td>
 <td>原生 WebView2 桌面窗口与本地服务生命周期管理。</td>
 </tr>
@@ -89,8 +89,8 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 <tr>
 <td><code>engine</code></td>
 <td><code>impedance_mcp\engine.py</code></td>
-<td>1364</td>
-<td>23</td>
+<td>1645</td>
+<td>27</td>
 <td>微波网络计算内核：五种拓扑的解析设计、ABCD/节点法复核、扫描、带宽、灵敏度、耐压与拓扑比较。</td>
 </tr>
 <tr>
@@ -103,7 +103,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 <tr>
 <td><code>library</code></td>
 <td><code>impedance_mcp\library.py</code></td>
-<td>1237</td>
+<td>1266</td>
 <td>45</td>
 <td>教材库：PDF 索引、全文/模糊搜索、OCR、页面渲染、引用截图与学术翻译。</td>
 </tr>
@@ -152,7 +152,7 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 <tr>
 <td><code>web_server</code></td>
 <td><code>impedance_mcp\web_server.py</code></td>
-<td>672</td>
+<td>991</td>
 <td>5</td>
 <td>本地 HTTP API 与静态资源服务，负责设计、扫描、教材、文档、模型配置与 SSE 聊天。</td>
 </tr>
@@ -169,6 +169,13 @@ options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]}};
 <td>440</td>
 <td>11</td>
 <td>Generate the code-reference documentation from the live source tree.</td>
+</tr>
+<tr>
+<td><code>update_check</code></td>
+<td><code>impedance_mcp\update_check.py</code></td>
+<td>379</td>
+<td>17</td>
+<td>Startup release check against the project's GitHub repository.</td>
 </tr>
 </tbody>
 </table>
@@ -197,7 +204,7 @@ reply = llm.chat(cfg, [{&#x27;role&#x27;: &#x27;user&#x27;, &#x27;content&#x27;:
 <h3><code>agent</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\agent.py</code></li>
-<li>行数：373</li>
+<li>行数：386</li>
 <li>作用：内置 AI 智能体的工具调用循环、流式事件、系统提示词与结果裁剪。</li>
 </ul>
 <p>Provider-agnostic tool-calling agent for microwave matching and study.</p>
@@ -413,12 +420,12 @@ reply = llm.chat(cfg, [{&#x27;role&#x27;: &#x27;user&#x27;, &#x27;content&#x27;:
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>可能抛出</strong>：<code>llm.LLMError</code>, <code>ValueError</code></p>
-<p><strong>局部变量</strong>：<code>history</code>、<code>profile</code>、<code>protocol</code>、<code>extra</code>、<code>context_text</code>、<code>images</code>、<code>api_messages</code>、<code>usage_total</code>、<code>started</code>、<code>last_design</code>、<code>used_tools</code>、<code>last_model</code>、<code>last_resp</code>、<code>step</code>、<code>final</code>、<code>elapsed</code>、<code>stats</code>、<code>result</code>、<code>attach_text</code>、<code>attach_ui</code>、<code>use_tools</code>、<code>resp</code>、<code>calls</code>、<code>call</code></p>
+<p><strong>局部变量</strong>：<code>history</code>、<code>profile</code>、<code>protocol</code>、<code>extra</code>、<code>context_text</code>、<code>images</code>、<code>api_messages</code>、<code>usage_total</code>、<code>started</code>、<code>last_design</code>、<code>used_tools</code>、<code>last_model</code>、<code>last_resp</code>、<code>reasoning_total</code>、<code>step</code>、<code>final</code>、<code>elapsed</code>、<code>stats</code>、<code>result</code>、<code>attach_text</code>、<code>attach_ui</code>、<code>text</code>、<code>index</code>、<code>use_tools</code></p>
 <p><strong>源码</strong>：<code>agent.py</code> 第 177 行</p>
 <h3><code>attachments</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\attachments.py</code></li>
-<li>行数：537</li>
+<li>行数：546</li>
 <li>作用：任意类型附件的接收、文本抽取、图片/扫描页视觉输入与剪贴板内容处理。</li>
 </ul>
 <p>Any-file attachment handling with text extraction and vision payloads.</p>
@@ -890,8 +897,45 @@ exposed to vision-capable models.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
-<p><strong>局部变量</strong>：<code>original</code>、<code>safe</code>、<code>stored</code>、<code>path</code>、<code>info</code>、<code>raw</code>、<code>old</code></p>
+<p><strong>局部变量</strong>：<code>raw</code></p>
 <p><strong>源码</strong>：<code>attachments.py</code> 第 402 行</p>
+<h5><code>attachments.save_bytes</code></h5>
+<p><pre><code>save_bytes(filename: str, raw: bytes) -&gt; Dict[str, Any]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>filename</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>raw</code></td>
+<td><code>bytes</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>可能抛出</strong>：<code>ValueError</code></p>
+<p><strong>说明</strong>：</p>
+<p>Persist already-decoded upload bytes and return attachment metadata.</p>
+<p>Used by the chunked upload endpoint so a large textbook or a pasted
+screenshot never has to be base64-encoded a second time.</p>
+<p><strong>局部变量</strong>：<code>original</code>、<code>safe</code>、<code>stored</code>、<code>path</code>、<code>info</code>、<code>old</code></p>
+<p><strong>源码</strong>：<code>attachments.py</code> 第 410 行</p>
 <h5><code>attachments.save_text</code></h5>
 <p><pre><code>save_text(text: str, name: str = &#x27;&#x27;) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -926,7 +970,7 @@ exposed to vision-capable models.</p>
 <p><strong>说明</strong>：</p>
 <p>Save clipboard text as a text attachment.</p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>filename</code></p>
-<p><strong>源码</strong>：<code>attachments.py</code> 第 435 行</p>
+<p><strong>源码</strong>：<code>attachments.py</code> 第 444 行</p>
 <h5><code>attachments.load_attachment</code></h5>
 <p><pre><code>load_attachment(attachment_id: str, name: str = &#x27;&#x27;) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -958,7 +1002,7 @@ exposed to vision-capable models.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>safe</code>、<code>path</code>、<code>cached</code>、<code>info</code>、<code>old</code></p>
-<p><strong>源码</strong>：<code>attachments.py</code> 第 444 行</p>
+<p><strong>源码</strong>：<code>attachments.py</code> 第 453 行</p>
 <h5><code>attachments.attachment_context</code></h5>
 <p><pre><code>attachment_context(items: list, max_total: int = 60000) -&gt; Tuple[str, list]</code></pre></p>
 <table>
@@ -992,7 +1036,7 @@ exposed to vision-capable models.</p>
 <p><strong>说明</strong>：</p>
 <p>Build a text block for the model and a compact UI description.</p>
 <p><strong>局部变量</strong>：<code>blocks</code>、<code>used</code>、<code>ui</code>、<code>item</code>、<code>info</code>、<code>text</code>、<code>name</code>、<code>note</code>、<code>remaining</code>、<code>chunk</code></p>
-<p><strong>源码</strong>：<code>attachments.py</code> 第 467 行</p>
+<p><strong>源码</strong>：<code>attachments.py</code> 第 476 行</p>
 <h5><code>attachments.vision_images</code></h5>
 <p><pre><code>vision_images(items: list, limit: int = 4) -&gt; List[Dict[str, str]]</code></pre></p>
 <table>
@@ -1026,7 +1070,7 @@ exposed to vision-capable models.</p>
 <p><strong>说明</strong>：</p>
 <p>Return data URLs for image/PDF attachments (vision models only).</p>
 <p><strong>局部变量</strong>：<code>out</code>、<code>item</code>、<code>info</code>、<code>image</code>、<code>mime</code>、<code>b64</code></p>
-<p><strong>源码</strong>：<code>attachments.py</code> 第 501 行</p>
+<p><strong>源码</strong>：<code>attachments.py</code> 第 510 行</p>
 <h5><code>attachments.openai_image_blocks</code></h5>
 <p><pre><code>openai_image_blocks(items: list, limit: int = 4) -&gt; List[Dict[str, Any]]</code></pre></p>
 <table>
@@ -1058,7 +1102,7 @@ exposed to vision-capable models.</p>
 </table>
 <p><strong>返回</strong>：<code>List[Dict[str, Any]]</code></p>
 <p><strong>局部变量</strong>：<code>image</code></p>
-<p><strong>源码</strong>：<code>attachments.py</code> 第 521 行</p>
+<p><strong>源码</strong>：<code>attachments.py</code> 第 530 行</p>
 <h5><code>attachments.anthropic_image_blocks</code></h5>
 <p><pre><code>anthropic_image_blocks(items: list, limit: int = 4) -&gt; List[Dict[str, Any]]</code></pre></p>
 <table>
@@ -1090,11 +1134,11 @@ exposed to vision-capable models.</p>
 </table>
 <p><strong>返回</strong>：<code>List[Dict[str, Any]]</code></p>
 <p><strong>局部变量</strong>：<code>blocks</code>、<code>image</code>、<code>url</code>、<code>match</code></p>
-<p><strong>源码</strong>：<code>attachments.py</code> 第 526 行</p>
+<p><strong>源码</strong>：<code>attachments.py</code> 第 535 行</p>
 <h3><code>cleanup</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\cleanup.py</code></li>
-<li>行数：345</li>
+<li>行数：432</li>
 <li>作用：卸载与残留数据清理。</li>
 </ul>
 <p>Deep uninstall cleanup: remove program data, MCP entries and app registry keys.</p>
@@ -1507,8 +1551,69 @@ points at this application.</p>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>names</code>、<code>common</code>、<code>path</code>、<code>profile</code>、<code>base</code>、<code>name</code></p>
 <p><strong>源码</strong>：<code>cleanup.py</code> 第 271 行</p>
+<h5><code>cleanup._preserve_textbook</code></h5>
+<p><pre><code>_preserve_textbook(app_dir: Optional[Path], dry_run: bool) -&gt; str</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>app_dir</code></td>
+<td><code>Optional[Path]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>dry_run</code></td>
+<td><code>bool</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>str</code></p>
+<p><strong>说明</strong>：</p>
+<p>Copy the install-directory TextBook into the persistent data root.</p>
+<p><strong>局部变量</strong>：<code>source</code>、<code>target</code>、<code>count</code>、<code>item</code>、<code>relative</code>、<code>destination</code></p>
+<p><strong>源码</strong>：<code>cleanup.py</code> 第 308 行</p>
+<h5><code>cleanup._remove_data_root</code></h5>
+<p><pre><code>_remove_data_root(dry_run: bool) -&gt; List[str]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dry_run</code></td>
+<td><code>bool</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>List[str]</code></p>
+<p><strong>说明</strong>：</p>
+<p>Delete application data without wiping an unrelated custom directory.</p>
+<p><strong>局部变量</strong>：<code>removed</code>、<code>looks_ours</code>、<code>sub</code>、<code>data_root</code>、<code>target</code></p>
+<p><strong>源码</strong>：<code>cleanup.py</code> 第 346 行</p>
 <h5><code>cleanup.cleanup</code></h5>
-<p><pre><code>cleanup(app_dir: Optional[Path] = None, dry_run: bool = False, keep_mcp_config: bool = False) -&gt; Dict[str, Any]</code></pre></p>
+<p><pre><code>cleanup(app_dir: Optional[Path] = None, dry_run: bool = False, keep_mcp_config: bool = False, keep_user_data: bool = False, preserve_textbook: bool = False, delete_user_data: bool = False) -&gt; Dict[str, Any]</code></pre></p>
 <table>
 <thead>
 <tr>
@@ -1541,11 +1646,36 @@ points at this application.</p>
 <td>位置/关键字</td>
 <td></td>
 </tr>
+<tr>
+<td><code>keep_user_data</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>preserve_textbook</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>delete_user_data</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
-<p><strong>局部变量</strong>：<code>profiles</code>、<code>removed</code>、<code>profile</code>、<code>temp</code>、<code>pattern</code>、<code>item</code>、<code>dir_name</code>、<code>base</code></p>
-<p><strong>源码</strong>：<code>cleanup.py</code> 第 308 行</p>
+<p><strong>说明</strong>：</p>
+<p>Remove program integration; personal data is kept unless explicitly deleted.</p>
+<p><code><code>delete_user_data</code></code> must be supplied by the caller.  This fail-safe default
+prevents an uninstaller/check-function mistake from wiping user settings.</p>
+<p><strong>局部变量</strong>：<code>profiles</code>、<code>removed</code>、<code>preserved</code>、<code>profile</code>、<code>temp</code>、<code>pattern</code>、<code>item</code>、<code>dir_name</code>、<code>textbook</code>、<code>base</code></p>
+<p><strong>源码</strong>：<code>cleanup.py</code> 第 369 行</p>
 <h5><code>cleanup.main</code></h5>
 <p><pre><code>main(argv: Optional[List[str]] = None) -&gt; int</code></pre></p>
 <table>
@@ -1570,14 +1700,24 @@ points at this application.</p>
 </table>
 <p><strong>返回</strong>：<code>int</code></p>
 <p><strong>局部变量</strong>：<code>parser</code>、<code>args</code>、<code>app_dir</code>、<code>result</code></p>
-<p><strong>源码</strong>：<code>cleanup.py</code> 第 331 行</p>
+<p><strong>源码</strong>：<code>cleanup.py</code> 第 412 行</p>
 <h3><code>config</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\config.py</code></li>
-<li>行数：256</li>
+<li>行数：518</li>
 <li>作用：路径、版本、默认配置、密钥隐藏与 MCP 启动命令。</li>
 </ul>
 <p>Configuration, path discovery and runtime status.</p>
+<p>v4.4.0 separates three locations that used to be conflated:</p>
+<p><code><code>INSTALL_DIR</code></code>  directory that contains the executable (or the source tree)
+<code><code>DATA_ROOT</code></code>    directory that stores config / uploads / reports / library DB
+<code><code>PROJECT_ROOT</code><code> alias of </code><code>DATA_ROOT</code></code> kept for backward compatibility</p>
+<p>The data root defaults to <code><code>%LOCALAPPDATA%\ImpedanceMatchingAI</code></code> for the frozen
+build and to the project directory for source runs.  A <code><code>data_root.txt</code></code> file
+next to the executable can point it elsewhere, which makes a copied installation
+keep all of its data together.  Textbook folders are resolved dynamically so
+moving the program to another directory automatically moves its bundled
+<code><code>TextBook</code></code> folder without rewriting stored paths.</p>
 <h4>模块常量与变量</h4>
 <table>
 <thead>
@@ -1591,108 +1731,168 @@ points at this application.</p>
 <tbody>
 <tr>
 <td><code>PACKAGE_DIR</code></td>
-<td>12</td>
+<td>27</td>
 <td><code>Path(__file__).resolve().parent</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>FROZEN</code></td>
-<td>13</td>
+<td>28</td>
 <td><code>bool(getattr(sys, &#x27;frozen&#x27;, False))</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
+<td><code>DATA_ROOT_FILE</code></td>
+<td>42</td>
+<td><code>INSTALL_DIR / &#x27;data_root.txt&#x27;</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>PROJECT_ROOT</code></td>
+<td>76</td>
+<td><code>_resolve_data_root()</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>DATA_DIR</code></td>
+<td>77</td>
+<td><code>PROJECT_ROOT / &#x27;data&#x27;</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>WEB_DIR</code></td>
+<td>78</td>
+<td><code>PACKAGE_DIR / &#x27;web&#x27;</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
 <td><code>UPLOAD_DIR</code></td>
-<td>30</td>
+<td>80</td>
 <td><code>DATA_DIR / &#x27;uploads&#x27;</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>REPORT_DIR</code></td>
-<td>31</td>
+<td>81</td>
 <td><code>DATA_DIR / &#x27;reports&#x27;</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>LIBRARY_DIR</code></td>
-<td>32</td>
+<td>82</td>
 <td><code>DATA_DIR / &#x27;library&#x27;</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>CATALOG_DIR</code></td>
-<td>33</td>
+<td>83</td>
 <td><code>DATA_DIR / &#x27;catalog&#x27;</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>CONFIG_PATH</code></td>
-<td>34</td>
+<td>84</td>
 <td><code>DATA_DIR / &#x27;config.json&#x27;</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>USAGE_PATH</code></td>
-<td>35</td>
+<td>85</td>
 <td><code>DATA_DIR / &#x27;usage.jsonl&#x27;</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
+<td><code>UPDATE_CACHE_PATH</code></td>
+<td>86</td>
+<td><code>DATA_DIR / &#x27;update_cache.json&#x27;</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>UPLOAD_CHUNK_DIR</code></td>
+<td>87</td>
+<td><code>UPLOAD_DIR / &#x27;chunks&#x27;</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>BUILTIN_SOURCES</code></td>
+<td>91</td>
+<td><code>((&#x27;install_textbook&#x27;, &#x27;程序目录 TextBook&#x27;, lambda: INSTALL_DIR / &#x27;TextBook&#x27;), (&#x27;data</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
 <td><code>LIBRARY_SOURCE_DIRS</code></td>
-<td>38</td>
+<td>98</td>
 <td><code>[]</code></td>
 <td>教材搜索目录（仓库 TextBook 与用户数据目录）。</td>
 </tr>
 <tr>
 <td><code>VERSION</code></td>
-<td>48</td>
-<td><code>&#x27;4.3.0&#x27;</code></td>
+<td>105</td>
+<td><code>&#x27;4.4.0&#x27;</code></td>
 <td>软件语义版本。</td>
 </tr>
 <tr>
 <td><code>RELEASE_DATE</code></td>
-<td>49</td>
+<td>106</td>
 <td><code>&#x27;2026-10-27&#x27;</code></td>
 <td>当前发布日。</td>
 </tr>
 <tr>
+<td><code>SETTINGS_VERSION</code></td>
+<td>107</td>
+<td><code>4</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
 <td><code>APP_NAME</code></td>
-<td>50</td>
+<td>108</td>
 <td><code>&#x27;Impedance Matching AI&#x27;</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>APP_NAME_ZH</code></td>
-<td>51</td>
+<td>109</td>
 <td><code>&#x27;阻抗匹配智能计算与仿真&#x27;</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>PROJECT_URL</code></td>
-<td>52</td>
+<td>110</td>
 <td><code>&#x27;https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation&#x27;</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>TEAM</code></td>
-<td>53</td>
+<td>111</td>
 <td><code>[{&#x27;name&#x27;: &#x27;Nova（诺瓦）&#x27;, &#x27;role&#x27;: &#x27;项目负责人 / 计算内核与智能体架构&#x27;}, {&#x27;name&#x27;: &#x27;Echo（回声）&#x27;, &#x27;role&#x27;</code></td>
 <td>开发者名单与分工。</td>
 </tr>
 <tr>
 <td><code>AUTHOR_EMAILS</code></td>
-<td>59</td>
+<td>117</td>
 <td><code>[]</code></td>
 <td>模块级配置/常量</td>
 </tr>
 </tbody>
 </table>
 <h4>函数</h4>
+<h5><code>config._read_data_root_file</code></h5>
+<p><pre><code>_read_data_root_file() -&gt; Optional[Path]</code></pre></p>
+<p><strong>返回</strong>：<code>Optional[Path]</code></p>
+<p><strong>说明</strong>：</p>
+<p>Read an optional <code><code>data_root.txt</code></code> placed next to the executable.</p>
+<p><strong>局部变量</strong>：<code>line</code>、<code>value</code>、<code>candidate</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 45 行</p>
+<h5><code>config._resolve_data_root</code></h5>
+<p><pre><code>_resolve_data_root() -&gt; Path</code></pre></p>
+<p><strong>返回</strong>：<code>Path</code></p>
+<p><strong>局部变量</strong>：<code>env_value</code>、<code>marker</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 63 行</p>
 <h5><code>config.ensure_dirs</code></h5>
 <p><pre><code>ensure_dirs() -&gt; None</code></pre></p>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>path</code></p>
-<p><strong>源码</strong>：<code>config.py</code> 第 62 行</p>
+<p><strong>源码</strong>：<code>config.py</code> 第 120 行</p>
 <h5><code>config._env</code></h5>
 <p><pre><code>_env(key: str, default: str = &#x27;&#x27;) -&gt; str</code></pre></p>
 <table>
@@ -1723,11 +1923,16 @@ points at this application.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
-<p><strong>源码</strong>：<code>config.py</code> 第 68 行</p>
+<p><strong>源码</strong>：<code>config.py</code> 第 127 行</p>
+<h5><code>config.default_search_dirs</code></h5>
+<p><pre><code>default_search_dirs() -&gt; List[Dict[str, Any]]</code></pre></p>
+<p><strong>返回</strong>：<code>List[Dict[str, Any]]</code></p>
+<p><strong>局部变量</strong>：<code>kind</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 131 行</p>
 <h5><code>config.default_config</code></h5>
 <p><pre><code>default_config() -&gt; Dict[str, Any]</code></pre></p>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
-<p><strong>源码</strong>：<code>config.py</code> 第 72 行</p>
+<p><strong>源码</strong>：<code>config.py</code> 第 135 行</p>
 <h5><code>config.deep_merge</code></h5>
 <p><pre><code>deep_merge(base: Dict[str, Any], update: Dict[str, Any]) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -1759,12 +1964,98 @@ points at this application.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>out</code>、<code>key</code>、<code>value</code></p>
-<p><strong>源码</strong>：<code>config.py</code> 第 114 行</p>
+<p><strong>源码</strong>：<code>config.py</code> 第 196 行</p>
+<h5><code>config._clean_source_entry</code></h5>
+<p><pre><code>_clean_source_entry(entry: Any) -&gt; Optional[Dict[str, Any]]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>entry</code></td>
+<td><code>Any</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Optional[Dict[str, Any]]</code></p>
+<p><strong>局部变量</strong>：<code>kind</code>、<code>path</code>、<code>enabled</code>、<code>item</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 206 行</p>
+<h5><code>config.normalize_search_dirs</code></h5>
+<p><pre><code>normalize_search_dirs(values: Any) -&gt; List[Dict[str, Any]]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>values</code></td>
+<td><code>Any</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>List[Dict[str, Any]]</code></p>
+<p><strong>说明</strong>：</p>
+<p>Validate and de-duplicate an ordered list of textbook search folders.</p>
+<p><strong>局部变量</strong>：<code>out</code>、<code>seen</code>、<code>raw</code>、<code>entry</code>、<code>key</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 221 行</p>
+<h5><code>config._migrate_config</code></h5>
+<p><pre><code>_migrate_config(cfg: Dict[str, Any], stored: Dict[str, Any]) -&gt; Dict[str, Any]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cfg</code></td>
+<td><code>Dict[str, Any]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>stored</code></td>
+<td><code>Dict[str, Any]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>说明</strong>：</p>
+<p>Apply non-destructive migrations from 4.3.x and earlier.</p>
+<p><strong>局部变量</strong>：<code>library</code>、<code>stored_library</code>、<code>ui</code>、<code>update</code>、<code>seeded</code>、<code>legacy</code>、<code>builtin_paths</code>、<code>extras</code>、<code>item</code>、<code>text</code>、<code>path</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 240 行</p>
 <h5><code>config.load_config</code></h5>
 <p><pre><code>load_config() -&gt; Dict[str, Any]</code></pre></p>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>cfg</code>、<code>env_key</code>、<code>env_base</code>、<code>env_model</code>、<code>stored</code></p>
-<p><strong>源码</strong>：<code>config.py</code> 第 124 行</p>
+<p><strong>源码</strong>：<code>config.py</code> 第 287 行</p>
 <h5><code>config.save_config</code></h5>
 <p><pre><code>save_config(update: Dict[str, Any]) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -1788,8 +2079,8 @@ points at this application.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
-<p><strong>局部变量</strong>：<code>cfg</code>、<code>llm</code>、<code>merged</code>、<code>pid</code>、<code>meta</code>、<code>field</code></p>
-<p><strong>源码</strong>：<code>config.py</code> 第 148 行</p>
+<p><strong>局部变量</strong>：<code>cfg</code>、<code>llm</code>、<code>merged</code>、<code>pid</code>、<code>lib</code>、<code>meta</code>、<code>field</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 313 行</p>
 <h5><code>config.public_config</code></h5>
 <p><pre><code>public_config(cfg: Optional[Dict[str, Any]] = None) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -1814,7 +2105,7 @@ points at this application.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>key</code></p>
-<p><strong>源码</strong>：<code>config.py</code> 第 178 行</p>
+<p><strong>源码</strong>：<code>config.py</code> 第 349 行</p>
 <h5><code>config.llm_status</code></h5>
 <p><pre><code>llm_status(cfg: Optional[Dict[str, Any]] = None) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -1839,24 +2130,133 @@ points at this application.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>llm</code></p>
-<p><strong>源码</strong>：<code>config.py</code> 第 187 行</p>
+<p><strong>源码</strong>：<code>config.py</code> 第 359 行</p>
+<h5><code>config._builtin_path</code></h5>
+<p><pre><code>_builtin_path(kind: str) -&gt; Optional[Path]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Optional[Path]</code></p>
+<p><strong>局部变量</strong>：<code>item_kind</code>、<code>resolver</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 375 行</p>
+<h5><code>config.resolve_library_sources</code></h5>
+<p><pre><code>resolve_library_sources(cfg: Optional[Dict[str, Any]] = None) -&gt; List[Dict[str, Any]]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cfg</code></td>
+<td><code>Optional[Dict[str, Any]]</code></td>
+<td><code>None</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>List[Dict[str, Any]]</code></p>
+<p><strong>说明</strong>：</p>
+<p>Return every configured textbook folder in priority order.</p>
+<p>Built-in entries are resolved dynamically, so an installation that is moved
+to another directory automatically points at the new <code><code>TextBook</code></code> folder.</p>
+<p><strong>局部变量</strong>：<code>entries</code>、<code>out</code>、<code>seen</code>、<code>raw</code>、<code>entry</code>、<code>key</code>、<code>path</code>、<code>label</code>、<code>builtin</code>、<code>resolved</code>、<code>item</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 385 行</p>
+<h5><code>config.library_source_paths</code></h5>
+<p><pre><code>library_source_paths(cfg: Optional[Dict[str, Any]] = None) -&gt; List[Path]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cfg</code></td>
+<td><code>Optional[Dict[str, Any]]</code></td>
+<td><code>None</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>List[Path]</code></p>
+<p><strong>局部变量</strong>：<code>item</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 431 行</p>
+<h5><code>config.save_library_sources</code></h5>
+<p><pre><code>save_library_sources(values: Any) -&gt; List[Dict[str, Any]]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>values</code></td>
+<td><code>Any</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>List[Dict[str, Any]]</code></p>
+<p><strong>局部变量</strong>：<code>entries</code>、<code>cfg</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 436 行</p>
+<h5><code>config.path_summary</code></h5>
+<p><pre><code>path_summary() -&gt; Dict[str, Any]</code></pre></p>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>局部变量</strong>：<code>sources</code>、<code>current</code>、<code>item</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 442 行</p>
 <h5><code>config.mcp_launch</code></h5>
 <p><pre><code>mcp_launch() -&gt; tuple</code></pre></p>
 <p><strong>返回</strong>：<code>tuple</code></p>
 <p><strong>说明</strong>：</p>
 <p>Return the console executable that speaks MCP over stdio.</p>
 <p><strong>局部变量</strong>：<code>exe</code>、<code>name</code>、<code>candidate</code></p>
-<p><strong>源码</strong>：<code>config.py</code> 第 203 行</p>
+<p><strong>源码</strong>：<code>config.py</code> 第 457 行</p>
 <h5><code>config.status</code></h5>
 <p><pre><code>status() -&gt; Dict[str, Any]</code></pre></p>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
-<p><strong>局部变量</strong>：<code>cfg</code>、<code>command</code>、<code>args</code>、<code>p</code></p>
-<p><strong>源码</strong>：<code>config.py</code> 第 215 行</p>
+<p><strong>局部变量</strong>：<code>cfg</code>、<code>sources</code>、<code>current</code>、<code>command</code>、<code>args</code>、<code>item</code>、<code>p</code></p>
+<p><strong>源码</strong>：<code>config.py</code> 第 469 行</p>
 <h5><code>config.mcp_client_config</code></h5>
 <p><pre><code>mcp_client_config() -&gt; Dict[str, Any]</code></pre></p>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>command</code>、<code>args</code></p>
-<p><strong>源码</strong>：<code>config.py</code> 第 243 行</p>
+<p><strong>源码</strong>：<code>config.py</code> 第 505 行</p>
 <h3><code>configure_mcp</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\configure_mcp.py</code></li>
@@ -2099,7 +2499,7 @@ limited to clients with a stable JSON/TOML config location.</p>
 <h3><code>desktop</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\desktop.py</code></li>
-<li>行数：148</li>
+<li>行数：194</li>
 <li>作用：原生 WebView2 桌面窗口与本地服务生命周期管理。</li>
 </ul>
 <p>Native desktop window for Impedance Matching AI (WebView2, no external browser).</p>
@@ -2193,7 +2593,7 @@ command prompt is opened.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>int</code></p>
-<p><strong>局部变量</strong>：<code>parser</code>、<code>args</code>、<code>httpd</code>、<code>port</code>、<code>url</code>、<code>url_root</code>、<code>server_thread</code>、<code>storage</code>、<code>icon</code>、<code>window</code>、<code>detail</code></p>
+<p><strong>局部变量</strong>：<code>parser</code>、<code>args</code>、<code>httpd</code>、<code>port</code>、<code>url</code>、<code>url_root</code>、<code>server_thread</code>、<code>storage</code>、<code>icon</code>、<code>window</code>、<code>detail</code>、<code>text</code>、<code>roots</code>、<code>result</code>、<code>path</code>、<code>root</code></p>
 <p><strong>源码</strong>：<code>desktop.py</code> 第 42 行</p>
 <h3><code>docs_hub</code></h3>
 <ul>
@@ -2611,7 +3011,7 @@ character by character and never requires generating a PDF.</p>
 <h3><code>engine</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\engine.py</code></li>
-<li>行数：1364</li>
+<li>行数：1645</li>
 <li>作用：微波网络计算内核：五种拓扑的解析设计、ABCD/节点法复核、扫描、带宽、灵敏度、耐压与拓扑比较。</li>
 </ul>
 <p>Core RF impedance-matching engine.</p>
@@ -2638,19 +3038,19 @@ input impedance really is Z0.</p>
 <tbody>
 <tr>
 <td><code>EPS</code></td>
-<td>26</td>
+<td>28</td>
 <td><code>1e-15</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>TOPOLOGIES</code></td>
-<td>28</td>
+<td>30</td>
 <td><code>{&#x27;l_right&#x27;: {&#x27;name&#x27;: &#x27;L型（右）&#x27;, &#x27;name_en&#x27;: &#x27;L-network (right)&#x27;, &#x27;short&#x27;: &#x27;L·右&#x27;, &#x27;e</code></td>
 <td>五种匹配拓扑的元数据：名称、电路文字、理论说明与公式。</td>
 </tr>
 <tr>
 <td><code>TOPOLOGY_ALIASES</code></td>
-<td>106</td>
+<td>108</td>
 <td><code>{&#x27;l_right&#x27;: &#x27;l_right&#x27;, &#x27;lright&#x27;: &#x27;l_right&#x27;, &#x27;l-right&#x27;: &#x27;l_right&#x27;, &#x27;l右&#x27;: &#x27;l_right</code></td>
 <td>模块级配置/常量</td>
 </tr>
@@ -2682,7 +3082,7 @@ input impedance really is Z0.</p>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
 <p><strong>局部变量</strong>：<code>key</code>、<code>compact</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 136 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 138 行</p>
 <h5><code>engine.fmt_complex</code></h5>
 <p><pre><code>fmt_complex(value: complex, digits: int = 3) -&gt; str</code></pre></p>
 <table>
@@ -2714,7 +3114,7 @@ input impedance really is Z0.</p>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>sign</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 152 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 154 行</p>
 <h5><code>engine.fmt_si</code></h5>
 <p><pre><code>fmt_si(value: float, unit: str = &#x27;&#x27;, digits: int = 3) -&gt; str</code></pre></p>
 <table>
@@ -2753,7 +3153,7 @@ input impedance really is Z0.</p>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>av</code>、<code>prefixes</code>、<code>scale</code>、<code>prefix</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 157 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 159 行</p>
 <h5><code>engine._solve_linear</code></h5>
 <p><pre><code>_solve_linear(matrix: List[List[complex]], rhs: List[complex]) -&gt; List[complex]</code></pre></p>
 <table>
@@ -2788,7 +3188,7 @@ input impedance really is Z0.</p>
 <p><strong>说明</strong>：</p>
 <p>Tiny Gaussian elimination with partial pivoting (n &lt;= 4).</p>
 <p><strong>局部变量</strong>：<code>n</code>、<code>a</code>、<code>col</code>、<code>pivot</code>、<code>pv</code>、<code>j</code>、<code>r</code>、<code>factor</code>、<code>i</code>、<code>row</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 175 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 177 行</p>
 <h5><code>engine._component_impedance</code></h5>
 <p><pre><code>_component_impedance(w: float, L_h: float, C_f: float) -&gt; complex</code></pre></p>
 <table>
@@ -2829,7 +3229,7 @@ input impedance really is Z0.</p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
 <p><strong>说明</strong>：</p>
 <p>Series L + C impedance.</p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 198 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 200 行</p>
 <h5><code>engine._network</code></h5>
 <p><pre><code>_network(topology: str, w: float, L_h: float, c1_f: float, c2_f: float, c3_f: float) -&gt; Tuple[List[str], List[Dict[str, Any]], complex]</code></pre></p>
 <table>
@@ -2894,7 +3294,7 @@ input impedance really is Z0.</p>
 <p>Element dict keys: name, kind ('series'|'shunt'), a, b, z (series) or y (shunt).
 Node 0 is always the source node; the load node is the last node.</p>
 <p><strong>局部变量</strong>：<code>nodes</code>、<code>zs</code>、<code>elements</code>、<code>zc3</code>、<code>zc1</code>、<code>zsh</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 205 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 207 行</p>
 <h5><code>engine.analyze_network</code></h5>
 <p><pre><code>analyze_network(topology: str, frequency_mhz: float, load: complex, components: Dict[str, float], z0: float = 50.0, power_w: float = 1.0, drive: bool = True) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -2967,7 +3367,7 @@ Node 0 is always the source node; the load node is the last node.</p>
 except for topologies that require them).
 Returns Zin, VSWR, S11, node voltages and per-element peak stress.</p>
 <p><strong>局部变量</strong>：<code>f</code>、<code>w</code>、<code>L_h</code>、<code>c1</code>、<code>c2</code>、<code>c3</code>、<code>zl</code>、<code>index</code>、<code>ymat</code>、<code>rhs</code>、<code>rs</code>、<code>vs_peak</code>、<code>e</code>、<code>load_node</code>、<code>v</code>、<code>gamma</code>、<code>vswr</code>、<code>s11_db</code>、<code>return_loss_db</code>、<code>element_results</code>、<code>v_load</code>、<code>load_current</code>、<code>p_load</code>、<code>nodes</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 267 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 269 行</p>
 <h5><code>engine._c</code></h5>
 <p><pre><code>_c(value: complex) -&gt; Dict[str, float]</code></pre></p>
 <table>
@@ -2991,7 +3391,7 @@ Returns Zin, VSWR, S11, node voltages and per-element peak stress.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, float]</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 433 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 435 行</p>
 <h5><code>engine._auto_inductance</code></h5>
 <p><pre><code>_auto_inductance(topology: str, w: float, z0: float, d0: float) -&gt; float</code></pre></p>
 <table>
@@ -3040,7 +3440,7 @@ Returns Zin, VSWR, S11, node voltages and per-element peak stress.</p>
 <p>Choose a practical L for denom = wL + d0 &gt; 0.</p>
 <p>d0 is the part of the denominator that does not depend on L.</p>
 <p><strong>局部变量</strong>：<code>base</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 451 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 453 行</p>
 <h5><code>engine.auto_fixed_elements</code></h5>
 <p><pre><code>auto_fixed_elements(topology: str, frequency_mhz: float, load: complex, z0: float = 50.0, target_l: Optional[float] = None, target_c3: Optional[float] = None) -&gt; Dict[str, float]</code></pre></p>
 <table>
@@ -3103,7 +3503,7 @@ Returns Zin, VSWR, S11, node voltages and per-element peak stress.</p>
 <p><strong>说明</strong>：</p>
 <p>Pick a feasible L (uH) and C3 (pF) when the user does not supply them.</p>
 <p><strong>局部变量</strong>：<code>f</code>、<code>w</code>、<code>result</code>、<code>rl</code>、<code>xl</code>、<code>rv_target</code>、<code>c3</code>、<code>zleft</code>、<code>yleft</code>、<code>rv</code>、<code>temp</code>、<code>mag</code>、<code>cands</code>、<code>b_right</code>、<code>b_need</code>、<code>d0</code>、<code>gnode</code>、<code>bleft</code>、<code>sgn</code>、<code>xb</code>、<code>val</code>、<code>c1</code>、<code>yl</code>、<code>rpar</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 462 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 464 行</p>
 <h5><code>engine.design_network</code></h5>
 <p><pre><code>design_network(topology: str, frequency_mhz: float, load_r: float, load_x: float = 0.0, z0: float = 50.0, L_uh: Optional[float] = None, c3_pf: Optional[float] = None, auto_fixed: bool = True, power_w: float = 1.0) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -3190,7 +3590,7 @@ Returns Zin, VSWR, S11, node voltages and per-element peak stress.</p>
 L and C3 are free; if omitted they are selected automatically.
 topology='auto' tries all five networks and picks a practical winner.</p>
 <p><strong>局部变量</strong>：<code>top</code>、<code>zl</code>、<code>f</code>、<code>w</code>、<code>fixed</code>、<code>need_auto_l</code>、<code>need_auto_c3</code>、<code>L</code>、<code>c3</code>、<code>steps_meta</code>、<code>warnings</code>、<code>warnings_en</code>、<code>comps</code>、<code>verification</code>、<code>steps</code>、<code>alternatives</code>、<code>l_networks</code>、<code>chosen</code>、<code>result</code>、<code>q</code>、<code>c1</code>、<code>d</code>、<code>c2</code>、<code>q_design</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 597 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 599 行</p>
 <h5><code>engine._formula_text</code></h5>
 <p><pre><code>_formula_text(top: str) -&gt; str</code></pre></p>
 <table>
@@ -3214,7 +3614,7 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 904 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 906 行</p>
 <h5><code>engine.build_steps</code></h5>
 <p><pre><code>build_steps(topology: str, frequency_mhz: float, load: complex, components: Dict[str, float], z0: float = 50.0, samples: int = 80) -&gt; List[Dict[str, Any]]</code></pre></p>
 <table>
@@ -3274,9 +3674,158 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 </table>
 <p><strong>返回</strong>：<code>List[Dict[str, Any]]</code></p>
 <p><strong>局部变量</strong>：<code>top</code>、<code>w</code>、<code>L</code>、<code>c1</code>、<code>c2</code>、<code>c3</code>、<code>z</code>、<code>steps</code>、<code>s</code>、<code>pts</code>、<code>i</code>、<code>xc2</code>、<code>xl</code>、<code>key</code>、<code>y</code>、<code>zz</code>、<code>p</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 922 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 924 行</p>
+<h5><code>engine._scan_rng</code></h5>
+<p><pre><code>_scan_rng(values, default)</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>values</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>default</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>局部变量</strong>：<code>lo</code>、<code>hi</code></p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1009 行</p>
+<h5><code>engine.scan_plan</code></h5>
+<p><pre><code>scan_plan(topology: str, frequency_mhz: float, z0: float = 50.0, L_uh: Optional[float] = None, c1_range_pf: Optional[Sequence[float]] = None, c2_range_pf: Optional[Sequence[float]] = None, c3_range_pf: Optional[Sequence[float]] = None, steps: int = 50, points_budget: int = 0) -&gt; Dict[str, Any]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>topology</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>frequency_mhz</code></td>
+<td><code>float</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>z0</code></td>
+<td><code>float</code></td>
+<td><code>50.0</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>L_uh</code></td>
+<td><code>Optional[float]</code></td>
+<td><code>None</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>c1_range_pf</code></td>
+<td><code>Optional[Sequence[float]]</code></td>
+<td><code>None</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>c2_range_pf</code></td>
+<td><code>Optional[Sequence[float]]</code></td>
+<td><code>None</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>c3_range_pf</code></td>
+<td><code>Optional[Sequence[float]]</code></td>
+<td><code>None</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>steps</code></td>
+<td><code>int</code></td>
+<td><code>50</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>points_budget</code></td>
+<td><code>int</code></td>
+<td><code>0</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>可能抛出</strong>：<code>DesignError</code></p>
+<p><strong>说明</strong>：</p>
+<p>Validate a forward scan and decide its per-dimension resolution.</p>
+<p><code><code>steps</code><code> keeps the 4.3 API (points per adjustable element).  </code><code>points_budget</code></code>
+is the new UI control: the total number of simulated component combinations,
+distributed evenly over the adjustable elements.  Increasing a capacitance
+range therefore keeps the sampling density instead of spreading a fixed
+2025-point grid over a larger area.</p>
+<p><strong>局部变量</strong>：<code>top</code>、<code>f</code>、<code>L</code>、<code>dims</code>、<code>ranges</code>、<code>per</code></p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1017 行</p>
+<h5><code>engine.iter_scan_groups</code></h5>
+<p><pre><code>iter_scan_groups(plan: Dict[str, Any])</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>plan</code></td>
+<td><code>Dict[str, Any]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>说明</strong>：</p>
+<p>Yield arrays of matched load impedances for one parameter slice.</p>
+<p>Each yielded array corresponds to a real batch of component combinations;
+the UI can draw those points while the remaining slices are still being
+computed.  The mathematical mapping is identical to the 4.3 forward scan.</p>
+<p><strong>局部变量</strong>：<code>top</code>、<code>w</code>、<code>z0</code>、<code>L</code>、<code>per</code>、<code>c1v</code>、<code>c2v</code>、<code>c3v</code>、<code>row</code>、<code>c1</code>、<code>col</code>、<code>c2</code>、<code>zsrc</code>、<code>zser</code>、<code>loads</code>、<code>ytot</code>、<code>zleft</code>、<code>zsh</code>、<code>znode</code>、<code>zout</code>、<code>zs</code>、<code>zar</code>、<code>yin</code></p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1077 行</p>
 <h5><code>engine.scan_matchable_range</code></h5>
-<p><pre><code>scan_matchable_range(topology: str, frequency_mhz: float, z0: float = 50.0, L_uh: Optional[float] = None, c1_range_pf: Optional[Sequence[float]] = None, c2_range_pf: Optional[Sequence[float]] = None, c3_range_pf: Optional[Sequence[float]] = None, steps: int = 50, max_points: int = 4000) -&gt; Dict[str, Any]</code></pre></p>
+<p><pre><code>scan_matchable_range(topology: str, frequency_mhz: float, z0: float = 50.0, L_uh: Optional[float] = None, c1_range_pf: Optional[Sequence[float]] = None, c2_range_pf: Optional[Sequence[float]] = None, c3_range_pf: Optional[Sequence[float]] = None, steps: int = 50, max_points: int = 12000, points_budget: int = 0) -&gt; Dict[str, Any]</code></pre></p>
 <table>
 <thead>
 <tr>
@@ -3347,18 +3896,27 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 <tr>
 <td><code>max_points</code></td>
 <td><code>int</code></td>
-<td><code>4000</code></td>
+<td><code>12000</code></td>
 <td>位置/关键字</td>
 <td>返回圆图采样点的上限。</td>
+</tr>
+<tr>
+<td><code>points_budget</code></td>
+<td><code>int</code></td>
+<td><code>0</code></td>
+<td>位置/关键字</td>
+<td></td>
 </tr>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
-<p><strong>可能抛出</strong>：<code>DesignError</code>, <code>ValueError</code></p>
 <p><strong>说明</strong>：</p>
 <p>Grid-scan the adjustable elements and return the matchable load region.</p>
-<p><strong>局部变量</strong>：<code>top</code>、<code>f</code>、<code>w</code>、<code>L</code>、<code>zloads</code>、<code>valid</code>、<code>r</code>、<code>x</code>、<code>points</code>、<code>gamma</code>、<code>c1v</code>、<code>c2v</code>、<code>zsrc</code>、<code>zser</code>、<code>idx</code>、<code>lo</code>、<code>hi</code>、<code>c1lo</code>、<code>c1hi</code>、<code>c2lo</code>、<code>c2hi</code>、<code>C1</code>、<code>C2</code>、<code>ytot</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 1007 行</p>
+<p>Unlike the 4.3 implementation, the simulation is never down-sampled: every
+component combination is evaluated and binned into an occupancy grid.
+<code><code>max_points</code></code> only limits how many points are serialised for the chart.</p>
+<p><strong>局部变量</strong>：<code>started</code>、<code>plan</code>、<code>acc</code>、<code>elapsed</code>、<code>loads</code>、<code>connect</code></p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1257 行</p>
 <h5><code>engine.evaluate</code></h5>
 <p><pre><code>evaluate(topology: str, frequency_mhz: float, load_r: float, load_x: float, L_uh: float, c1_pf: float, c2_pf: float, c3_pf: float = 0.0, z0: float = 50.0, power_w: float = 1.0) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -3446,7 +4004,7 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>top</code>、<code>comps</code>、<code>res</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 1135 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1286 行</p>
 <h5><code>engine.bandwidth</code></h5>
 <p><pre><code>bandwidth(topology: str, frequency_mhz: float, load: complex, components: Dict[str, float], z0: float = 50.0, vswr_limit: float = 2.0, span: float = 0.6, points: int = 241) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -3523,7 +4081,7 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 <p><strong>说明</strong>：</p>
 <p>Frequency sweep with fixed components; returns the contiguous VSWR band.</p>
 <p><strong>局部变量</strong>：<code>top</code>、<code>f0</code>、<code>fmin</code>、<code>fmax</code>、<code>freqs</code>、<code>vswrs</code>、<code>fm</code>、<code>within</code>、<code>center</code>、<code>lo</code>、<code>hi</code>、<code>low</code>、<code>high</code>、<code>frac</code>、<code>best</code>、<code>idx</code>、<code>r</code>、<code>value</code>、<code>f</code>、<code>v</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 1156 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1307 行</p>
 <h5><code>engine.sensitivity</code></h5>
 <p><pre><code>sensitivity(topology: str, frequency_mhz: float, load: complex, components: Dict[str, float], z0: float = 50.0, tolerance: float = 0.05) -&gt; List[Dict[str, Any]]</code></pre></p>
 <table>
@@ -3583,9 +4141,9 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 </table>
 <p><strong>返回</strong>：<code>List[Dict[str, Any]]</code></p>
 <p><strong>局部变量</strong>：<code>top</code>、<code>out</code>、<code>keys</code>、<code>key</code>、<code>label</code>、<code>base</code>、<code>vals</code>、<code>factor</code>、<code>comp</code>、<code>r</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 1227 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1378 行</p>
 <h5><code>engine.voltage_stress</code></h5>
-<p><pre><code>voltage_stress(topology: str, frequency_mhz: float, load_r: float, load_x: float, L_uh: float, c1_pf: float, c2_pf: float, c3_pf: float = 0.0, power_w: float = 10.0, z0: float = 50.0, rated_voltage: Optional[float] = None) -&gt; Dict[str, Any]</code></pre></p>
+<p><pre><code>voltage_stress(topology: str, frequency_mhz: float, load_r: float, load_x: float, L_uh: float, c1_pf: float, c2_pf: float, c3_pf: float = 0.0, power_w: float = 10.0, z0: float = 50.0, rated_voltage: Optional[float] = None, sweep: bool = True, sweep_points: int = 21, frequency_span: float = 0.2, progress: Optional[Any] = None) -&gt; Dict[str, Any]</code></pre></p>
 <table>
 <thead>
 <tr>
@@ -3674,11 +4232,47 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 <td>位置/关键字</td>
 <td>元件额定峰值电压，用于安全系数；None 表示不计算。</td>
 </tr>
+<tr>
+<td><code>sweep</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>sweep_points</code></td>
+<td><code>int</code></td>
+<td><code>21</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>frequency_span</code></td>
+<td><code>float</code></td>
+<td><code>0.2</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>progress</code></td>
+<td><code>Optional[Any]</code></td>
+<td><code>None</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
-<p><strong>局部变量</strong>：<code>res</code>、<code>elements</code>、<code>e</code>、<code>item</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 1263 行</p>
+<p><strong>说明</strong>：</p>
+<p>Full nodal voltage/current stress analysis with a real 2-D sweep.</p>
+<p>A single operating point only needs one linear solve, which is why 4.3
+returned instantly.  v4.4 also sweeps frequency (±<code><code>frequency_span</code></code>) and
+power (10 %–100 %), reports how many solves were performed, and keeps the
+worst-case element stress.  The numbers are still fast because the network
+has at most three nodes; the UI shows the solve count and elapsed time so
+this is visible instead of looking like a cached answer.</p>
+<p><strong>局部变量</strong>：<code>started</code>、<code>top</code>、<code>f0</code>、<code>comps</code>、<code>zl</code>、<code>nominal</code>、<code>element_order</code>、<code>stats</code>、<code>global_worst</code>、<code>sweeps</code>、<code>curve_power</code>、<code>curve_freq</code>、<code>solves</code>、<code>planned_total</code>、<code>elements</code>、<code>e</code>、<code>elapsed_ms</code>、<code>max_v</code>、<code>max_name</code>、<code>item</code>、<code>n</code>、<code>span</code>、<code>freqs</code>、<code>powers</code></p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1414 行</p>
 <h5><code>engine.z_to_y</code></h5>
 <p><pre><code>z_to_y(z: complex) -&gt; complex</code></pre></p>
 <table>
@@ -3703,7 +4297,7 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 </table>
 <p><strong>返回</strong>：<code>complex</code></p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 1303 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1584 行</p>
 <h5><code>engine.y_to_z</code></h5>
 <p><pre><code>y_to_z(y: complex) -&gt; complex</code></pre></p>
 <table>
@@ -3728,12 +4322,12 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 </table>
 <p><strong>返回</strong>：<code>complex</code></p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 1309 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1590 行</p>
 <h5><code>engine.catalog</code></h5>
 <p><pre><code>catalog() -&gt; Dict[str, Any]</code></pre></p>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>k</code>、<code>v</code>、<code>kk</code>、<code>vv</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 1315 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1596 行</p>
 <h5><code>engine.suggest_topologies</code></h5>
 <p><pre><code>suggest_topologies(frequency_mhz: float, load: complex, z0: float = 50.0, power_w: float = 1.0) -&gt; List[Dict[str, Any]]</code></pre></p>
 <table>
@@ -3781,7 +4375,7 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 <p><strong>说明</strong>：</p>
 <p>Try every topology and return the feasible ones, best first.</p>
 <p><strong>局部变量</strong>：<code>out</code>、<code>top</code>、<code>bw</code>、<code>comps</code>、<code>score</code>、<code>key</code>、<code>d</code>、<code>val</code></p>
-<p><strong>源码</strong>：<code>engine.py</code> 第 1326 行</p>
+<p><strong>源码</strong>：<code>engine.py</code> 第 1607 行</p>
 <h4>类 <code>DesignError</code></h4>
 <table>
 <thead>
@@ -3795,7 +4389,7 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 <tr>
 <td><code>__str__</code></td>
 <td>方法</td>
-<td>447</td>
+<td>449</td>
 </tr>
 </tbody>
 </table>
@@ -3822,7 +4416,249 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
-<p><strong>源码</strong>：`` 第 447 行</p>
+<p><strong>源码</strong>：`` 第 449 行</p>
+<h4>类 <code>ScanAccumulator</code></h4>
+<p>Collect scan batches, occupancy statistics and percentiles.</p>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>类型</th>
+<th>行</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>__init__</code></td>
+<td>方法</td>
+<td>1132</td>
+</tr>
+<tr>
+<td><code>_mark_segments</code></td>
+<td>方法</td>
+<td>1143</td>
+</tr>
+<tr>
+<td><code>add</code></td>
+<td>方法</td>
+<td>1168</td>
+</tr>
+<tr>
+<td><code>points_payload</code></td>
+<td>方法</td>
+<td>1197</td>
+</tr>
+<tr>
+<td><code>finish</code></td>
+<td>方法</td>
+<td>1208</td>
+</tr>
+</tbody>
+</table>
+<h5><code>engine.ScanAccumulator.__init__</code></h5>
+<p><pre><code>ScanAccumulator.__init__(self, z0: float, grid: int = 144, keep_limit: int = 400000)</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>z0</code></td>
+<td><code>float</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>grid</code></td>
+<td><code>int</code></td>
+<td><code>144</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>keep_limit</code></td>
+<td><code>int</code></td>
+<td><code>400000</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>源码</strong>：`` 第 1132 行</p>
+<h5><code>engine.ScanAccumulator._mark_segments</code></h5>
+<p><pre><code>ScanAccumulator._mark_segments(self, xs: List[float], ys: List[float]) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>xs</code></td>
+<td><code>List[float]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>ys</code></td>
+<td><code>List[float]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>说明</strong>：</p>
+<p>Rasterise line segments so the region is the image of the parameter
+rectangle, not just the sampled points.  This is why widening a
+capacitance range can only grow the grey region, never shrink it.</p>
+<p><strong>局部变量</strong>：<code>gx</code>、<code>gy</code>、<code>index</code>、<code>ix</code>、<code>iy</code>、<code>dx</code>、<code>dy</code>、<code>steps</code>、<code>step</code>、<code>x0</code>、<code>y0</code>、<code>x1</code>、<code>y1</code>、<code>t</code>、<code>value</code></p>
+<p><strong>源码</strong>：`` 第 1143 行</p>
+<h5><code>engine.ScanAccumulator.add</code></h5>
+<p><pre><code>ScanAccumulator.add(self, loads: Any, connect: bool = True) -&gt; int</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>loads</code></td>
+<td><code>Any</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>connect</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>int</code></p>
+<p><strong>局部变量</strong>：<code>arr</code>、<code>finite</code>、<code>g</code>、<code>gamma</code>、<code>room</code>、<code>chunk</code>、<code>index</code></p>
+<p><strong>源码</strong>：`` 第 1168 行</p>
+<h5><code>engine.ScanAccumulator.points_payload</code></h5>
+<p><pre><code>ScanAccumulator.points_payload(self, limit: int = 12000) -&gt; List[Dict[str, Any]]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>limit</code></td>
+<td><code>int</code></td>
+<td><code>12000</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>List[Dict[str, Any]]</code></p>
+<p><strong>局部变量</strong>：<code>values</code>、<code>gamma</code>、<code>idx</code>、<code>p</code>、<code>g</code></p>
+<p><strong>源码</strong>：`` 第 1197 行</p>
+<h5><code>engine.ScanAccumulator.finish</code></h5>
+<p><pre><code>ScanAccumulator.finish(self, plan: Dict[str, Any], elapsed_ms: int = 0, limit_points: int = 12000) -&gt; Dict[str, Any]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>plan</code></td>
+<td><code>Dict[str, Any]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>elapsed_ms</code></td>
+<td><code>int</code></td>
+<td><code>0</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>limit_points</code></td>
+<td><code>int</code></td>
+<td><code>12000</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>局部变量</strong>：<code>points</code>、<code>values</code>、<code>r</code>、<code>x</code>、<code>grid</code>、<code>centers_x</code>、<code>centers_y</code>、<code>inside</code>、<code>occupied</code>、<code>inside_cells</code>、<code>coverage_cells</code>、<code>coverage_fraction</code>、<code>cells</code>、<code>gx</code>、<code>gy</code></p>
+<p><strong>源码</strong>：`` 第 1208 行</p>
 <h3><code>knowledge</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\knowledge.py</code></li>
@@ -3920,7 +4756,7 @@ topology='auto' tries all five networks and picks a practical winner.</p>
 <h3><code>library</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\library.py</code></li>
-<li>行数：1237</li>
+<li>行数：1266</li>
 <li>作用：教材库：PDF 索引、全文/模糊搜索、OCR、页面渲染、引用截图与学术翻译。</li>
 </ul>
 <p>Textbook library: indexing, full-text search, OCR, page rendering and translation.</p>
@@ -3942,67 +4778,67 @@ vision-capable model.</p>
 <tbody>
 <tr>
 <td><code>OFFICE_SUFFIXES</code></td>
-<td>34</td>
+<td>35</td>
 <td><code>{&#x27;.docx&#x27;, &#x27;.pptx&#x27;, &#x27;.xlsx&#x27;, &#x27;.xlsm&#x27;, &#x27;.ipynb&#x27;, &#x27;.doc&#x27;, &#x27;.ppt&#x27;, &#x27;.xls&#x27;}</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>SUPPORTED_SUFFIXES</code></td>
-<td>35</td>
+<td>36</td>
 <td><code>{&#x27;.pdf&#x27;, &#x27;.txt&#x27;, &#x27;.md&#x27;, &#x27;.markdown&#x27;, &#x27;.tex&#x27;, &#x27;.rst&#x27;, &#x27;.csv&#x27;} \| OFFICE_SUFFIXES</code></td>
 <td>教材库可索引的文件后缀。</td>
 </tr>
 <tr>
 <td><code>MAX_OCR_PIXELS</code></td>
-<td>36</td>
+<td>37</td>
 <td><code>9000000</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>DEFAULT_DPI</code></td>
-<td>37</td>
+<td>38</td>
 <td><code>150</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>MAX_DPI</code></td>
-<td>38</td>
+<td>39</td>
 <td><code>300</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>_LOCK</code></td>
-<td>40</td>
+<td>41</td>
 <td><code>threading.RLock()</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>_INDEX_STATE</code></td>
-<td>41</td>
+<td>42</td>
 <td><code>{&#x27;running&#x27;: False, &#x27;phase&#x27;: &#x27;idle&#x27;, &#x27;total&#x27;: 0, &#x27;done&#x27;: 0, &#x27;current&#x27;: &#x27;&#x27;, &#x27;start</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>_OCR_ENGINE</code></td>
-<td>52</td>
+<td>53</td>
 <td><code>None</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>_OCR_LOCK</code></td>
-<td>53</td>
+<td>54</td>
 <td><code>threading.Lock()</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>_WORD_RE</code></td>
-<td>756</td>
+<td>785</td>
 <td><code>re.compile(&#x27;[a-zA-Z0-9_./+\\-]{2,}\|[\\u4e00-\\u9fff]{2,}&#x27;)</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
 <td><code>_TRANSLATION_SYSTEM</code></td>
-<td>1124</td>
+<td>1153</td>
 <td><code>{&#x27;zh&#x27;: &#x27;你是电磁场与微波技术领域的学术翻译。把教材原文翻译成规范、准确的简体中文。专业术语采用国内学术界通用译法，首次出现时在括号中保留英文原词；公式、</code></td>
 <td>模块级配置/常量</td>
 </tr>
@@ -4012,27 +4848,27 @@ vision-capable model.</p>
 <h5><code>library.db_path</code></h5>
 <p><pre><code>db_path() -&gt; Path</code></pre></p>
 <p><strong>返回</strong>：<code>Path</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 60 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 61 行</p>
 <h5><code>library.cache_dir</code></h5>
 <p><pre><code>cache_dir() -&gt; Path</code></pre></p>
 <p><strong>返回</strong>：<code>Path</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 64 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 65 行</p>
 <h5><code>library._connect</code></h5>
 <p><pre><code>_connect() -&gt; sqlite3.Connection</code></pre></p>
 <p><strong>返回</strong>：<code>sqlite3.Connection</code></p>
 <p><strong>局部变量</strong>：<code>conn</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 68 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 69 行</p>
 <h5><code>library._db</code></h5>
 <p><pre><code>_db()</code></pre></p>
 <p><strong>说明</strong>：</p>
 <p>Commit and close a connection, which keeps Windows temp files removable.</p>
 <p><strong>局部变量</strong>：<code>conn</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 80 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 81 行</p>
 <h5><code>library.init_db</code></h5>
 <p><pre><code>init_db() -&gt; None</code></pre></p>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>conn</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 93 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 94 行</p>
 <h5><code>library._repair_ocr_boxes</code></h5>
 <p><pre><code>_repair_ocr_boxes(conn: sqlite3.Connection) -&gt; None</code></pre></p>
 <table>
@@ -4058,11 +4894,11 @@ vision-capable model.</p>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>说明</strong>：</p>
 <p>Drop OCR pages whose boxes were normalized against PDF points.</p>
-<p>v4.3.0-rc rendered at 220 dpi but divided by the point size, collapsing
+<p>An earlier release candidate rendered at 220 dpi but divided by the point size, collapsing
 most horizontal coordinates to 1.0.  Those cached boxes cannot be
 repaired without the page image, so remove them and let OCR run again.</p>
 <p><strong>局部变量</strong>：<code>rows</code>、<code>stale</code>、<code>row</code>、<code>doc_id</code>、<code>total</code>、<code>degenerate</code>、<code>line</code>、<code>page</code>、<code>boxes</code>、<code>box</code>、<code>xs</code>、<code>point</code>、<code>item</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 152 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 153 行</p>
 <h5><code>library._meta</code></h5>
 <p><pre><code>_meta(conn: sqlite3.Connection, key: str) -&gt; str</code></pre></p>
 <table>
@@ -4094,7 +4930,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>row</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 197 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 198 行</p>
 <h5><code>library._set_meta</code></h5>
 <p><pre><code>_set_meta(conn: sqlite3.Connection, key: str, value: str) -&gt; None</code></pre></p>
 <table>
@@ -4132,17 +4968,22 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 202 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 203 行</p>
 <h5><code>library.source_dirs</code></h5>
 <p><pre><code>source_dirs() -&gt; List[Path]</code></pre></p>
 <p><strong>返回</strong>：<code>List[Path]</code></p>
-<p><strong>局部变量</strong>：<code>dirs</code>、<code>out</code>、<code>seen</code>、<code>item</code>、<code>key</code>、<code>path</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 210 行</p>
+<p><strong>说明</strong>：</p>
+<p>Ordered textbook folders, resolved from the live configuration.</p>
+<p>Built-in entries (install-dir TextBook, data-root TextBook, app-managed
+books) are resolved dynamically so moving the installation cannot leave a
+stale absolute path behind.  User-added folders keep their priority order.</p>
+<p><strong>局部变量</strong>：<code>dirs</code>、<code>builtin_keys</code>、<code>configured</code>、<code>legacy</code>、<code>out</code>、<code>seen</code>、<code>item</code>、<code>resolver</code>、<code>key</code>、<code>path</code></p>
+<p><strong>源码</strong>：<code>library.py</code> 第 211 行</p>
 <h5><code>library._iter_sources</code></h5>
 <p><pre><code>_iter_sources() -&gt; Iterable[Path]</code></pre></p>
 <p><strong>返回</strong>：<code>Iterable[Path]</code></p>
 <p><strong>局部变量</strong>：<code>root</code>、<code>path</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 229 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 254 行</p>
 <h5><code>library._clean_title</code></h5>
 <p><pre><code>_clean_title(path: Path) -&gt; str</code></pre></p>
 <table>
@@ -4167,7 +5008,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>title</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 240 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 265 行</p>
 <h5><code>library._detect_lang</code></h5>
 <p><pre><code>_detect_lang(text: str) -&gt; str</code></pre></p>
 <table>
@@ -4192,7 +5033,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>sample</code>、<code>cjk</code>、<code>latin</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 249 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 274 行</p>
 <h5><code>library._normalize_text</code></h5>
 <p><pre><code>_normalize_text(text: str) -&gt; str</code></pre></p>
 <table>
@@ -4216,7 +5057,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 262 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 287 行</p>
 <h5><code>library._open_document</code></h5>
 <p><pre><code>_open_document(path: Path)</code></pre></p>
 <table>
@@ -4240,7 +5081,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </tbody>
 </table>
 <p><strong>可能抛出</strong>：<code>RuntimeError</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 269 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 294 行</p>
 <h5><code>library._read_text_document</code></h5>
 <p><pre><code>_read_text_document(path: Path) -&gt; List[str]</code></pre></p>
 <table>
@@ -4265,7 +5106,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>List[str]</code></p>
 <p><strong>局部变量</strong>：<code>raw</code>、<code>text</code>、<code>enc</code>、<code>size</code>、<code>i</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 277 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 302 行</p>
 <h5><code>library._fts_delete</code></h5>
 <p><pre><code>_fts_delete(conn: sqlite3.Connection, doc_id: int) -&gt; None</code></pre></p>
 <table>
@@ -4296,7 +5137,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 291 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 316 行</p>
 <h5><code>library._fts_upsert</code></h5>
 <p><pre><code>_fts_upsert(conn: sqlite3.Connection, doc_id: int, page: int, text: str) -&gt; None</code></pre></p>
 <table>
@@ -4341,7 +5182,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 295 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 320 行</p>
 <h5><code>library._index_document</code></h5>
 <p><pre><code>_index_document(conn: sqlite3.Connection, path: Path, ocr_first_pages: int = 2) -&gt; int</code></pre></p>
 <table>
@@ -4381,7 +5222,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 <p><strong>返回</strong>：<code>int</code></p>
 <p><strong>可能抛出</strong>：<code>RuntimeError</code></p>
 <p><strong>局部变量</strong>：<code>stat</code>、<code>existing</code>、<code>title</code>、<code>page_count</code>、<code>needs_ocr</code>、<code>lang</code>、<code>pages</code>、<code>now</code>、<code>doc</code>、<code>suffix</code>、<code>size</code>、<code>texts</code>、<code>candidates</code>、<code>page_no</code>、<code>meta</code>、<code>meta_title</code>、<code>index</code>、<code>info</code>、<code>full_text</code>、<code>doc_id</code>、<code>cur</code>、<code>text</code>、<code>page</code>、<code>source</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 304 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 329 行</p>
 <h5><code>library.sync_index</code></h5>
 <p><pre><code>sync_index(force: bool = False, ocr_first_pages: int = 2, limit: Optional[int] = None) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -4422,7 +5263,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 <p><strong>说明</strong>：</p>
 <p>Synchronise <code><code>docs</code><code>/</code><code>pages</code></code> with the files on disk.</p>
 <p><strong>局部变量</strong>：<code>sources</code>、<code>conn</code>、<code>known</code>、<code>live</code>、<code>path</code>、<code>path_str</code>、<code>row</code>、<code>p</code>、<code>old_id</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 399 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 424 行</p>
 <h5><code>library.start_index</code></h5>
 <p><pre><code>start_index(force: bool = False, ocr_first_pages: int = 2) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -4454,15 +5295,15 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>thread</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 463 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 488 行</p>
 <h5><code>library.status</code></h5>
 <p><pre><code>status() -&gt; Dict[str, Any]</code></pre></p>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>state</code>、<code>conn</code>、<code>docs</code>、<code>pages</code>、<code>total_pages</code>、<code>needs_ocr</code>、<code>ocr_pages</code>、<code>translations</code>、<code>fts</code>、<code>p</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 478 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 503 行</p>
 <h5><code>library._ocr_engine</code></h5>
 <p><pre><code>_ocr_engine()</code></pre></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 510 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 539 行</p>
 <h5><code>library._page_numpy</code></h5>
 <p><pre><code>_page_numpy(doc, page_no: int, dpi: int = 220)</code></pre></p>
 <table>
@@ -4500,7 +5341,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </tbody>
 </table>
 <p><strong>局部变量</strong>：<code>page</code>、<code>scale</code>、<code>pix</code>、<code>arr</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 519 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 548 行</p>
 <h5><code>library._normalize_box</code></h5>
 <p><pre><code>_normalize_box(box: Any, width: float, height: float) -&gt; List[List[float]]</code></pre></p>
 <table>
@@ -4539,7 +5380,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>List[List[float]]</code></p>
 <p><strong>局部变量</strong>：<code>pts</code>、<code>point</code>、<code>x</code>、<code>y</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 531 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 560 行</p>
 <h5><code>library.ocr_page</code></h5>
 <p><pre><code>ocr_page(doc_id: int, page_no: int, force: bool = False) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -4578,7 +5419,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>pdf</code>、<code>conn</code>、<code>doc</code>、<code>engine</code>、<code>page</code>、<code>arr</code>、<code>lines</code>、<code>texts</code>、<code>height</code>、<code>width</code>、<code>item</code>、<code>text</code>、<code>row</code>、<code>result</code>、<code>box</code>、<code>score</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 542 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 571 行</p>
 <h5><code>library.ocr_document</code></h5>
 <p><pre><code>ocr_document(doc_id: int, start: int = 1, end: Optional[int] = None, max_pages: int = 40) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -4626,12 +5467,12 @@ repaired without the page image, so remove them and let OCR run again.</p>
 <p><strong>说明</strong>：</p>
 <p>OCR a page range in the background and return progress immediately.</p>
 <p><strong>局部变量</strong>：<code>pages</code>、<code>conn</code>、<code>doc</code>、<code>total</code>、<code>page_no</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 616 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 645 行</p>
 <h5><code>library.doc_list</code></h5>
 <p><pre><code>doc_list() -&gt; List[Dict[str, Any]]</code></pre></p>
 <p><strong>返回</strong>：<code>List[Dict[str, Any]]</code></p>
 <p><strong>局部变量</strong>：<code>out</code>、<code>row</code>、<code>conn</code>、<code>rows</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 647 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 676 行</p>
 <h5><code>library.doc_info</code></h5>
 <p><pre><code>doc_info(doc_id: int) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -4656,7 +5497,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>conn</code>、<code>row</code>、<code>toc</code>、<code>pdf</code>、<code>level</code>、<code>title</code>、<code>page_no</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 671 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 700 行</p>
 <h5><code>library.page_info</code></h5>
 <p><pre><code>page_info(doc_id: int, page_no: int, lang: str = &#x27;zh&#x27;) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -4695,7 +5536,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>boxes</code>、<code>translation</code>、<code>conn</code>、<code>doc</code>、<code>row</code>、<code>page_text</code>、<code>page_lang</code>、<code>target_lang</code>、<code>trans</code>、<code>trans_any</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 705 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 734 行</p>
 <h5><code>library._query_terms</code></h5>
 <p><pre><code>_query_terms(query: str) -&gt; List[str]</code></pre></p>
 <table>
@@ -4720,7 +5561,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>List[str]</code></p>
 <p><strong>局部变量</strong>：<code>q</code>、<code>terms</code>、<code>token</code>、<code>out</code>、<code>seen</code>、<code>t</code>、<code>key</code>、<code>i</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 759 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 788 行</p>
 <h5><code>library._score_text</code></h5>
 <p><pre><code>_score_text(text: str, terms: List[str], title: str = &#x27;&#x27;) -&gt; float</code></pre></p>
 <table>
@@ -4759,7 +5600,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>float</code></p>
 <p><strong>局部变量</strong>：<code>lower</code>、<code>title_l</code>、<code>score</code>、<code>index</code>、<code>term</code>、<code>t</code>、<code>count</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 783 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 812 行</p>
 <h5><code>library._snippet</code></h5>
 <p><pre><code>_snippet(text: str, terms: List[str], radius: int = 150) -&gt; Tuple[str, int]</code></pre></p>
 <table>
@@ -4798,7 +5639,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>Tuple[str, int]</code></p>
 <p><strong>局部变量</strong>：<code>plain</code>、<code>lower</code>、<code>positions</code>、<code>term</code>、<code>start</code>、<code>end</code>、<code>snippet</code>、<code>pattern</code>、<code>marked</code>、<code>pos</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 799 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 828 行</p>
 <h5><code>library._fuzzy_terms</code></h5>
 <p><pre><code>_fuzzy_terms(conn: sqlite3.Connection, terms: List[str]) -&gt; List[str]</code></pre></p>
 <table>
@@ -4832,7 +5673,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 <p><strong>说明</strong>：</p>
 <p>Correct common ASCII typos using a small sampled vocabulary.</p>
 <p><strong>局部变量</strong>：<code>ascii_terms</code>、<code>sample_rows</code>、<code>vocab</code>、<code>row</code>、<code>out</code>、<code>term</code>、<code>word</code>、<code>matches</code>、<code>t</code>、<code>m</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 819 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 848 行</p>
 <h5><code>library._ocr_rects</code></h5>
 <p><pre><code>_ocr_rects(boxes: List[Dict[str, Any]], terms: List[str]) -&gt; List[List[float]]</code></pre></p>
 <table>
@@ -4864,7 +5705,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>List[List[float]]</code></p>
 <p><strong>局部变量</strong>：<code>rects</code>、<code>line</code>、<code>text</code>、<code>box</code>、<code>xs</code>、<code>ys</code>、<code>term</code>、<code>p</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 841 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 870 行</p>
 <h5><code>library._text_rects</code></h5>
 <p><pre><code>_text_rects(doc_id: int, page_no: int, terms: List[str]) -&gt; List[List[float]]</code></pre></p>
 <table>
@@ -4903,7 +5744,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 </table>
 <p><strong>返回</strong>：<code>List[List[float]]</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>rects</code>、<code>merged</code>、<code>rect</code>、<code>conn</code>、<code>doc</code>、<code>pdf</code>、<code>page</code>、<code>width</code>、<code>height</code>、<code>term</code>、<code>item</code>、<code>hits</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 854 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 883 行</p>
 <h5><code>library._all_pages</code></h5>
 <p><pre><code>_all_pages(conn: sqlite3.Connection, doc_id: Optional[int]) -&gt; List[sqlite3.Row]</code></pre></p>
 <table>
@@ -4939,7 +5780,7 @@ repaired without the page image, so remove them and let OCR run again.</p>
 <p>Keeping the SQL statement free of user-derived fragments also keeps the
 query safe for arbitrary textbook search input.</p>
 <p><strong>局部变量</strong>：<code>rows</code>、<code>wanted</code>、<code>row</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 905 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 934 行</p>
 <h5><code>library.search</code></h5>
 <p><pre><code>search(query: str, doc_id: Optional[int] = None, limit: int = 24, fuzzy: bool = True, with_rects: bool = True) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -4992,7 +5833,7 @@ query safe for arbitrary textbook search input.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>terms</code>、<code>conn</code>、<code>rows</code>、<code>scored</code>、<code>row</code>、<code>per_doc</code>、<code>chosen</code>、<code>results</code>、<code>term</code>、<code>score</code>、<code>did</code>、<code>boxes</code>、<code>rects</code>、<code>snippet</code>、<code>offset</code>、<code>t</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 922 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 951 行</p>
 <h5><code>library.ai_search</code></h5>
 <p><pre><code>ai_search(query: str, cfg: Dict[str, Any], doc_id: Optional[int] = None, lang: str = &#x27;zh&#x27;, limit: int = 24) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -5047,7 +5888,7 @@ query safe for arbitrary textbook search input.</p>
 <p><strong>说明</strong>：</p>
 <p>Expand a natural-language question into search terms with the LLM.</p>
 <p><strong>局部变量</strong>：<code>terms</code>、<code>note</code>、<code>merged</code>、<code>term</code>、<code>results</code>、<code>prompt</code>、<code>resp</code>、<code>raw</code>、<code>match</code>、<code>item</code>、<code>data</code>、<code>result</code>、<code>key</code>、<code>x</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 981 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1010 行</p>
 <h5><code>library._doc_path</code></h5>
 <p><pre><code>_doc_path(doc_id: int) -&gt; Optional[Path]</code></pre></p>
 <table>
@@ -5072,7 +5913,7 @@ query safe for arbitrary textbook search input.</p>
 </table>
 <p><strong>返回</strong>：<code>Optional[Path]</code></p>
 <p><strong>局部变量</strong>：<code>conn</code>、<code>row</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1029 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1058 行</p>
 <h5><code>library._cache_key</code></h5>
 <p><pre><code>_cache_key(path: Path, page_no: int, dpi: int, suffix: str = &#x27;&#x27;) -&gt; str</code></pre></p>
 <table>
@@ -5118,7 +5959,7 @@ query safe for arbitrary textbook search input.</p>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>stat</code>、<code>raw</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1038 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1067 行</p>
 <h5><code>library.render_page</code></h5>
 <p><pre><code>render_page(doc_id: int, page_no: int, zoom: float = 1.0) -&gt; bytes</code></pre></p>
 <table>
@@ -5158,7 +5999,7 @@ query safe for arbitrary textbook search input.</p>
 <p><strong>返回</strong>：<code>bytes</code></p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>dpi</code>、<code>key</code>、<code>target</code>、<code>pdf</code>、<code>page</code>、<code>scale</code>、<code>max_side</code>、<code>pix</code>、<code>data</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1044 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1073 行</p>
 <h5><code>library.crop_page</code></h5>
 <p><pre><code>crop_page(doc_id: int, page_no: int, rects: List[List[float]], margin: float = 0.06, dpi: int = 220) -&gt; bytes</code></pre></p>
 <table>
@@ -5212,7 +6053,7 @@ query safe for arbitrary textbook search input.</p>
 <p><strong>返回</strong>：<code>bytes</code></p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>pdf</code>、<code>page</code>、<code>clip</code>、<code>zoom</code>、<code>pix</code>、<code>width</code>、<code>height</code>、<code>x0</code>、<code>y0</code>、<code>x1</code>、<code>y1</code>、<code>pad_x</code>、<code>pad_y</code>、<code>r</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1073 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1102 行</p>
 <h5><code>library.page_image_base64</code></h5>
 <p><pre><code>page_image_base64(doc_id: int, page_no: int, dpi: int = 160) -&gt; Optional[Dict[str, str]]</code></pre></p>
 <table>
@@ -5251,7 +6092,7 @@ query safe for arbitrary textbook search input.</p>
 </table>
 <p><strong>返回</strong>：<code>Optional[Dict[str, str]]</code></p>
 <p><strong>局部变量</strong>：<code>path</code>、<code>pdf</code>、<code>page</code>、<code>scale</code>、<code>pix</code>、<code>data</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1103 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1132 行</p>
 <h5><code>library.translate_page</code></h5>
 <p><pre><code>translate_page(doc_id: int, page_no: int, cfg: Dict[str, Any], target_lang: Optional[str] = None) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -5297,7 +6138,7 @@ query safe for arbitrary textbook search input.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>info</code>、<code>text</code>、<code>source_lang</code>、<code>target</code>、<code>chunk</code>、<code>prompt</code>、<code>resp</code>、<code>translated</code>、<code>model</code>、<code>created</code>、<code>conn</code>、<code>row</code>、<code>retry_prompt</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1138 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1167 行</p>
 <h5><code>library.add_book</code></h5>
 <p><pre><code>add_book(filename: str, content_b64: str) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -5330,7 +6171,7 @@ query safe for arbitrary textbook search input.</p>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
 <p><strong>局部变量</strong>：<code>original</code>、<code>suffix</code>、<code>target_dir</code>、<code>safe</code>、<code>book_dir</code>、<code>target</code>、<code>raw</code>、<code>conn</code></p>
-<p><strong>源码</strong>：<code>library.py</code> 第 1208 行</p>
+<p><strong>源码</strong>：<code>library.py</code> 第 1237 行</p>
 <h3><code>llm</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\llm.py</code></li>
@@ -9021,7 +9862,7 @@ is restricted to http(s) and public hosts.</p>
 <h3><code>web_server</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\web_server.py</code></li>
-<li>行数：672</li>
+<li>行数：991</li>
 <li>作用：本地 HTTP API 与静态资源服务，负责设计、扫描、教材、文档、模型配置与 SSE 聊天。</li>
 </ul>
 <p>Local HTTP API and static server for the desktop shell.</p>
@@ -9038,14 +9879,32 @@ is restricted to http(s) and public hosts.</p>
 <tbody>
 <tr>
 <td><code>MAX_BODY</code></td>
-<td>17</td>
+<td>22</td>
 <td><code>160 * 1024 * 1024</code></td>
 <td>本地 HTTP 请求体上限。</td>
 </tr>
 <tr>
 <td><code>JSON_LIMIT</code></td>
-<td>18</td>
+<td>23</td>
 <td><code>64 * 1024 * 1024</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>MAX_CHUNK</code></td>
+<td>24</td>
+<td><code>8 * 1024 * 1024</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>MAX_CHUNK_TOTAL</code></td>
+<td>25</td>
+<td><code>120 * 1024 * 1024</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>CHUNK_ID_PATTERN</code></td>
+<td>26</td>
+<td><code>re.compile(&#x27;^[a-f0-9]{16,64}$&#x27;)</code></td>
 <td>模块级配置/常量</td>
 </tr>
 </tbody>
@@ -9075,7 +9934,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>suffix</code>、<code>quoted</code></p>
-<p><strong>源码</strong>：<code>web_server.py</code> 第 21 行</p>
+<p><strong>源码</strong>：<code>web_server.py</code> 第 29 行</p>
 <h5><code>web_server._json_bytes</code></h5>
 <p><pre><code>_json_bytes(payload: Any) -&gt; bytes</code></pre></p>
 <table>
@@ -9099,7 +9958,7 @@ is restricted to http(s) and public hosts.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>bytes</code></p>
-<p><strong>源码</strong>：<code>web_server.py</code> 第 27 行</p>
+<p><strong>源码</strong>：<code>web_server.py</code> 第 35 行</p>
 <h5><code>web_server.create_server</code></h5>
 <p><pre><code>create_server(host: str = &#x27;127.0.0.1&#x27;, port: int = 8765) -&gt; ThreadingHTTPServer</code></pre></p>
 <table>
@@ -9131,7 +9990,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>ThreadingHTTPServer</code></p>
 <p><strong>局部变量</strong>：<code>httpd</code></p>
-<p><strong>源码</strong>：<code>web_server.py</code> 第 625 行</p>
+<p><strong>源码</strong>：<code>web_server.py</code> 第 944 行</p>
 <h5><code>web_server.main</code></h5>
 <p><pre><code>main(argv: Optional[list] = None) -&gt; int</code></pre></p>
 <table>
@@ -9157,7 +10016,7 @@ is restricted to http(s) and public hosts.</p>
 <p><strong>返回</strong>：<code>int</code></p>
 <p><strong>可能抛出</strong>：<code>SystemExit</code></p>
 <p><strong>局部变量</strong>：<code>parser</code>、<code>args</code>、<code>httpd</code>、<code>last_error</code>、<code>offset</code>、<code>port</code>、<code>url</code></p>
-<p><strong>源码</strong>：<code>web_server.py</code> 第 632 行</p>
+<p><strong>源码</strong>：<code>web_server.py</code> 第 951 行</p>
 <h4>类 <code>Handler</code></h4>
 <table>
 <thead>
@@ -9171,187 +10030,257 @@ is restricted to http(s) and public hosts.</p>
 <tr>
 <td><code>_send</code></td>
 <td>方法</td>
-<td>36</td>
+<td>44</td>
 </tr>
 <tr>
 <td><code>_json</code></td>
 <td>方法</td>
-<td>50</td>
+<td>58</td>
 </tr>
 <tr>
 <td><code>_error</code></td>
 <td>方法</td>
-<td>53</td>
+<td>61</td>
 </tr>
 <tr>
 <td><code>_body</code></td>
 <td>方法</td>
-<td>58</td>
+<td>66</td>
 </tr>
 <tr>
 <td><code>log_message</code></td>
 <td>方法</td>
-<td>80</td>
+<td>88</td>
 </tr>
 <tr>
 <td><code>_query</code></td>
 <td>方法</td>
-<td>87</td>
+<td>95</td>
 </tr>
 <tr>
 <td><code>do_GET</code></td>
 <td>方法</td>
-<td>93</td>
+<td>101</td>
 </tr>
 <tr>
 <td><code>do_HEAD</code></td>
 <td>方法</td>
-<td>209</td>
+<td>227</td>
 </tr>
 <tr>
 <td><code>do_POST</code></td>
 <td>方法</td>
-<td>212</td>
+<td>230</td>
 </tr>
 <tr>
 <td><code>_serve_static</code></td>
 <td>方法</td>
-<td>264</td>
+<td>294</td>
 </tr>
 <tr>
 <td><code>_serve_report</code></td>
 <td>方法</td>
-<td>280</td>
+<td>310</td>
 </tr>
 <tr>
 <td><code>_save_config</code></td>
 <td>方法</td>
-<td>292</td>
+<td>322</td>
 </tr>
 <tr>
 <td><code>_merged_config</code></td>
 <td>方法</td>
-<td>307</td>
+<td>337</td>
 </tr>
 <tr>
 <td><code>_test_llm</code></td>
 <td>方法</td>
-<td>318</td>
+<td>348</td>
 </tr>
 <tr>
 <td><code>_models</code></td>
 <td>方法</td>
-<td>325</td>
+<td>355</td>
 </tr>
 <tr>
 <td><code>_design</code></td>
 <td>方法</td>
-<td>333</td>
+<td>363</td>
 </tr>
 <tr>
 <td><code>_scan</code></td>
 <td>方法</td>
-<td>351</td>
+<td>381</td>
 </tr>
 <tr>
 <td><code>_evaluate</code></td>
 <td>方法</td>
-<td>365</td>
+<td>395</td>
 </tr>
 <tr>
 <td><code>_stress</code></td>
 <td>方法</td>
-<td>376</td>
+<td>406</td>
 </tr>
 <tr>
 <td><code>_bandwidth</code></td>
 <td>方法</td>
-<td>389</td>
+<td>419</td>
 </tr>
 <tr>
 <td><code>_suggest</code></td>
 <td>方法</td>
-<td>402</td>
+<td>432</td>
 </tr>
 <tr>
 <td><code>_convert</code></td>
 <td>方法</td>
-<td>411</td>
+<td>441</td>
 </tr>
 <tr>
 <td><code>_upload</code></td>
 <td>方法</td>
-<td>429</td>
+<td>459</td>
 </tr>
 <tr>
 <td><code>_upload_text</code></td>
 <td>方法</td>
-<td>442</td>
+<td>472</td>
+</tr>
+<tr>
+<td><code>_sse_start</code></td>
+<td>方法</td>
+<td>483</td>
+</tr>
+<tr>
+<td><code>_sse_emit</code></td>
+<td>方法</td>
+<td>491</td>
+</tr>
+<tr>
+<td><code>_scan_stream</code></td>
+<td>方法</td>
+<td>496</td>
+</tr>
+<tr>
+<td><code>_stress_stream</code></td>
+<td>方法</td>
+<td>561</td>
+</tr>
+<tr>
+<td><code>_chunk_paths</code></td>
+<td>方法</td>
+<td>606</td>
+</tr>
+<tr>
+<td><code>_upload_init</code></td>
+<td>方法</td>
+<td>617</td>
+</tr>
+<tr>
+<td><code>_upload_chunk</code></td>
+<td>方法</td>
+<td>644</td>
+</tr>
+<tr>
+<td><code>_upload_complete</code></td>
+<td>方法</td>
+<td>679</td>
+</tr>
+<tr>
+<td><code>_library_sources_payload</code></td>
+<td>方法</td>
+<td>709</td>
+</tr>
+<tr>
+<td><code>_library_sources_save</code></td>
+<td>方法</td>
+<td>723</td>
+</tr>
+<tr>
+<td><code>_update_check</code></td>
+<td>方法</td>
+<td>742</td>
+</tr>
+<tr>
+<td><code>_update_download</code></td>
+<td>方法</td>
+<td>751</td>
+</tr>
+<tr>
+<td><code>_update_install</code></td>
+<td>方法</td>
+<td>759</td>
+</tr>
+<tr>
+<td><code>_update_skip</code></td>
+<td>方法</td>
+<td>766</td>
 </tr>
 <tr>
 <td><code>_report</code></td>
 <td>方法</td>
-<td>452</td>
+<td>771</td>
 </tr>
 <tr>
 <td><code>_docs_ai_search</code></td>
 <td>方法</td>
-<td>499</td>
+<td>818</td>
 </tr>
 <tr>
 <td><code>_library_index</code></td>
 <td>方法</td>
-<td>509</td>
+<td>828</td>
 </tr>
 <tr>
 <td><code>_library_ocr</code></td>
 <td>方法</td>
-<td>515</td>
+<td>834</td>
 </tr>
 <tr>
 <td><code>_library_ocr_book</code></td>
 <td>方法</td>
-<td>520</td>
+<td>839</td>
 </tr>
 <tr>
 <td><code>_library_translate</code></td>
 <td>方法</td>
-<td>527</td>
+<td>846</td>
 </tr>
 <tr>
 <td><code>_library_upload</code></td>
 <td>方法</td>
-<td>537</td>
+<td>856</td>
 </tr>
 <tr>
 <td><code>_library_ai_search</code></td>
 <td>方法</td>
-<td>543</td>
+<td>862</td>
 </tr>
 <tr>
 <td><code>_providers_update</code></td>
 <td>方法</td>
-<td>554</td>
+<td>873</td>
 </tr>
 <tr>
 <td><code>_providers_rollback</code></td>
 <td>方法</td>
-<td>571</td>
+<td>890</td>
 </tr>
 <tr>
 <td><code>_providers_reset</code></td>
 <td>方法</td>
-<td>574</td>
+<td>893</td>
 </tr>
 <tr>
 <td><code>_usage_clear</code></td>
 <td>方法</td>
-<td>577</td>
+<td>896</td>
 </tr>
 <tr>
 <td><code>_chat</code></td>
 <td>方法</td>
-<td>581</td>
+<td>900</td>
 </tr>
 </tbody>
 </table>
@@ -9407,7 +10336,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>key</code>、<code>value</code></p>
-<p><strong>源码</strong>：`` 第 36 行</p>
+<p><strong>源码</strong>：`` 第 44 行</p>
 <h5><code>web_server.Handler._json</code></h5>
 <p><pre><code>Handler._json(self, payload: Any, status: int = 200) -&gt; None</code></pre></p>
 <table>
@@ -9445,7 +10374,7 @@ is restricted to http(s) and public hosts.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：`` 第 50 行</p>
+<p><strong>源码</strong>：`` 第 58 行</p>
 <h5><code>web_server.Handler._error</code></h5>
 <p><pre><code>Handler._error(self, message: str, hint: str = &#x27;&#x27;, status: int = 400, code: str = &#x27;error&#x27;) -&gt; None</code></pre></p>
 <table>
@@ -9497,7 +10426,7 @@ is restricted to http(s) and public hosts.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：`` 第 53 行</p>
+<p><strong>源码</strong>：`` 第 61 行</p>
 <h5><code>web_server.Handler._body</code></h5>
 <p><pre><code>Handler._body(self) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -9523,7 +10452,7 @@ is restricted to http(s) and public hosts.</p>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>可能抛出</strong>：<code>ValueError</code></p>
 <p><strong>局部变量</strong>：<code>raw</code>、<code>length</code>、<code>data</code></p>
-<p><strong>源码</strong>：`` 第 58 行</p>
+<p><strong>源码</strong>：`` 第 66 行</p>
 <h5><code>web_server.Handler.log_message</code></h5>
 <p><pre><code>Handler.log_message(self, fmt: str, *args) -&gt; None</code></pre></p>
 <table>
@@ -9561,7 +10490,7 @@ is restricted to http(s) and public hosts.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：`` 第 80 行</p>
+<p><strong>源码</strong>：`` 第 88 行</p>
 <h5><code>web_server.Handler._query</code></h5>
 <p><pre><code>Handler._query(self) -&gt; Dict[str, str]</code></pre></p>
 <table>
@@ -9586,7 +10515,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, str]</code></p>
 <p><strong>局部变量</strong>：<code>parsed</code>、<code>key</code>、<code>values</code></p>
-<p><strong>源码</strong>：`` 第 87 行</p>
+<p><strong>源码</strong>：`` 第 95 行</p>
 <h5><code>web_server.Handler.do_GET</code></h5>
 <p><pre><code>Handler.do_GET(self) -&gt; None</code></pre></p>
 <table>
@@ -9610,8 +10539,8 @@ is restricted to http(s) and public hosts.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>局部变量</strong>：<code>parsed</code>、<code>path</code>、<code>state</code>、<code>data</code>、<code>query</code>、<code>info</code>、<code>rects</code>、<code>raw_rects</code>、<code>rect</code>、<code>x</code></p>
-<p><strong>源码</strong>：`` 第 93 行</p>
+<p><strong>局部变量</strong>：<code>parsed</code>、<code>path</code>、<code>state</code>、<code>data</code>、<code>query</code>、<code>result</code>、<code>info</code>、<code>rects</code>、<code>raw_rects</code>、<code>rect</code>、<code>x</code></p>
+<p><strong>源码</strong>：`` 第 101 行</p>
 <h5><code>web_server.Handler.do_HEAD</code></h5>
 <p><pre><code>Handler.do_HEAD(self) -&gt; None</code></pre></p>
 <table>
@@ -9635,7 +10564,7 @@ is restricted to http(s) and public hosts.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：`` 第 209 行</p>
+<p><strong>源码</strong>：`` 第 227 行</p>
 <h5><code>web_server.Handler.do_POST</code></h5>
 <p><pre><code>Handler.do_POST(self) -&gt; None</code></pre></p>
 <table>
@@ -9660,7 +10589,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>parsed</code>、<code>path</code>、<code>routes</code>、<code>handler</code></p>
-<p><strong>源码</strong>：`` 第 212 行</p>
+<p><strong>源码</strong>：`` 第 230 行</p>
 <h5><code>web_server.Handler._serve_static</code></h5>
 <p><pre><code>Handler._serve_static(self, rel: str) -&gt; None</code></pre></p>
 <table>
@@ -9692,7 +10621,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>target</code>、<code>ctype</code></p>
-<p><strong>源码</strong>：`` 第 264 行</p>
+<p><strong>源码</strong>：`` 第 294 行</p>
 <h5><code>web_server.Handler._serve_report</code></h5>
 <p><pre><code>Handler._serve_report(self, name: str) -&gt; None</code></pre></p>
 <table>
@@ -9724,7 +10653,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>safe</code>、<code>path</code>、<code>ctype</code></p>
-<p><strong>源码</strong>：`` 第 280 行</p>
+<p><strong>源码</strong>：`` 第 310 行</p>
 <h5><code>web_server.Handler._save_config</code></h5>
 <p><pre><code>Handler._save_config(self) -&gt; None</code></pre></p>
 <table>
@@ -9749,7 +10678,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>cfg</code>、<code>llm_data</code>、<code>base</code></p>
-<p><strong>源码</strong>：`` 第 292 行</p>
+<p><strong>源码</strong>：`` 第 322 行</p>
 <h5><code>web_server.Handler._merged_config</code></h5>
 <p><pre><code>Handler._merged_config(self) -&gt; Dict[str, Any]</code></pre></p>
 <table>
@@ -9774,7 +10703,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>posted</code>、<code>cfg</code>、<code>key</code></p>
-<p><strong>源码</strong>：`` 第 307 行</p>
+<p><strong>源码</strong>：`` 第 337 行</p>
 <h5><code>web_server.Handler._test_llm</code></h5>
 <p><pre><code>Handler._test_llm(self) -&gt; None</code></pre></p>
 <table>
@@ -9799,7 +10728,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>cfg</code></p>
-<p><strong>源码</strong>：`` 第 318 行</p>
+<p><strong>源码</strong>：`` 第 348 行</p>
 <h5><code>web_server.Handler._models</code></h5>
 <p><pre><code>Handler._models(self) -&gt; None</code></pre></p>
 <table>
@@ -9824,7 +10753,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>cfg</code></p>
-<p><strong>源码</strong>：`` 第 325 行</p>
+<p><strong>源码</strong>：`` 第 355 行</p>
 <h5><code>web_server.Handler._design</code></h5>
 <p><pre><code>Handler._design(self) -&gt; None</code></pre></p>
 <table>
@@ -9849,7 +10778,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>result</code></p>
-<p><strong>源码</strong>：`` 第 333 行</p>
+<p><strong>源码</strong>：`` 第 363 行</p>
 <h5><code>web_server.Handler._scan</code></h5>
 <p><pre><code>Handler._scan(self) -&gt; None</code></pre></p>
 <table>
@@ -9874,7 +10803,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>result</code></p>
-<p><strong>源码</strong>：`` 第 351 行</p>
+<p><strong>源码</strong>：`` 第 381 行</p>
 <h5><code>web_server.Handler._evaluate</code></h5>
 <p><pre><code>Handler._evaluate(self) -&gt; None</code></pre></p>
 <table>
@@ -9899,7 +10828,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>result</code></p>
-<p><strong>源码</strong>：`` 第 365 行</p>
+<p><strong>源码</strong>：`` 第 395 行</p>
 <h5><code>web_server.Handler._stress</code></h5>
 <p><pre><code>Handler._stress(self) -&gt; None</code></pre></p>
 <table>
@@ -9924,7 +10853,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>result</code></p>
-<p><strong>源码</strong>：`` 第 376 行</p>
+<p><strong>源码</strong>：`` 第 406 行</p>
 <h5><code>web_server.Handler._bandwidth</code></h5>
 <p><pre><code>Handler._bandwidth(self) -&gt; None</code></pre></p>
 <table>
@@ -9949,7 +10878,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>comps</code>、<code>result</code></p>
-<p><strong>源码</strong>：`` 第 389 行</p>
+<p><strong>源码</strong>：`` 第 419 行</p>
 <h5><code>web_server.Handler._suggest</code></h5>
 <p><pre><code>Handler._suggest(self) -&gt; None</code></pre></p>
 <table>
@@ -9974,7 +10903,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>result</code></p>
-<p><strong>源码</strong>：`` 第 402 行</p>
+<p><strong>源码</strong>：`` 第 432 行</p>
 <h5><code>web_server.Handler._convert</code></h5>
 <p><pre><code>Handler._convert(self) -&gt; None</code></pre></p>
 <table>
@@ -9999,7 +10928,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>mode</code>、<code>value</code>、<code>result</code></p>
-<p><strong>源码</strong>：`` 第 411 行</p>
+<p><strong>源码</strong>：`` 第 441 行</p>
 <h5><code>web_server.Handler._upload</code></h5>
 <p><pre><code>Handler._upload(self) -&gt; None</code></pre></p>
 <table>
@@ -10024,7 +10953,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>name</code>、<code>content</code>、<code>info</code>、<code>public</code></p>
-<p><strong>源码</strong>：`` 第 429 行</p>
+<p><strong>源码</strong>：`` 第 459 行</p>
 <h5><code>web_server.Handler._upload_text</code></h5>
 <p><pre><code>Handler._upload_text(self) -&gt; None</code></pre></p>
 <table>
@@ -10049,7 +10978,377 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>info</code>、<code>public</code></p>
-<p><strong>源码</strong>：`` 第 442 行</p>
+<p><strong>源码</strong>：`` 第 472 行</p>
+<h5><code>web_server.Handler._sse_start</code></h5>
+<p><pre><code>Handler._sse_start(self) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>源码</strong>：`` 第 483 行</p>
+<h5><code>web_server.Handler._sse_emit</code></h5>
+<p><pre><code>Handler._sse_emit(self, event: str, payload: Dict[str, Any]) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>event</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>payload</code></td>
+<td><code>Dict[str, Any]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>局部变量</strong>：<code>body</code></p>
+<p><strong>源码</strong>：`` 第 491 行</p>
+<h5><code>web_server.Handler._scan_stream</code></h5>
+<p><pre><code>Handler._scan_stream(self) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>局部变量</strong>：<code>data</code>、<code>started</code>、<code>accumulator</code>、<code>batch</code>、<code>plan</code>、<code>elapsed</code>、<code>result</code>、<code>loads</code>、<code>connect</code>、<code>raw</code>、<code>valid</code>、<code>gamma</code>、<code>point</code>、<code>g</code></p>
+<p><strong>源码</strong>：`` 第 496 行</p>
+<h5><code>web_server.Handler._stress_stream</code></h5>
+<p><pre><code>Handler._stress_stream(self) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>局部变量</strong>：<code>data</code>、<code>params</code>、<code>result</code></p>
+<p><strong>源码</strong>：`` 第 561 行</p>
+<h5><code>web_server.Handler._chunk_paths</code></h5>
+<p><pre><code>Handler._chunk_paths(self, upload_id: str)</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>upload_id</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>可能抛出</strong>：<code>ValueError</code></p>
+<p><strong>局部变量</strong>：<code>base</code>、<code>meta</code>、<code>part</code></p>
+<p><strong>源码</strong>：`` 第 606 行</p>
+<h5><code>web_server.Handler._upload_init</code></h5>
+<p><pre><code>Handler._upload_init(self) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>局部变量</strong>：<code>data</code>、<code>name</code>、<code>size</code>、<code>cutoff</code>、<code>stale</code>、<code>upload_id</code>、<code>meta</code>、<code>part</code></p>
+<p><strong>源码</strong>：`` 第 617 行</p>
+<h5><code>web_server.Handler._upload_chunk</code></h5>
+<p><pre><code>Handler._upload_chunk(self) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>局部变量</strong>：<code>query</code>、<code>upload_id</code>、<code>raw</code>、<code>current</code>、<code>total</code>、<code>length</code>、<code>meta</code>、<code>handle</code>、<code>meta_path</code>、<code>part_path</code></p>
+<p><strong>源码</strong>：`` 第 644 行</p>
+<h5><code>web_server.Handler._upload_complete</code></h5>
+<p><pre><code>Handler._upload_complete(self) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>局部变量</strong>：<code>data</code>、<code>upload_id</code>、<code>received</code>、<code>raw</code>、<code>info</code>、<code>public</code>、<code>meta</code>、<code>meta_path</code>、<code>part_path</code></p>
+<p><strong>源码</strong>：`` 第 679 行</p>
+<h5><code>web_server.Handler._library_sources_payload</code></h5>
+<p><pre><code>Handler._library_sources_payload(self) -&gt; Dict[str, Any]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>局部变量</strong>：<code>cfg</code>、<code>sources</code>、<code>item</code></p>
+<p><strong>源码</strong>：`` 第 709 行</p>
+<h5><code>web_server.Handler._library_sources_save</code></h5>
+<p><pre><code>Handler._library_sources_save(self) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>局部变量</strong>：<code>data</code>、<code>sources</code>、<code>item</code>、<code>path</code></p>
+<p><strong>源码</strong>：`` 第 723 行</p>
+<h5><code>web_server.Handler._update_check</code></h5>
+<p><pre><code>Handler._update_check(self) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>局部变量</strong>：<code>data</code>、<code>result</code></p>
+<p><strong>源码</strong>：`` 第 742 行</p>
+<h5><code>web_server.Handler._update_download</code></h5>
+<p><pre><code>Handler._update_download(self) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>局部变量</strong>：<code>data</code>、<code>progress</code></p>
+<p><strong>源码</strong>：`` 第 751 行</p>
+<h5><code>web_server.Handler._update_install</code></h5>
+<p><pre><code>Handler._update_install(self) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>局部变量</strong>：<code>result</code></p>
+<p><strong>源码</strong>：`` 第 759 行</p>
+<h5><code>web_server.Handler._update_skip</code></h5>
+<p><pre><code>Handler._update_skip(self) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>局部变量</strong>：<code>data</code></p>
+<p><strong>源码</strong>：`` 第 766 行</p>
 <h5><code>web_server.Handler._report</code></h5>
 <p><pre><code>Handler._report(self) -&gt; None</code></pre></p>
 <table>
@@ -10074,7 +11373,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>fmt</code>、<code>path</code>、<code>design</code>、<code>comps</code>、<code>zl</code>、<code>z0</code>、<code>fm</code>、<code>verification</code></p>
-<p><strong>源码</strong>：`` 第 452 行</p>
+<p><strong>源码</strong>：`` 第 771 行</p>
 <h5><code>web_server.Handler._docs_ai_search</code></h5>
 <p><pre><code>Handler._docs_ai_search(self) -&gt; None</code></pre></p>
 <table>
@@ -10099,7 +11398,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>cfg</code>、<code>result</code></p>
-<p><strong>源码</strong>：`` 第 499 行</p>
+<p><strong>源码</strong>：`` 第 818 行</p>
 <h5><code>web_server.Handler._library_index</code></h5>
 <p><pre><code>Handler._library_index(self) -&gt; None</code></pre></p>
 <table>
@@ -10124,7 +11423,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code></p>
-<p><strong>源码</strong>：`` 第 509 行</p>
+<p><strong>源码</strong>：`` 第 828 行</p>
 <h5><code>web_server.Handler._library_ocr</code></h5>
 <p><pre><code>Handler._library_ocr(self) -&gt; None</code></pre></p>
 <table>
@@ -10149,7 +11448,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code></p>
-<p><strong>源码</strong>：`` 第 515 行</p>
+<p><strong>源码</strong>：`` 第 834 行</p>
 <h5><code>web_server.Handler._library_ocr_book</code></h5>
 <p><pre><code>Handler._library_ocr_book(self) -&gt; None</code></pre></p>
 <table>
@@ -10174,7 +11473,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code></p>
-<p><strong>源码</strong>：`` 第 520 行</p>
+<p><strong>源码</strong>：`` 第 839 行</p>
 <h5><code>web_server.Handler._library_translate</code></h5>
 <p><pre><code>Handler._library_translate(self) -&gt; None</code></pre></p>
 <table>
@@ -10199,7 +11498,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>result</code></p>
-<p><strong>源码</strong>：`` 第 527 行</p>
+<p><strong>源码</strong>：`` 第 846 行</p>
 <h5><code>web_server.Handler._library_upload</code></h5>
 <p><pre><code>Handler._library_upload(self) -&gt; None</code></pre></p>
 <table>
@@ -10224,7 +11523,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>result</code></p>
-<p><strong>源码</strong>：`` 第 537 行</p>
+<p><strong>源码</strong>：`` 第 856 行</p>
 <h5><code>web_server.Handler._library_ai_search</code></h5>
 <p><pre><code>Handler._library_ai_search(self) -&gt; None</code></pre></p>
 <table>
@@ -10249,7 +11548,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>cfg</code>、<code>result</code></p>
-<p><strong>源码</strong>：`` 第 543 行</p>
+<p><strong>源码</strong>：`` 第 862 行</p>
 <h5><code>web_server.Handler._providers_update</code></h5>
 <p><pre><code>Handler._providers_update(self) -&gt; None</code></pre></p>
 <table>
@@ -10274,7 +11573,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>mode</code>、<code>cfg</code>、<code>pid</code>、<code>ids</code></p>
-<p><strong>源码</strong>：`` 第 554 行</p>
+<p><strong>源码</strong>：`` 第 873 行</p>
 <h5><code>web_server.Handler._providers_rollback</code></h5>
 <p><pre><code>Handler._providers_rollback(self) -&gt; None</code></pre></p>
 <table>
@@ -10298,7 +11597,7 @@ is restricted to http(s) and public hosts.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：`` 第 571 行</p>
+<p><strong>源码</strong>：`` 第 890 行</p>
 <h5><code>web_server.Handler._providers_reset</code></h5>
 <p><pre><code>Handler._providers_reset(self) -&gt; None</code></pre></p>
 <table>
@@ -10322,7 +11621,7 @@ is restricted to http(s) and public hosts.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：`` 第 574 行</p>
+<p><strong>源码</strong>：`` 第 893 行</p>
 <h5><code>web_server.Handler._usage_clear</code></h5>
 <p><pre><code>Handler._usage_clear(self) -&gt; None</code></pre></p>
 <table>
@@ -10346,7 +11645,7 @@ is restricted to http(s) and public hosts.</p>
 </tbody>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
-<p><strong>源码</strong>：`` 第 577 行</p>
+<p><strong>源码</strong>：`` 第 896 行</p>
 <h5><code>web_server.Handler._chat</code></h5>
 <p><pre><code>Handler._chat(self) -&gt; None</code></pre></p>
 <table>
@@ -10371,7 +11670,7 @@ is restricted to http(s) and public hosts.</p>
 </table>
 <p><strong>返回</strong>：<code>None</code></p>
 <p><strong>局部变量</strong>：<code>data</code>、<code>messages</code>、<code>attach</code>、<code>context</code>、<code>cfg</code>、<code>model</code>、<code>protocol</code>、<code>lock</code>、<code>body</code></p>
-<p><strong>源码</strong>：`` 第 581 行</p>
+<p><strong>源码</strong>：`` 第 900 行</p>
 <h3><code>__init__</code></h3>
 <ul>
 <li>文件：<code>impedance_mcp\__init__.py</code></li>
@@ -10393,7 +11692,7 @@ is restricted to http(s) and public hosts.</p>
 <tr>
 <td><code>__version__</code></td>
 <td>3</td>
-<td><code>&#x27;4.3.0&#x27;</code></td>
+<td><code>&#x27;4.4.0&#x27;</code></td>
 <td>模块级配置/常量</td>
 </tr>
 <tr>
@@ -10754,6 +12053,547 @@ curated hints explain the physical meaning.</p>
 <p><strong>返回</strong>：<code>str</code></p>
 <p><strong>局部变量</strong>：<code>modules</code>、<code>path</code>、<code>lines</code>、<code>mod</code>、<code>item</code>、<code>count</code>、<code>cls</code>、<code>fn</code>、<code>doc</code>、<code>name</code>、<code>lineno</code>、<code>value</code>、<code>x</code></p>
 <p><strong>源码</strong>：<code>code_docs.py</code> 第 330 行</p>
+<h3><code>update_check</code></h3>
+<ul>
+<li>文件：<code>impedance_mcp\update_check.py</code></li>
+<li>行数：379</li>
+<li>作用：—</li>
+</ul>
+<p>Startup release check against the project's GitHub repository.</p>
+<p>Version comparison is deterministic (GitHub API).  When a model is configured,
+the release notes are also sent to that model for a short compatibility review;
+the model never decides whether an update exists.</p>
+<p>Outbound HTTP is restricted to GitHub hosts with scheme/host/resolved-IP checks
+and validated redirects.  Downloads use a file descriptor created by tempfile in
+the application's own update directory, so no user-controlled path is opened.</p>
+<h4>模块常量与变量</h4>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>行</th>
+<th>当前值/表达式</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CACHE_TTL_SECONDS</code></td>
+<td>30</td>
+<td><code>6 * 3600</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>USER_AGENT</code></td>
+<td>31</td>
+<td><code>&#x27;ImpedanceMatchingAI-Updater/&#x27; + config.VERSION</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>ALLOWED_HOSTS</code></td>
+<td>32</td>
+<td><code>{&#x27;api.github.com&#x27;, &#x27;github.com&#x27;, &#x27;objects.githubusercontent.com&#x27;, &#x27;release-asset</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>REPO_PATTERN</code></td>
+<td>34</td>
+<td><code>re.compile(&#x27;^[A-Za-z0-9_.-]{1,80}/[A-Za-z0-9_.-]{1,120}$&#x27;)</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>UPDATE_BASE</code></td>
+<td>35</td>
+<td><code>config.DATA_DIR / &#x27;updates&#x27;</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>UPDATE_FILES</code></td>
+<td>36</td>
+<td><code>{&#x27;exe&#x27;: &#x27;ImpedanceMatchingAI_update_setup.exe&#x27;, &#x27;msi&#x27;: &#x27;ImpedanceMatchingAI_upda</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>_DOWNLOAD</code></td>
+<td>284</td>
+<td><code>{&#x27;state&#x27;: &#x27;idle&#x27;, &#x27;downloaded&#x27;: 0, &#x27;total&#x27;: 0, &#x27;kind&#x27;: &#x27;exe&#x27;, &#x27;error&#x27;: &#x27;&#x27;}</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>_DOWNLOAD_LOCK</code></td>
+<td>285</td>
+<td><code>threading.Lock()</code></td>
+<td>模块级配置/常量</td>
+</tr>
+<tr>
+<td><code>_DOWNLOAD_THREAD</code></td>
+<td>286</td>
+<td><code>None</code></td>
+<td>模块级配置/常量</td>
+</tr>
+</tbody>
+</table>
+<h4>函数</h4>
+<h5><code>update_check._repo_slug</code></h5>
+<p><pre><code>_repo_slug(cfg: Dict[str, Any]) -&gt; str</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cfg</code></td>
+<td><code>Dict[str, Any]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>str</code></p>
+<p><strong>局部变量</strong>：<code>raw</code>、<code>match</code>、<code>slug</code>、<code>owner</code>、<code>name</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 42 行</p>
+<h5><code>update_check._validate_target</code></h5>
+<p><pre><code>_validate_target(target: str) -&gt; str</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>target</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>str</code></p>
+<p><strong>可能抛出</strong>：<code>ValueError</code></p>
+<p><strong>局部变量</strong>：<code>parsed</code>、<code>host</code>、<code>info</code>、<code>infos</code>、<code>address</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 56 行</p>
+<h5><code>update_check._safe_urlopen</code></h5>
+<p><pre><code>_safe_urlopen(target: str, timeout: float = 9.0)</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>target</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td><code>float</code></td>
+<td><code>9.0</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>局部变量</strong>：<code>safe</code>、<code>opener</code>、<code>request</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 83 行</p>
+<h5><code>update_check.version_tuple</code></h5>
+<p><pre><code>version_tuple(value: str) -&gt; Tuple[int, ...]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>value</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Tuple[int, ...]</code></p>
+<p><strong>局部变量</strong>：<code>parts</code>、<code>part</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 98 行</p>
+<h5><code>update_check.is_newer</code></h5>
+<p><pre><code>is_newer(latest: str, current: str) -&gt; bool</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>latest</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>current</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>bool</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 103 行</p>
+<h5><code>update_check._cache_read</code></h5>
+<p><pre><code>_cache_read() -&gt; Dict[str, Any]</code></pre></p>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>局部变量</strong>：<code>data</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 107 行</p>
+<h5><code>update_check._cache_write</code></h5>
+<p><pre><code>_cache_write(payload: Dict[str, Any]) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>payload</code></td>
+<td><code>Dict[str, Any]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 115 行</p>
+<h5><code>update_check.fetch_latest</code></h5>
+<p><pre><code>fetch_latest(repo: str, timeout: float = 9.0) -&gt; Dict[str, Any]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>repo</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td><code>float</code></td>
+<td><code>9.0</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>可能抛出</strong>：<code>RuntimeError</code></p>
+<p><strong>局部变量</strong>：<code>api</code>、<code>assets</code>、<code>item</code>、<code>name</code>、<code>asset_url</code>、<code>response</code>、<code>data</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 124 行</p>
+<h5><code>update_check._model_review</code></h5>
+<p><pre><code>_model_review(cfg: Dict[str, Any], current: str, latest: Dict[str, Any], timeout: int = 60) -&gt; Optional[Dict[str, Any]]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cfg</code></td>
+<td><code>Dict[str, Any]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>current</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>latest</code></td>
+<td><code>Dict[str, Any]</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td><code>int</code></td>
+<td><code>60</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Optional[Dict[str, Any]]</code></p>
+<p><strong>局部变量</strong>：<code>status</code>、<code>notes</code>、<code>messages</code>、<code>text</code>、<code>match</code>、<code>response</code>、<code>data</code>、<code>item</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 161 行</p>
+<h5><code>update_check.check</code></h5>
+<p><pre><code>check(cfg: Optional[Dict[str, Any]] = None, force: bool = False, use_model: Optional[bool] = None) -&gt; Dict[str, Any]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cfg</code></td>
+<td><code>Optional[Dict[str, Any]]</code></td>
+<td><code>None</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>force</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>use_model</code></td>
+<td><code>Optional[bool]</code></td>
+<td><code>None</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>局部变量</strong>：<code>update_cfg</code>、<code>repo</code>、<code>current</code>、<code>cached</code>、<code>cached_at</code>、<code>fresh</code>、<code>version</code>、<code>has_update</code>、<code>review</code>、<code>payload</code>、<code>result</code>、<code>release</code>、<code>item</code>、<code>key</code>、<code>value</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 207 行</p>
+<h5><code>update_check.skip_version</code></h5>
+<p><pre><code>skip_version(version: str) -&gt; None</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>version</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>None</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 276 行</p>
+<h5><code>update_check._update_dir</code></h5>
+<p><pre><code>_update_dir() -&gt; Path</code></pre></p>
+<p><strong>返回</strong>：<code>Path</code></p>
+<p><strong>局部变量</strong>：<code>base</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 289 行</p>
+<h5><code>update_check.download_path</code></h5>
+<p><pre><code>download_path(kind: str = &#x27;exe&#x27;) -&gt; Path</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code></td>
+<td><code>str</code></td>
+<td><code>&#x27;exe&#x27;</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Path</code></p>
+<p><strong>可能抛出</strong>：<code>ValueError</code></p>
+<p><strong>局部变量</strong>：<code>base</code>、<code>name</code>、<code>candidate</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 295 行</p>
+<h5><code>update_check.download_progress</code></h5>
+<p><pre><code>download_progress() -&gt; Dict[str, Any]</code></pre></p>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>局部变量</strong>：<code>total</code>、<code>data</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 304 行</p>
+<h5><code>update_check.start_download</code></h5>
+<p><pre><code>start_download(asset_url: str) -&gt; Dict[str, Any]</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>asset_url</code></td>
+<td><code>str</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>可能抛出</strong>：<code>ValueError</code></p>
+<p><strong>局部变量</strong>：<code>safe</code>、<code>target</code>、<code>kind</code>、<code>temp_name</code>、<code>base</code>、<code>size</code>、<code>handle</code>、<code>response</code>、<code>total</code>、<code>read</code>、<code>chunk</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 313 行</p>
+<h5><code>update_check.install_downloaded</code></h5>
+<p><pre><code>install_downloaded() -&gt; Dict[str, Any]</code></pre></p>
+<p><strong>返回</strong>：<code>Dict[str, Any]</code></p>
+<p><strong>可能抛出</strong>：<code>ValueError</code></p>
+<p><strong>局部变量</strong>：<code>target</code>、<code>kind</code>、<code>state</code></p>
+<p><strong>源码</strong>：<code>update_check.py</code> 第 366 行</p>
+<h4>类 <code>_SafeRedirectHandler</code></h4>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>类型</th>
+<th>行</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>redirect_request</code></td>
+<td>方法</td>
+<td>78</td>
+</tr>
+</tbody>
+</table>
+<h5><code>update_check._SafeRedirectHandler.redirect_request</code></h5>
+<p><pre><code>_SafeRedirectHandler.redirect_request(self, req, fp, code, msg, headers, newurl)</code></pre></p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认值</th>
+<th>传入方式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>self</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>req</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>fp</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>code</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>msg</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>headers</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+<tr>
+<td><code>newurl</code></td>
+<td><code>—</code></td>
+<td><code>—</code></td>
+<td>位置/关键字</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>局部变量</strong>：<code>safe</code></p>
+<p><strong>源码</strong>：`` 第 78 行</p>
 <h2>前端模块清单 / Front-end modules</h2>
 <table>
 <thead>
@@ -10768,15 +12608,15 @@ curated hints explain the physical meaning.</p>
 <tbody>
 <tr>
 <td><code>app.js</code></td>
-<td>2399</td>
-<td><code>$</code>, <code>$$</code>, <code>T</code>, <code>addCitationCard</code>, <code>addToolCard</code>, <code>addUserMessage</code>, <code>api</code>, <code>appendDesignCard</code>, <code>buildContext</code>, <code>catalogLog</code>, <code>catalogReset</code>, <code>catalogRollback</code>, <code>catalogUpdate</code>, <code>citationCard</code>, <code>closeSettings</code>, <code>compareTopologies</code>, <code>copyMcpConfig</code>, <code>copyText</code></td>
+<td>3076</td>
+<td><code>$</code>, <code>$$</code>, <code>T</code>, <code>addCitationCard</code>, <code>addToolCard</code>, <code>addUserMessage</code>, <code>api</code>, <code>appendDesignCard</code>, <code>buildContext</code>, <code>catalogLog</code>, <code>catalogReset</code>, <code>catalogRollback</code>, <code>catalogUpdate</code>, <code>checkForUpdates</code>, <code>citationCard</code>, <code>closeSettings</code>, <code>compareTopologies</code>, <code>copyMcpConfig</code></td>
 <td><code>$</code>, <code>$$</code>, <code>MCP_TOOLS</code>, <code>PRESETS</code>, <code>STATE</code>, <code>T</code>, <code>TOPO_DESC</code>, <code>TOPO_DESC_EN</code>, <code>TOPO_HAS_C3</code>, <code>TOPO_NAME_EN</code>, <code>TOPO_SHORT</code>, <code>VIEW_META</code></td>
 <td><code>IMP</code></td>
 </tr>
 <tr>
 <td><code>assistant.js</code></td>
-<td>267</td>
-<td><code>$</code>, <code>IMP</code>, <code>T</code>, <code>addUser</code>, <code>buildPayload</code>, <code>handlePaste</code>, <code>init</code>, <code>makeAssistant</code>, <code>openWithPrompt</code>, <code>readBase64</code>, <code>renderAttachments</code>, <code>scroll</code>, <code>send</code>, <code>setOpen</code>, <code>updateContextLabel</code>, <code>uploadFiles</code></td>
+<td>278</td>
+<td><code>$</code>, <code>IMP</code>, <code>T</code>, <code>addUser</code>, <code>buildPayload</code>, <code>handlePaste</code>, <code>init</code>, <code>makeAssistant</code>, <code>openWithPrompt</code>, <code>renderAttachments</code>, <code>scroll</code>, <code>send</code>, <code>setOpen</code>, <code>updateContextLabel</code>, <code>uploadFiles</code></td>
 <td><code>$</code>, <code>IMP</code>, <code>STATE</code>, <code>T</code></td>
 <td><code>Assistant</code></td>
 </tr>
@@ -10789,22 +12629,22 @@ curated hints explain the physical meaning.</p>
 </tr>
 <tr>
 <td><code>i18n.js</code></td>
-<td>367</td>
+<td>417</td>
 <td><code>apply</code>, <code>lang</code>, <code>t</code></td>
 <td><code>EN</code>, <code>KEY_FALLBACK</code>, <code>store</code></td>
 <td><code>I18N</code></td>
 </tr>
 <tr>
 <td><code>library.js</code></td>
-<td>492</td>
-<td><code>$</code>, <code>$$</code>, <code>IMP</code>, <code>T</code>, <code>askPage</code>, <code>current</code>, <code>drawHighlights</code>, <code>esc</code>, <code>goPage</code>, <code>handleBookUpload</code>, <code>init</code>, <code>loadDocs</code>, <code>loadPageImage</code>, <code>loadPageInfo</code>, <code>markSnippet</code>, <code>onShow</code>, <code>openPage</code>, <code>readBase64</code></td>
+<td>736</td>
+<td><code>$</code>, <code>$$</code>, <code>IMP</code>, <code>T</code>, <code>addPath</code>, <code>applyConfig</code>, <code>applySplit</code>, <code>applyStatusPaths</code>, <code>askPage</code>, <code>browsePath</code>, <code>closePaths</code>, <code>current</code>, <code>drawHighlights</code>, <code>esc</code>, <code>goPage</code>, <code>handleBookUpload</code>, <code>init</code>, <code>initSplitters</code></td>
 <td><code>$</code>, <code>$$</code>, <code>IMP</code>, <code>STATE</code>, <code>T</code>, <code>esc</code></td>
 <td><code>Library</code>, <code>__libraryStatus</code></td>
 </tr>
 <tr>
 <td><code>smith.js</code></td>
-<td>649</td>
-<td><code>_bind</code>, <code>_drawGrid</code>, <code>_drawLabels</code>, <code>_drawMarkers</code>, <code>_drawScan</code>, <code>_drawSteps</code>, <code>_geom</code>, <code>_notify</code>, <code>_observe</code>, <code>_toGamma</code>, <code>_toPixel</code>, <code>constructor</code>, <code>convexHull</code>, <code>draw</code>, <code>drawBars</code>, <code>drawLineChart</code>, <code>pause</code>, <code>play</code></td>
+<td>801</td>
+<td><code>_bind</code>, <code>_drawCoverage</code>, <code>_drawGrid</code>, <code>_drawLabels</code>, <code>_drawMarkers</code>, <code>_drawScan</code>, <code>_drawSteps</code>, <code>_ensureScanLayer</code>, <code>_geom</code>, <code>_notify</code>, <code>_observe</code>, <code>_paintScanPoint</code>, <code>_toGamma</code>, <code>_toPixel</code>, <code>addScanPoints</code>, <code>beginScan</code>, <code>clearScan</code>, <code>constructor</code></td>
 <td><code>FONT</code>, <code>FONT_SMALL</code>, <code>PALETTE</code></td>
 <td><code>ChartKit</code>, <code>SmithChart</code></td>
 </tr>
@@ -10813,5 +12653,5 @@ curated hints explain the physical meaning.</p>
 <blockquote>
 <p>前端函数的局部变量位于源码中；本表列出所有函数、模块常量与 <code>window</code> 导出，便于按名字定位。</p>
 </blockquote>
-<div class="footer">Impedance Matching AI v4.3.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
+<div class="footer">Impedance Matching AI v4.4.0 · 教材与用户数据保存在本机，不上传。MathJax 3.2.2 (Apache-2.0)。</div>
 </main></div></body></html>

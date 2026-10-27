@@ -28,6 +28,13 @@
     lastUsage: null,
     profileMeta: null,
     catalogLog: [],
+    showThinking: false,
+    showCitations: false,
+    scanAbort: null,
+    scanStreaming: false,
+    stressAbort: null,
+    stressStreaming: false,
+    updateInfo: null,
   };
 
   const MCP_TOOLS = [
@@ -79,8 +86,8 @@
       en: ["Documentation", "Application · code reference · AI interface · MCP protocol"],
     },
     about: {
-      zh: ["关于", "Impedance Matching AI v4.3.0"],
-      en: ["About", "Impedance Matching AI v4.3.0"],
+      zh: ["关于", "Impedance Matching AI v4.4.0"],
+      en: ["About", "Impedance Matching AI v4.4.0"],
     },
   };
 
@@ -107,6 +114,7 @@
   };
   const TOPO_HAS_C3 = { t: true, pi1: true, pi2: true };
   let scanChart = null;
+  let scanAnimation = null;
 
   function topologyName(design) {
     if (!design) return "—";
@@ -237,6 +245,124 @@
     }
     return data;
   }
+
+  async function streamEvents(path, payload, onEvent, signal) {
+    const response = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload || {}),
+      signal,
+    });
+    if (!response.ok) {
+      let detail = {};
+      try { detail = await response.json(); } catch (e) { /* ignore */ }
+      const error = new Error(detail.message || `服务返回 HTTP ${response.status}`);
+      error.data = detail;
+      throw error;
+    }
+    if (!response.body) throw new Error("当前浏览器不支持流式响应");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let errorMessage = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let index;
+      while ((index = buffer.indexOf("\n\n")) >= 0) {
+        const chunk = buffer.slice(0, index);
+        buffer = buffer.slice(index + 2);
+        let eventName = "message";
+        let dataString = "";
+        for (const line of chunk.split("\n")) {
+          if (line.startsWith("event:")) eventName = line.slice(6).trim();
+          else if (line.startsWith("data:")) dataString += line.slice(5).trim();
+        }
+        if (!dataString) continue;
+        let data = {};
+        try { data = JSON.parse(dataString); } catch (e) { continue; }
+        if (eventName === "error") errorMessage = data.message || "计算失败";
+        if (onEvent) onEvent(eventName, data);
+      }
+    }
+    if (errorMessage) throw new Error(errorMessage);
+  }
+
+  function formatBytes(value) {
+    const size = Number(value) || 0;
+    if (size >= 1024 * 1024) return (size / 1024 / 1024).toFixed(1) + " MB";
+    if (size >= 1024) return (size / 1024).toFixed(0) + " KB";
+    return size + " B";
+  }
+
+  function uploadBlobWithProgress(file, onProgress) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const init = await api("/api/upload/init", {
+          method: "POST",
+          body: { name: file.name || "粘贴附件", size: file.size },
+        });
+        const uploadId = init.upload_id;
+        const chunkSize = Number(init.chunk_size) || 2 * 1024 * 1024;
+        let offset = 0;
+        while (offset < file.size) {
+          const end = Math.min(offset + chunkSize, file.size);
+          const blob = file.slice(offset, end);
+          await new Promise((done, fail) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", `/api/upload/chunk?upload_id=${encodeURIComponent(uploadId)}`);
+            xhr.setRequestHeader("Content-Type", "application/octet-stream");
+            xhr.upload.onprogress = (event) => {
+              if (event.lengthComputable && onProgress) {
+                onProgress(Math.min(1, (offset + event.loaded) / Math.max(1, file.size)));
+              }
+            };
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) return done();
+              let message = `上传失败（HTTP ${xhr.status}）`;
+              try { message = JSON.parse(xhr.responseText).message || message; } catch (e) { /* ignore */ }
+              fail(new Error(message));
+            };
+            xhr.onerror = () => fail(new Error("网络中断，请重试"));
+            xhr.send(blob);
+          });
+          offset = end;
+          if (onProgress) onProgress(offset / Math.max(1, file.size));
+        }
+        const info = await api("/api/upload/complete", {
+          method: "POST",
+          body: { upload_id: uploadId },
+        });
+        resolve(info);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  function openExternal(url) {
+    if (!url) return;
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.open_external) {
+      Promise.resolve(window.pywebview.api.open_external(url)).then((opened) => {
+        if (!opened) window.open(url, "_blank", "noopener");
+      }).catch(() => window.open(url, "_blank", "noopener"));
+      return;
+    }
+    window.open(url, "_blank", "noopener");
+  }
+
+  function openLocalPath(path) {
+    if (!path) return;
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.open_path) {
+      Promise.resolve(window.pywebview.api.open_path(path)).then((opened) => {
+        if (!opened) toast("无法打开目录", path, "amber");
+      }).catch(() => toast("无法打开目录", path, "amber"));
+      return;
+    }
+    toast("目录位置", path, "ok", 6000);
+  }
+
 
   function openDocument(url) {
     let target;
@@ -603,6 +729,7 @@
       const result = await api("/api/config");
       STATE.config = result.config;
       fillSettings(result.config);
+      if (window.Library) window.Library.applyConfig(result.config);
     } catch (error) { /* ignore */ }
   }
 
@@ -631,10 +758,34 @@
     const ui = cfg.ui || {};
     const library = cfg.library || {};
     const usageCfg = cfg.usage || {};
+    const updateCfg = cfg.update || {};
     $("#setLang").value = ui.lang || "zh";
+    $("#setShowThinking").checked = ui.show_thinking === true;
+    $("#setShowCitations").checked = ui.show_citations === true;
+    $("#setAutoUpdate").checked = updateCfg.auto_check !== false;
+    $("#setUpdateUseModel").checked = updateCfg.use_model !== false;
     $("#setAutoIndex").checked = library.auto_index !== false;
     $("#setOcrFirst").value = library.ocr_first_pages != null ? library.ocr_first_pages : 2;
     $("#setAutoPeak").checked = usageCfg.auto_peak !== false;
+    if ($("#anPoints")) {
+      $("#anPoints").value = Number(ui.scan_points) > 0 ? Number(ui.scan_points) : 10000;
+    }
+    if ($("#stSweep")) {
+      $("#stSweep").checked = ui.stress_sweep_enabled !== false;
+      $("#stSweepPoints").value = Number(ui.stress_sweep_points) > 0
+        ? Number(ui.stress_sweep_points) : 21;
+      $("#stSpan").value = Math.round((Number(ui.stress_freq_span) || 0.2) * 100);
+    }
+    STATE.showThinking = ui.show_thinking === true;
+    STATE.showCitations = ui.show_citations === true;
+    syncDisplayToggles();
+    const paths = cfg.paths || {};
+    const readout = $("#settingsPathReadout");
+    if (readout) {
+      readout.innerHTML = `<div><span>安装目录</span><b>${escapeHtml(paths.install_dir || "—")}</b></div>` +
+        `<div><span>数据目录</span><b>${escapeHtml(paths.data_dir || "—")}</b></div>` +
+        `<div><span>当前教材库</span><b>${escapeHtml(paths.current_library || "未设置")}</b></div>`;
+    }
     $("#saveHint").textContent = "";
   }
 
@@ -699,41 +850,52 @@
 
   async function saveSettings() {
     const { llm, key, providerId, provider, model } = settingsPayload();
-    if (!providerId) {
-      return toast("请选择服务商", "先选择模型服务商，再填写对应的 API Key。", "amber");
-    }
-    if (!llm.base_url || !model) {
-      return toast("配置不完整", "请填写 Base URL 和模型 ID。", "amber");
-    }
-    const existingKey = !!(STATE.config && STATE.config.llm && STATE.config.llm.has_key);
-    if (!key && (!existingKey || STATE.providerChanged)) {
-      return toast("请填写 API Key", "每个服务商都需要使用你自己的 Key；本软件不内置任何厂商密钥。", "amber", 5000);
+    if (providerId) {
+      if (!llm.base_url || !model) {
+        return toast("配置不完整", "请填写 Base URL 和模型 ID。", "amber");
+      }
+      const existingKey = !!(STATE.config && STATE.config.llm && STATE.config.llm.has_key);
+      if (!key && (!existingKey || STATE.providerChanged)) {
+        return toast("请填写 API Key", "每个服务商都需要使用你自己的 Key；本软件不内置任何厂商密钥。", "amber", 5000);
+      }
     }
     const payload = {
-      llm,
       ui: {
         lang: $("#setLang").value || "zh",
         assistant_open: !!STATE.config?.ui?.assistant_open,
+        show_thinking: $("#setShowThinking").checked,
+        show_citations: $("#setShowCitations").checked,
       },
       library: {
         auto_index: $("#setAutoIndex").checked,
         ocr_first_pages: Number($("#setOcrFirst").value || 0),
       },
+      update: {
+        auto_check: $("#setAutoUpdate").checked,
+        use_model: $("#setUpdateUseModel").checked,
+      },
       usage: {
         auto_peak: $("#setAutoPeak").checked,
       },
     };
+    if (providerId) payload.llm = llm;
     try {
       const result = await api("/api/config", { method: "POST", body: payload });
       STATE.config = result.config;
       $("#setApiKey").value = "";
       $("#saveHint").textContent = "已保存";
+      STATE.showThinking = $("#setShowThinking").checked;
+      STATE.showCitations = $("#setShowCitations").checked;
+      syncDisplayToggles();
+      if (window.Library) window.Library.applyConfig(result.config);
       if (window.I18N) {
         window.I18N.setLang(payload.ui.lang);
       }
       await loadStatus();
       await loadConfig();
-      toast("设置已保存", `${provider ? providerLabel(provider) : "自定义服务"} · ${model}`, "ok");
+      toast("设置已保存", providerId
+        ? `${provider ? providerLabel(provider) : "自定义服务"} · ${model}`
+        : "界面、教材与更新设置已保存", "ok");
     } catch (error) {
       toast("保存失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 6000);
     }
@@ -1023,6 +1185,37 @@
   /* ------------------------------------------------------------------ */
   let chatAutoScroll = true;
 
+  function syncDisplayToggles() {
+    $$("#btnToggleThinking, #qaToggleThinking").forEach((button) =>
+      button.classList.toggle("active", !!STATE.showThinking));
+    $$("#btnToggleCitations, #qaToggleCitations").forEach((button) =>
+      button.classList.toggle("active", !!STATE.showCitations));
+  }
+
+  function toggleDisplay(kind) {
+    if (kind === "thinking") STATE.showThinking = !STATE.showThinking;
+    else STATE.showCitations = !STATE.showCitations;
+    $$(".thinking-block").forEach((block) => { block.open = !!STATE.showThinking; });
+    $$(".sources-block").forEach((block) => { block.open = !!STATE.showCitations; });
+    syncDisplayToggles();
+    api("/api/config", {
+      method: "POST",
+      body: { ui: { show_thinking: !!STATE.showThinking, show_citations: !!STATE.showCitations } },
+    }).catch(() => {});
+  }
+
+  function initDisplayToggles() {
+    ["#btnToggleThinking", "#qaToggleThinking"].forEach((selector) => {
+      const button = $(selector);
+      if (button) button.addEventListener("click", () => toggleDisplay("thinking"));
+    });
+    ["#btnToggleCitations", "#qaToggleCitations"].forEach((selector) => {
+      const button = $(selector);
+      if (button) button.addEventListener("click", () => toggleDisplay("citations"));
+    });
+    syncDisplayToggles();
+  }
+
   function initChat() {
     const input = $("#chatInput");
     input.addEventListener("input", () => {
@@ -1096,7 +1289,19 @@
   function makeAssistant(container) {
     const wrap = document.createElement("div");
     wrap.className = "msg msg-assistant";
-    wrap.innerHTML = `<div class="avatar"><svg><use href="#i-logo"/></svg></div><div class="msg-body"><div class="md"></div><div class="typing"><i></i><i></i><i></i></div></div>`;
+    wrap.innerHTML = `<div class="avatar"><svg><use href="#i-logo"/></svg></div>
+      <div class="msg-body">
+        <details class="thinking-block hidden">
+          <summary><span>思考过程</span><small class="thinking-size"></small></summary>
+          <pre class="thinking-text"></pre>
+        </details>
+        <div class="md"></div>
+        <div class="typing"><i></i><i></i><i></i></div>
+        <details class="sources-block hidden">
+          <summary><span>参考来源</span><span class="source-count">0</span></summary>
+          <div class="sources-list"></div>
+        </details>
+      </div>`;
     (container || $("#messages")).appendChild(wrap);
     scrollChat();
     return {
@@ -1104,9 +1309,17 @@
       body: $(".msg-body", wrap),
       md: $(".md", wrap),
       typing: $(".typing", wrap),
+      thinking: $(".thinking-block", wrap),
+      thinkingText: $(".thinking-text", wrap),
+      thinkingSize: $(".thinking-size", wrap),
+      sources: $(".sources-block", wrap),
+      sourcesList: $(".sources-list", wrap),
+      sourceCount: $(".source-count", wrap),
       buffer: "",
+      reasoning: "",
       lastRender: 0,
       citations: new Set(),
+      citationList: [],
     };
   }
 
@@ -1120,10 +1333,37 @@
     }
   }
 
-  function finishAssistant(assistant, content) {
+  function pushReasoning(assistant, text) {
+    if (!assistant || !assistant.thinking) return;
+    assistant.reasoning += String(text || "");
+    if (!assistant.reasoning) return;
+    assistant.thinking.classList.remove("hidden");
+    assistant.thinkingText.textContent = assistant.reasoning;
+    assistant.thinkingSize.textContent = `${assistant.reasoning.length} 字`;
+    assistant.thinking.open = !!STATE.showThinking;
+    scrollChat();
+  }
+
+  function finalizeSources(assistant) {
+    if (!assistant || !assistant.sources) return;
+    const list = assistant.citationList || [];
+    if (!list.length) {
+      assistant.sources.classList.add("hidden");
+      return;
+    }
+    assistant.sources.classList.remove("hidden");
+    assistant.sourceCount.textContent = String(list.length);
+    assistant.sourcesList.innerHTML = list.map((citation) => citationCard(citation)).join("");
+    assistant.sources.open = !!STATE.showCitations;
+  }
+
+  function finishAssistant(assistant, content, reasoning) {
     if (assistant.typing) assistant.typing.remove();
     assistant.md.innerHTML = renderMarkdown(content || assistant.buffer || "");
     typesetMath(assistant.md);
+    if (reasoning) pushReasoning(assistant, reasoning);
+    if (assistant.thinking && !assistant.reasoning) assistant.thinking.classList.add("hidden");
+    finalizeSources(assistant);
     scrollChat();
   }
 
@@ -1190,7 +1430,8 @@
 
   function citationCard(citation) {
     if (!citation) return "";
-    const snippet = String(citation.snippet || "").replace(/\[\[([^\]]+)\]\]/g, "<mark>$1</mark>").slice(0, 500);
+    const snippet = escapeHtml(String(citation.snippet || "").slice(0, 500))
+      .replace(/\[\[([^\]]+)\]\]/g, "<mark>$1</mark>");
     if (citation.kind === "textbook") {
       return `<div class="citation-card" data-citation-kind="textbook" data-doc-id="${citation.doc_id}" data-page="${citation.page}" data-rects="${escapeHtml(JSON.stringify(citation.rects || []))}">
         <img src="${escapeHtml(citation.crop_url || citation.thumb_url || "")}" alt="page">
@@ -1212,11 +1453,9 @@
       : `d:${citation.category}:${citation.block_id}`;
     if (assistant.citations.has(key)) return;
     assistant.citations.add(key);
-    const wrap = document.createElement("div");
-    wrap.className = "citation-wrap";
-    wrap.innerHTML = citationCard(citation);
-    assistant.body.appendChild(wrap);
-    scrollChat();
+    assistant.citationList.push(citation);
+    if (assistant.sourceCount) assistant.sourceCount.textContent = String(assistant.citationList.length);
+    if (STATE.showCitations) finalizeSources(assistant);
   }
 
   document.addEventListener("click", (event) => {
@@ -1285,24 +1524,36 @@
   async function handleFiles(event) {
     const files = Array.from(event.target.files || []);
     if (event.target) event.target.value = "";
-    for (const file of files.slice(0, Math.max(0, 8 - STATE.attachments.length))) {
+    const room = Math.max(0, 8 - STATE.attachments.length);
+    for (const file of files.slice(0, room)) {
       if (file.size > 60 * 1024 * 1024) {
         toast("文件过大", `${file.name} 超过 60 MB。`, "err");
         continue;
       }
+      const name = file.name || (file.type && file.type.startsWith("image/")
+        ? `粘贴图片_${Date.now()}.png` : "粘贴附件");
+      const placeholder = {
+        id: null, name, kind: "上传中", chars: 0, uploading: true,
+        progress: 0, size: file.size,
+      };
+      STATE.attachments.push(placeholder);
+      renderAttachmentBar();
       try {
-        const base64 = await readFileBase64(file);
-        const info = await api("/api/upload", {
-          method: "POST",
-          body: { name: file.name, content_base64: base64 },
+        const info = await uploadBlobWithProgress(file, (progress) => {
+          placeholder.progress = progress;
+          placeholder.kind = `上传中 ${Math.round(progress * 100)}%`;
+          renderAttachmentBar();
         });
-        info.name = info.name || file.name;
-        STATE.attachments.push(info);
+        const index = STATE.attachments.indexOf(placeholder);
+        if (index >= 0) STATE.attachments[index] = info;
         renderAttachmentBar();
         const extra = info.note ? ` · ${info.note}` : "";
         toast("附件已解析", `${info.name} · ${info.kind} · ${info.chars || 0} 字符${info.image_count ? ` · ${info.image_count} 图` : ""}${extra}`, "ok", 5000);
       } catch (error) {
-        toast("附件失败", `${file.name}：${error.message}`, "err", 7000);
+        const index = STATE.attachments.indexOf(placeholder);
+        if (index >= 0) STATE.attachments.splice(index, 1);
+        renderAttachmentBar();
+        toast("附件失败", `${name}：${error.message}`, "err", 7000);
       }
     }
   }
@@ -1322,11 +1573,22 @@
   function renderAttachmentBar() {
     const bar = $("#attachmentBar");
     if (!bar) return;
-    bar.innerHTML = STATE.attachments.map((attachment, index) =>
-      `<span class="attachment-chip" title="${escapeHtml(attachment.preview || "")}">
+    bar.innerHTML = STATE.attachments.map((attachment, index) => {
+      if (attachment.uploading) {
+        const percent = Math.round((attachment.progress || 0) * 100);
+        return `<span class="attachment-chip uploading" data-attach-index="${index}">
+          <span class="attach-spinner"></span>
+          ${escapeHtml(attachment.name)}
+          <small>${percent}% · ${formatBytes(attachment.size)}</small>
+          <span class="attach-progress"><i style="width:${percent}%"></i></span>
+          <button data-remove-attach="${index}" title="Remove"><svg><use href="#i-close"/></svg></button>
+        </span>`;
+      }
+      return `<span class="attachment-chip" data-attach-index="${index}" title="${escapeHtml(attachment.preview || "")}">
         ${escapeHtml(attachment.name)} <small>${escapeHtml(attachment.kind || "")} · ${attachment.chars || 0} 字${attachment.image_count ? ` · ${attachment.image_count} 图` : ""}</small>
         <button data-remove-attach="${index}" title="Remove"><svg><use href="#i-close"/></svg></button>
-      </span>`).join("");
+      </span>`;
+    }).join("");
     $$("[data-remove-attach]", bar).forEach((button) => button.addEventListener("click", () => {
       STATE.attachments.splice(Number(button.dataset.removeAttach), 1);
       renderAttachmentBar();
@@ -1428,6 +1690,8 @@
     } else if (eventName === "token") {
       if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
       pushToken(assistant, data.text || "");
+    } else if (eventName === "reasoning") {
+      pushReasoning(assistant, data.text || "");
     } else if (eventName === "citation") {
       addCitationCard(assistant, data);
     } else if (eventName === "usage") {
@@ -1461,6 +1725,10 @@
     const input = $("#chatInput");
     const text = input.value.trim();
     if (!text && !STATE.attachments.length) return;
+    if (STATE.attachments.some((item) => item.uploading)) {
+      toast("附件仍在上传", "请等待上传百分比到 100% 后再发送。", "amber");
+      return;
+    }
     const llm = (STATE.config && STATE.config.llm) || {};
     if (!llm.provider || !llm.has_key || !llm.base_url || !llm.model) {
       toast("请先配置模型服务", "点击设置，选择服务商并填写你自己的 API Key。", "amber", 5000);
@@ -1472,7 +1740,7 @@
       return;
     }
     $("#chatWelcome").classList.add("hidden");
-    const attachments = STATE.attachments.slice();
+    const attachments = STATE.attachments.filter((item) => !item.uploading);
     const userText = text || "请阅读附件并总结与微波阻抗匹配相关的关键信息。";
     addUserMessage($("#messages"), userText, attachments);
     STATE.chat.push({
@@ -1499,7 +1767,8 @@
       });
       if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
       if (!assistant.errored) {
-        finishAssistant(assistant, result.content || assistant.buffer || "（未收到回答）");
+        finishAssistant(assistant, result.content || assistant.buffer || "（未收到回答）",
+          result.reasoning || "");
         STATE.chat.push({ role: "assistant", content: result.content || assistant.buffer || "" });
         if (STATE.chat.length > 24) STATE.chat = STATE.chat.slice(-24);
       }
@@ -1962,6 +2231,9 @@
       $("#anC3row").style.display = ["t", "pi1", "pi2"].includes($("#anTopology").value) ? "" : "none";
     });
     $("#btnRunScan").addEventListener("click", runAnalysisScan);
+    $("#btnStopScan").addEventListener("click", () => {
+      if (STATE.scanAbort) STATE.scanAbort.abort();
+    });
     $("#btnCompare").addEventListener("click", compareTopologies);
     $("#anTopology").dispatchEvent(new Event("change"));
   }
@@ -1983,71 +2255,208 @@
     }
   }
 
+  function setProgressBar(prefix, done, total, label) {
+    const bar = $(`#${prefix}Bar`);
+    const text = $(`#${prefix}Text`);
+    const pct = $(`#${prefix}Pct`);
+    const wrap = $(`#${prefix}`);
+    const percent = total > 0 ? Math.max(0, Math.min(100, 100 * done / total)) : 0;
+    if (bar) bar.style.width = `${percent.toFixed(1)}%`;
+    if (pct) pct.textContent = `${percent.toFixed(0)}%`;
+    if (text) text.textContent = label || `${Math.round(done)} / ${Math.round(total)}`;
+    if (wrap) wrap.classList.remove("hidden");
+  }
+
+  function stopScanAnimation() {
+    if (!scanAnimation) return;
+    if (scanAnimation.raf) clearTimeout(scanAnimation.raf);
+    if (scanAnimation.resolve) scanAnimation.resolve(null);
+    scanAnimation = null;
+  }
+
+  function startScanAnimation() {
+    if (!scanAnimation || scanAnimation.raf) return;
+    const anim = scanAnimation;
+    anim.last = performance.now();
+    const tick = (now) => {
+      if (scanAnimation !== anim) return;
+      const dt = Math.min(1000, Math.max(0, now - anim.last));
+      anim.last = now;
+      // Reveal at a human-visible pace, but finish a large scan in ~4 s.
+      const rate = Math.max(2200, anim.total / 4);
+      const count = Math.max(1, Math.round(rate * dt / 1000));
+      const batch = anim.queue.splice(0, count);
+      if (batch.length) scanChart.addScanPoints(batch);
+      anim.revealed += batch.length;
+      setProgressBar("scanProgress", anim.revealed, anim.total,
+        `${anim.revealed} / ${anim.total} · 有效 ${anim.valid}`);
+      if (anim.queue.length) {
+        anim.raf = setTimeout(() => tick(performance.now()), 16);
+        return;
+      }
+      anim.raf = null;
+      if (anim.done) {
+        const done = anim.done;
+        anim.done = null;
+        scanAnimation = null;
+        scanChart.finishScan(done);
+        done.__streamed = true;
+        STATE.scan = done;
+        renderScan(done);
+        if (anim.resolve) anim.resolve(done);
+        compareTopologies();
+      }
+    };
+    anim.raf = setTimeout(() => tick(performance.now()), 16);
+  }
+
   async function runAnalysisScan() {
+    if (STATE.scanStreaming) {
+      if (STATE.scanAbort) STATE.scanAbort.abort();
+      return;
+    }
     const button = $("#btnRunScan");
+    const stop = $("#btnStopScan");
     const errorBox = $("#scanError");
     errorBox.textContent = "";
     button.disabled = true;
     button.textContent = T("analysis.running", "扫描中…");
+    stop.classList.remove("hidden");
+    STATE.scanStreaming = true;
+    STATE.scanAbort = new AbortController();
+    const topology = $("#anTopology").value;
+    const z0 = Number($("#anZ0").value || 50);
+    const body = {
+      topology,
+      frequency_mhz: Number($("#anFreq").value),
+      z0,
+      L_uh: Number($("#anL").value) / 1000,
+      points_budget: Number($("#anPoints").value || 10000),
+      c1_range_pf: [Number($("#anC1min").value), Number($("#anC1max").value)],
+      c2_range_pf: [Number($("#anC2min").value), Number($("#anC2max").value)],
+    };
+    if (["t", "pi1", "pi2"].includes(topology)) {
+      body.c3_range_pf = [Number($("#anC3min").value), Number($("#anC3max").value)];
+    }
+    let total = Number(body.points_budget) || 0;
+    api("/api/config", {
+      method: "POST",
+      body: { ui: { scan_points: Number(body.points_budget) || 10000 } },
+    }).catch(() => {});
+    let evaluated = 0;
+    let valid = 0;
+    let finished = null;
+    let animationDone;
+    const animationPromise = new Promise((resolve) => { animationDone = resolve; });
+    scanAnimation = {
+      queue: [], total, revealed: 0, valid: 0, done: null,
+      raf: null, last: 0, resolve: animationDone,
+    };
+    scanChart.beginScan(z0,
+      STATE.design && STATE.design.load ? { re: STATE.design.load.r, im: STATE.design.load.x } : null);
+    setProgressBar("scanProgress", 0, total, `0 / ${total}`);
     try {
-      const topology = $("#anTopology").value;
-      const body = {
-        topology,
-        frequency_mhz: Number($("#anFreq").value),
-        z0: Number($("#anZ0").value || 50),
-        L_uh: Number($("#anL").value) / 1000,
-        steps: Number($("#anSteps").value || 45),
-        c1_range_pf: [Number($("#anC1min").value), Number($("#anC1max").value)],
-        c2_range_pf: [Number($("#anC2min").value), Number($("#anC2max").value)],
-      };
-      if (["t", "pi1", "pi2"].includes(topology)) {
-        body.c3_range_pf = [Number($("#anC3min").value), Number($("#anC3max").value)];
+      await streamEvents("/api/scan/stream", body, (eventName, data) => {
+        if (eventName === "meta") {
+          total = Number(data.total) || total;
+          if (scanAnimation) scanAnimation.total = total;
+          setProgressBar("scanProgress", 0, total,
+            `0 / ${total} · ${data.per_dimension}^${data.dims}`);
+        } else if (eventName === "points") {
+          evaluated = Number(data.evaluated || evaluated);
+          valid = Number(data.valid || valid);
+          if (!scanAnimation) return;
+          scanAnimation.valid = valid;
+          scanAnimation.total = Math.max(scanAnimation.total, evaluated);
+          const points = data.points || [];
+          scanAnimation.queue.push(...points);
+          startScanAnimation();
+        } else if (eventName === "done") {
+          finished = data;
+          evaluated = Number(data.evaluated_count || evaluated);
+          valid = Number(data.points_count || valid);
+          if (!scanAnimation) return;
+          scanAnimation.valid = valid;
+          scanAnimation.total = Math.max(scanAnimation.total, evaluated);
+          scanAnimation.done = data;
+          if (!scanAnimation.queue.length && !scanAnimation.raf) {
+            const done = scanAnimation.done;
+            scanAnimation.done = null;
+            scanAnimation = null;
+            scanChart.finishScan(done);
+            done.__streamed = true;
+            STATE.scan = done;
+            renderScan(done);
+            animationDone(done);
+            compareTopologies();
+          } else {
+            startScanAnimation();
+          }
+        }
+      }, STATE.scanAbort.signal);
+      if (!finished) throw new Error("扫描未返回结果");
+      if (scanAnimation) await animationPromise;
+      if (finished && !STATE.scan) {
+        finished.__streamed = true;
+        STATE.scan = finished;
+        renderScan(finished);
       }
-      const result = await api("/api/scan", { method: "POST", body });
-      if (result.ok === false) throw new Error(result.error || result.message || "扫描失败");
-      STATE.scan = result;
-      renderScan(result);
-      compareTopologies();
     } catch (error) {
-      errorBox.textContent = error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : "");
-      toast("扫描失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 7000);
-      $("#scanSummary").textContent = error.message;
+      stopScanAnimation();
+      if (error.name === "AbortError") {
+        toast("扫描已停止", `已计算并显示 ${evaluated} 个真实点。`, "amber");
+      } else {
+        errorBox.textContent = error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : "");
+        toast("扫描失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 7000);
+        $("#scanSummary").textContent = error.message;
+      }
     } finally {
+      stopScanAnimation();
+      STATE.scanStreaming = false;
+      STATE.scanAbort = null;
+      stop.classList.add("hidden");
       button.disabled = false;
       button.textContent = T("analysis.run", "运行扫描");
     }
   }
 
   function renderScan(result) {
+    const coverage = Number(result.coverage_fraction || 0) * 100;
     $("#scanKpis").innerHTML = `
       <div class="kpi-card"><span>R</span><b>${fmt(result.r_min, 1)}–${fmt(result.r_max, 1)}</b><small>Ω · 5–95% ${fmt(result.r_p05, 1)}–${fmt(result.r_p95, 1)}</small></div>
       <div class="kpi-card"><span>X</span><b>${fmt(result.x_min, 1)}–${fmt(result.x_max, 1)}</b><small>Ω · 5–95% ${fmt(result.x_p05, 1)}–${fmt(result.x_p95, 1)}</small></div>
-      <div class="kpi-card"><span>${T("analysis.valid", "有效点")}</span><b>${result.points_count || 0}</b><small>${T("analysis.points", "个")}</small></div>
-      <div class="kpi-card"><span>${T("analysis.sampled", "采样点")}</span><b>${(result.points || []).length}</b><small>${T("analysis.chart", "圆图")}</small></div>`;
+      <div class="kpi-card"><span>${T("analysis.evaluated", "真实计算")}</span><b>${Number(result.evaluated_count || 0).toLocaleString()}</b><small>${T("analysis.points", "个")} · 有效 ${Number(result.points_count || 0).toLocaleString()}</small></div>
+      <div class="kpi-card"><span>${T("analysis.coverage", "圆图覆盖率")}</span><b>${coverage.toFixed(2)}%</b><small>${Number(result.elapsed_ms || 0)} ms · 网格 ${result.grid_size || 0}</small></div>`;
     $("#scanTopoTag").textContent = TOPO_SHORT[result.topology] || result.topology;
-    scanChart.setData({
-      steps: [],
-      load: STATE.design && STATE.design.load ? { re: STATE.design.load.r, im: STATE.design.load.x } : null,
-      z0: result.z0 || 50,
-      scanPoints: result.points || [],
-    });
+    if (!result.__streamed) {
+      scanChart.setData({
+        steps: [],
+        load: STATE.design && STATE.design.load ? { re: STATE.design.load.r, im: STATE.design.load.x } : null,
+        z0: result.z0 || 50,
+        scanPoints: result.points || [],
+        coverage: result.coverage,
+        gridSize: result.grid_size,
+      });
+    }
     const centerX = Number.isFinite(result.r_p05) && Number.isFinite(result.r_p95)
       ? (result.r_p05 + result.r_p95) / 2 : (result.r_max + result.r_min) / 2;
     const centerY = Number.isFinite(result.x_p05) && Number.isFinite(result.x_p95)
       ? (result.x_p05 + result.x_p95) / 2 : (result.x_max + result.x_min) / 2;
     const en = window.I18N && window.I18N.lang === "en";
     const topology = escapeHtml(TOPO_SHORT[result.topology] || result.topology);
+    const dims = (result.grid_steps || []).join(" × ");
     $("#scanSummary").innerHTML = en
-      ? `At <b>${fmt(result.frequency_mhz, 1)} MHz</b> and L=<b>${fmt($("#anL").value, 4)} nH</b>, ` +
-        `<b>${topology}</b> covers approximately ` +
-        `R <b>${fmt(result.r_min, 2)}–${fmt(result.r_max, 2)} Ω</b> and X <b>${fmt(result.x_min, 2)}–${fmt(result.x_max, 2)} Ω</b>; ` +
-        `the centre is about <b>${fmt(centerX, 1)} ${centerY >= 0 ? "+" : "−"} j${fmt(Math.abs(centerY), 1)} Ω</b>. ` +
-        `If the target load lies outside the grey region, adjust L, widen the capacitance range, or use a three-element topology.`
+      ? `At <b>${fmt(result.frequency_mhz, 1)} MHz</b>, L=<b>${fmt($("#anL").value, 4)} nH</b>, ` +
+        `<b>${topology}</b> simulated <b>${Number(result.evaluated_count || 0).toLocaleString()}</b> real component combinations ` +
+        `(${escapeHtml(dims)} grid) in <b>${Number(result.elapsed_ms || 0)} ms</b>. ` +
+        `The matchable load spans R <b>${fmt(result.r_min, 2)}–${fmt(result.r_max, 2)} Ω</b> and X <b>${fmt(result.x_min, 2)}–${fmt(result.x_max, 2)} Ω</b>; ` +
+        `the occupancy grid covers <b>${coverage.toFixed(2)}%</b> of the Smith chart. The grey area is the union of all evaluated cells, not a convex hull.`
       : `在 <b>${fmt(result.frequency_mhz, 1)} MHz</b>、L=<b>${fmt($("#anL").value, 4)} nH</b> 下，` +
-        `<b>${topology}</b> 可覆盖的负载范围约为 ` +
-        `R <b>${fmt(result.r_min, 2)}–${fmt(result.r_max, 2)} Ω</b>、X <b>${fmt(result.x_min, 2)}–${fmt(result.x_max, 2)} Ω</b>；` +
-        `中心约 <b>${fmt(centerX, 1)} ${centerY >= 0 ? "+" : "−"} j${fmt(Math.abs(centerY), 1)} Ω</b>。` +
-        `若目标负载落在灰色区域之外，可调整 L、扩大电容范围或改用三元件拓扑。`;
+        `<b>${topology}</b> 实际计算了 <b>${Number(result.evaluated_count || 0).toLocaleString()}</b> 个元件组合` +
+        `（${escapeHtml(dims)} 网格，用时 <b>${Number(result.elapsed_ms || 0)} ms</b>）。` +
+        `可匹配负载覆盖 R <b>${fmt(result.r_min, 2)}–${fmt(result.r_max, 2)} Ω</b>、X <b>${fmt(result.x_min, 2)}–${fmt(result.x_max, 2)} Ω</b>；` +
+        `在圆图上占据 <b>${coverage.toFixed(2)}%</b> 的有效面积。灰色区域由所有真实计算命中的网格单元组成，不再使用凸包近似。` +
+        `扩大电容范围时若点数不变，密度会下降但覆盖范围不应缩小；把“仿真点数”调大可以获得更平滑的边界。`;
   }
 
   async function compareTopologies() {
@@ -2131,29 +2540,63 @@
   }
 
   async function runStress() {
+    if (STATE.stressStreaming) return;
     const button = $("#btnStress");
     button.disabled = true;
     button.textContent = T("stress.running", "计算中…");
+    STATE.stressStreaming = true;
+    STATE.stressAbort = new AbortController();
+    const body = {
+      topology: $("#stTopology").value,
+      frequency_mhz: Number($("#stFreq").value),
+      load_r: Number($("#stR").value),
+      load_x: Number($("#stX").value),
+      L_uh: Number($("#stL").value) / 1000,
+      C1_pF: Number($("#stC1").value),
+      C2_pF: Number($("#stC2").value),
+      C3_pF: Number($("#stC3").value || 0),
+      power_w: Number($("#stPower").value),
+      rated_voltage: Number($("#stRated").value || 0),
+      sweep: $("#stSweep").checked,
+      sweep_points: Number($("#stSweepPoints").value || 21),
+      frequency_span: Number($("#stSpan").value || 0) / 100,
+    };
+    const total = body.sweep ? Math.max(2, Math.min(body.sweep_points, 41)) ** 2 + 1 : 1;
+    api("/api/config", {
+      method: "POST",
+      body: { ui: {
+        stress_sweep_enabled: body.sweep,
+        stress_sweep_points: body.sweep_points,
+        stress_freq_span: body.frequency_span,
+      } },
+    }).catch(() => {});
+    setProgressBar("stressProgress", 0, total, `0 / ${total} 次节点求解`);
+    let result = null;
     try {
-      const result = await api("/api/stress", {
-        method: "POST",
-        body: {
-          topology: $("#stTopology").value,
-          frequency_mhz: Number($("#stFreq").value),
-          load_r: Number($("#stR").value),
-          load_x: Number($("#stX").value),
-          L_uh: Number($("#stL").value) / 1000,
-          C1_pF: Number($("#stC1").value),
-          C2_pF: Number($("#stC2").value),
-          C3_pF: Number($("#stC3").value || 0),
-          power_w: Number($("#stPower").value),
-          rated_voltage: Number($("#stRated").value || 0),
-        },
-      });
+      await streamEvents("/api/stress/stream", body, (eventName, data) => {
+        if (eventName === "meta") {
+          setProgressBar("stressProgress", 0, Number(data.total) || total,
+            `0 / ${Number(data.total) || total} 次节点求解`);
+        } else if (eventName === "progress") {
+          setProgressBar("stressProgress", data.solves, data.total || total,
+            `节点求解 ${data.solves} / ${data.total || total} · 最坏 ${fmt(data.max_voltage_peak, 1)} V`);
+        } else if (eventName === "done") {
+          result = data;
+          setProgressBar("stressProgress", data.solves || total, data.solves || total,
+            `完成 ${data.solves || total} 次求解 · ${data.elapsed_ms || 0} ms`);
+        }
+      }, STATE.stressAbort.signal);
+      if (!result) throw new Error("耐压分析未返回结果");
       renderStress(result);
     } catch (error) {
-      toast("耐压计算失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 7000);
+      if (error.name === "AbortError") {
+        toast("耐压分析已停止", "", "amber");
+      } else {
+        toast("耐压计算失败", error.message + (error.data && error.data.hint ? ` ${error.data.hint}` : ""), "err", 7000);
+      }
     } finally {
+      STATE.stressStreaming = false;
+      STATE.stressAbort = null;
       button.disabled = false;
       button.textContent = T("stress.run", "开始耐压分析");
     }
@@ -2162,18 +2605,24 @@
   function renderStress(result) {
     STATE.lastStress = result;
     const elements = result.elements || [];
-    const maxVoltage = elements.length ? Math.max(...elements.map((element) => element.voltage_peak)) : 0;
+    const worstVoltage = elements.length
+      ? Math.max(...elements.map((element) => Number(element.voltage_peak_worst ?? element.voltage_peak))) : 0;
+    const maxVoltage = elements.length
+      ? Math.max(...elements.map((element) => element.voltage_peak)) : 0;
     const rated = Number($("#stRated").value || 0);
-    const factors = rated > 0 ? elements.map((element) => rated / Math.max(1e-9, element.voltage_peak)) : [];
+    const factors = rated > 0 ? elements.map((element) =>
+      rated / Math.max(1e-9, Number(element.voltage_peak_worst ?? element.voltage_peak))) : [];
     const minFactor = factors.length ? Math.min(...factors) : null;
     $("#stressKpis").innerHTML = `
       <div class="kpi-card"><span>${T("stress.sourceV", "源峰值电压")}</span><b>${fmt(result.input_voltage_peak, 1)}</b><small>V · source open ${fmt(result.source_voltage_peak, 1)} V</small></div>
-      <div class="kpi-card"><span>${T("stress.loadV", "负载峰值电压")}</span><b>${fmt(result.load_voltage_peak, 1)}</b><small>V</small></div>
-      <div class="kpi-card ${maxVoltage > 100 ? "warn" : ""}"><span>${T("stress.maxV", "最大元件电压")}</span><b>${fmt(maxVoltage, 1)}</b><small>V peak</small></div>
-      <div class="kpi-card ${minFactor !== null ? (minFactor >= 2 ? "good" : minFactor >= 1.3 ? "warn" : "bad") : ""}"><span>${T("stress.sf", "最小安全系数")}</span><b>${minFactor === null ? "—" : fmt(minFactor, 2)}</b><small>${T("stress.sfSub", "额定 / 峰值")}</small></div>`;
-    $("#stressTag").textContent = `${TOPO_SHORT[result.topology] || result.topology} · ${fmt(result.power_w, 2)} W`;
+      <div class="kpi-card"><span>${T("stress.loadV", "负载峰值电压")}</span><b>${fmt(result.load_voltage_peak, 1)}</b><small>V · 标称点</small></div>
+      <div class="kpi-card ${worstVoltage > 100 ? "warn" : ""}"><span>${T("stress.maxV", "最大元件电压")}</span><b>${fmt(worstVoltage, 1)}</b><small>V peak · 标称 ${fmt(maxVoltage, 1)} V</small></div>
+      <div class="kpi-card ${minFactor !== null ? (minFactor >= 2 ? "good" : minFactor >= 1.3 ? "warn" : "bad") : ""}"><span>${T("stress.sf", "最小安全系数")}</span><b>${minFactor === null ? "—" : fmt(minFactor, 2)}</b><small>${Number(result.solves || 1)} 次求解 · ${Number(result.elapsed_ms || 0)} ms</small></div>`;
+    $("#stressTag").textContent = `${TOPO_SHORT[result.topology] || result.topology} · ${fmt(result.power_w, 2)} W · ${Number(result.solves || 1)} solves`;
     ChartKit.drawBars($("#stressCanvas"), elements.map((element) => ({
-      label: element.name, value: element.voltage_peak, raw: element,
+      label: element.name,
+      value: Number(element.voltage_peak_worst ?? element.voltage_peak),
+      raw: element,
     })), {
       unit: " V",
       padLeft: 58,
@@ -2185,26 +2634,56 @@
       },
     });
     $("#stressTable tbody").innerHTML = elements.map((element) => {
-      const factor = rated > 0 ? rated / Math.max(1e-9, element.voltage_peak) : null;
+      const worst = Number(element.voltage_peak_worst ?? element.voltage_peak);
+      const factor = rated > 0 ? rated / Math.max(1e-9, worst) : null;
       const cls = factor === null ? "" : factor >= 2 ? "good" : factor >= 1.3 ? "warn" : "bad";
-      return `<tr><td>${escapeHtml(element.name)}</td><td>${fmt(element.voltage_peak, 2)}</td><td>${fmt(element.voltage_rms, 2)}</td><td>${fmt(element.current_peak, 3)}</td><td>${fmt(element.current_rms, 3)}</td><td class="${cls}">${factor === null ? "—" : fmt(factor, 2)}</td></tr>`;
+      return `<tr><td>${escapeHtml(element.name)}</td><td title="标称 ${fmt(element.voltage_peak, 2)} V">${fmt(worst, 2)} *</td><td>${fmt(element.voltage_rms, 2)}</td><td title="最坏 ${fmt(element.current_peak_worst ?? element.current_peak, 3)} A">${fmt(element.current_peak, 3)}</td><td>${fmt(element.current_rms, 3)}</td><td class="${cls}">${factor === null ? "—" : fmt(factor, 2)}</td></tr>`;
     }).join("");
 
-    const maxCurrent = elements.length ? Math.max(...elements.map((element) => element.current_peak)) : 0;
+    const sweep = result.sweep || {};
+    const curvePower = sweep.curve_power || [];
+    const curveFreq = sweep.curve_freq || [];
+    const worst = sweep.worst || {};
+    $("#stressSweepTag").textContent = `${Number(result.solves || 1)} 次 · ${Number(result.elapsed_ms || 0)} ms`;
+    if (curvePower.length || curveFreq.length) {
+      const powerSeries = curvePower.map((point) => ({ x: point.power_w, y: point.max_voltage_peak }));
+      const freqSeries = curveFreq.map((point) => ({ x: point.frequency_mhz, y: point.max_voltage_peak }));
+      const useFreq = curveFreq.length > 1 && (curvePower.length <= 1 || freqSeries.length > powerSeries.length);
+      const series = useFreq
+        ? [{ label: "最大元件电压", color: "#22d3ee", points: freqSeries }]
+        : [{ label: "最大元件电压", color: "#22d3ee", points: powerSeries }];
+      ChartKit.drawSeries($("#stressSweepCanvas"), series, {
+        xLabel: useFreq ? "频率 MHz" : "输入功率 W",
+        yLabel: "峰值电压 V",
+      });
+      $("#stressSweepNote").textContent = useFreq
+        ? `标称功率下的频率扫描；最坏点 ${fmt(worst.voltage_peak, 1)} V @ ${fmt(worst.frequency_mhz, 1)} MHz / ${fmt(worst.power_w, 2)} W（${worst.element || "—"}）。`
+        : `标称频率下的功率扫描；最坏点 ${fmt(worst.voltage_peak, 1)} V @ ${fmt(worst.frequency_mhz, 1)} MHz / ${fmt(worst.power_w, 2)} W（${worst.element || "—"}）。`;
+    } else {
+      const ctx = $("#stressSweepCanvas").getContext("2d");
+      const rect = $("#stressSweepCanvas").getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+      $("#stressSweepNote").textContent = "未开启扫描：单点结果只需一次线性节点求解，因此返回很快；勾选“频率 × 功率扫描”可执行完整网格。";
+    }
+
+    const maxCurrent = elements.length ? Math.max(...elements.map((element) =>
+      Number(element.current_peak_worst ?? element.current_peak))) : 0;
     const en = window.I18N && window.I18N.lang === "en";
     const advice = [];
     if (en) {
+      advice.push(`Performed ${Number(result.solves || 1)} real nodal solves in ${Number(result.elapsed_ms || 0)} ms; element voltages below are worst-case over the swept frequency and power grid.`);
       if (result.vswr > 1.2) advice.push(`The network VSWR is ${fmt(result.vswr, 3)}; mismatch creates additional standing-wave voltage at the nodes.`);
-      if (maxVoltage > 100) advice.push(`Peak voltage reaches ${fmt(maxVoltage, 1)} V. Use C0G/NP0 high-voltage capacitors and high-SRF inductors with at least 2× derating.`);
-      if (maxVoltage > 0 && maxVoltage < 10) advice.push("Peak voltage is low; standard 0402/0603 RF components are usually sufficient, but still check RMS current.");
+      if (worstVoltage > 100) advice.push(`Peak voltage reaches ${fmt(worstVoltage, 1)} V. Use C0G/NP0 high-voltage capacitors and high-SRF inductors with at least 2× derating.`);
+      if (worstVoltage > 0 && worstVoltage < 10) advice.push("Peak voltage is low; standard 0402/0603 RF components are usually sufficient, but still check RMS current.");
       if (maxCurrent > 1) advice.push(`Peak current reaches ${fmt(maxCurrent, 2)} A; check inductor saturation and capacitor ripple-current ratings.`);
       if (minFactor !== null && minFactor < 2) advice.push(`The minimum safety factor ${fmt(minFactor, 2)} is below 2; raise the voltage rating or reduce input power.`);
       if (result.efficiency !== null && result.efficiency !== undefined && result.efficiency < 0.98) advice.push("Network efficiency is below 98%, possibly due to mismatch or numerical truncation; recheck Zin with evaluate_network.");
       advice.push("This calculation uses the complete nodal model including the 50 Ω source loading. Real selection must also consider temperature derating, parasitics and PCB layout.");
     } else {
+      advice.push(`本次共完成 ${Number(result.solves || 1)} 次真实节点求解，用时 ${Number(result.elapsed_ms || 0)} ms；下表元件电压取扫描网格中的最坏值。`);
       if (result.vswr > 1.2) advice.push(`当前网络 VSWR=${fmt(result.vswr, 3)}，并非完全匹配；失配会在节点产生额外驻波电压。`);
-      if (maxVoltage > 100) advice.push(`最高峰值电压 ${fmt(maxVoltage, 1)} V，建议选用 C0G/NP0 高压电容与高 SRF 电感，并按额定值至少 2× 降额。`);
-      if (maxVoltage > 0 && maxVoltage < 10) advice.push("峰值电压较低，常规 0402/0603 射频元件即可，但仍需检查 RMS 电流。");
+      if (worstVoltage > 100) advice.push(`最高峰值电压 ${fmt(worstVoltage, 1)} V，建议选用 C0G/NP0 高压电容与高 SRF 电感，并按额定值至少 2× 降额。`);
+      if (worstVoltage > 0 && worstVoltage < 10) advice.push("峰值电压较低，常规 0402/0603 射频元件即可，但仍需检查 RMS 电流。");
       if (maxCurrent > 1) advice.push(`最大峰值电流 ${fmt(maxCurrent, 2)} A，注意电感的饱和电流与电容的纹波电流额定值。`);
       if (minFactor !== null && minFactor < 2) advice.push(`最小安全系数 ${fmt(minFactor, 2)} 小于 2，建议提高元件额定电压或降低输入功率。`);
       if (result.efficiency !== null && result.efficiency !== undefined && result.efficiency < 0.98) advice.push("网络效率低于 98%，可能由失配或数值截断导致；请用 evaluate_network 复核 Zin。");
@@ -2236,6 +2715,186 @@
       setTopology(preset.top);
       runDesign();
     }));
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Update check                                                       */
+  /* ------------------------------------------------------------------ */
+  let updatePollTimer = null;
+
+  function hideUpdateModal() {
+    $("#updateModal").classList.add("hidden");
+    if (updatePollTimer) {
+      clearInterval(updatePollTimer);
+      updatePollTimer = null;
+    }
+  }
+
+  function showUpdateModal(info) {
+    STATE.updateInfo = info;
+    $("#updateCurrent").textContent = `v${info.current || "—"}`;
+    $("#updateLatest").textContent = `v${info.version || "—"}`;
+    $("#updateSub").textContent = info.name
+      ? `${info.name} · ${info.published_at ? info.published_at.slice(0, 10) : ""}`
+      : (info.html_url || "");
+    const review = info.ai_review;
+    const reviewBox = $("#updateReview");
+    if (review && (review.summary || review.compatibility)) {
+      reviewBox.classList.remove("hidden");
+      $("#updateReviewModel").textContent = review.model || "AI";
+      $("#updateReviewSummary").textContent = review.summary || "";
+      $("#updateReviewHighlights").innerHTML = (review.highlights || [])
+        .map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+      $("#updateReviewCompat").textContent = [
+        review.compatibility ? `兼容性：${review.compatibility}` : "",
+        review.recommendation ? `建议：${review.recommendation}` : "",
+      ].filter(Boolean).join(" · ");
+    } else {
+      reviewBox.classList.add("hidden");
+    }
+    const notes = String(info.notes || "").trim();
+    $("#updateNotes").innerHTML = notes
+      ? `<h3>版本说明</h3><div class="md">${renderMarkdown(notes.slice(0, 8000))}</div>`
+      : `<p class="muted">此版本没有提供发布说明。</p>`;
+    const hasSetup = !!(info.setup_asset && info.setup_asset.url);
+    $("#btnUpdateDownload").disabled = false;
+    $("#btnUpdateDownload").textContent = hasSetup ? T("update.download", "下载并安装") : T("update.page", "打开发布页");
+    $("#updateProgress").classList.add("hidden");
+    $("#updateHint").textContent = info.from_cache ? "来自本地缓存（6 小时内）" : "来自 GitHub Releases";
+    $("#updateModal").classList.remove("hidden");
+    if (notes && window.MathJax && window.MathJax.typesetPromise) {
+      window.MathJax.typesetPromise([$("#updateNotes")]).catch(() => {});
+    }
+  }
+
+  async function checkForUpdates(manual = false) {
+    if (manual) {
+      const status = $("#updateCheckStatus");
+      if (status) { status.className = "inline-status"; status.textContent = "正在检查…"; }
+    }
+    try {
+      const updateCfg = (STATE.config && STATE.config.update) || {};
+      const result = await api("/api/update/check", {
+        method: "POST",
+        body: { force: !!manual, use_model: updateCfg.use_model !== false },
+      });
+      if (!result.ok) {
+        if (manual) toast("检查更新失败", result.error || "未知错误", "err");
+        if ($("#updateCheckStatus")) $("#updateCheckStatus").textContent = result.error || "";
+        return;
+      }
+      if (!result.has_update) {
+        if (manual) toast("已是最新版本", `当前 v${result.current} · GitHub ${result.version}`, "ok");
+        if ($("#updateCheckStatus")) {
+          $("#updateCheckStatus").className = "inline-status ok";
+          $("#updateCheckStatus").textContent = `已是最新版本（v${result.current}）`;
+        }
+        return;
+      }
+      if ($("#updateCheckStatus")) {
+        $("#updateCheckStatus").className = "inline-status warn";
+        $("#updateCheckStatus").textContent = `发现 v${result.version}`;
+      }
+      const skipped = !!result.skipped;
+      if (!manual && skipped) return;
+      showUpdateModal(result);
+    } catch (error) {
+      if (manual) toast("检查更新失败", error.message, "err", 6000);
+      if ($("#updateCheckStatus")) $("#updateCheckStatus").textContent = error.message;
+    }
+  }
+
+  function pollUpdateDownload() {
+    if (updatePollTimer) clearInterval(updatePollTimer);
+    updatePollTimer = setInterval(async () => {
+      try {
+        const progress = await api("/api/update/progress");
+        const percent = Number(progress.percent || 0);
+        $("#updateProgress").classList.remove("hidden");
+        $("#updateProgressBar").style.width = `${percent}%`;
+        $("#updateProgressPct").textContent = `${percent.toFixed(1)}%`;
+        $("#updateProgressText").textContent = progress.state === "done"
+          ? `下载完成 · ${formatBytes(progress.downloaded)}`
+          : `正在下载 · ${formatBytes(progress.downloaded)} / ${formatBytes(progress.total)}`;
+        if (progress.state === "done") {
+          clearInterval(updatePollTimer);
+          updatePollTimer = null;
+          $("#btnUpdateDownload").disabled = false;
+          $("#btnUpdateDownload").textContent = T("update.installNow", "立即安装并关闭程序");
+          $("#btnUpdateDownload").dataset.ready = "1";
+        } else if (progress.state === "error") {
+          clearInterval(updatePollTimer);
+          updatePollTimer = null;
+          $("#btnUpdateDownload").disabled = false;
+          toast("更新包下载失败", progress.error || "", "err", 7000);
+        }
+      } catch (error) {
+        clearInterval(updatePollTimer);
+        updatePollTimer = null;
+      }
+    }, 600);
+  }
+
+  async function startUpdateDownload() {
+    const info = STATE.updateInfo || {};
+    const button = $("#btnUpdateDownload");
+    if (button.dataset.ready === "1") {
+      try {
+        button.disabled = true;
+        await api("/api/update/install", { method: "POST", body: {} });
+        toast("安装程序已启动", "程序会随安装完成自动关闭；用户数据将保留。", "ok", 6000);
+      } catch (error) {
+        toast("启动安装失败", error.message, "err");
+        button.disabled = false;
+      }
+      return;
+    }
+    if (!info.setup_asset || !info.setup_asset.url) {
+      openExternal(info.html_url);
+      return;
+    }
+    button.disabled = true;
+    $("#updateProgress").classList.remove("hidden");
+    try {
+      await api("/api/update/download", {
+        method: "POST",
+        body: { url: info.setup_asset.url },
+      });
+      pollUpdateDownload();
+    } catch (error) {
+      button.disabled = false;
+      toast("下载失败", error.message, "err", 6000);
+    }
+  }
+
+  async function skipUpdateVersion() {
+    const info = STATE.updateInfo || {};
+    try {
+      await api("/api/update/skip", { method: "POST", body: { version: info.version || "" } });
+      toast("已跳过此版本", `v${info.version || ""} 不再主动提醒。`, "ok");
+    } catch (e) { /* ignore */ }
+    hideUpdateModal();
+  }
+
+  function initUpdateFlow() {
+    const close = $("#btnCloseUpdate");
+    if (close) close.addEventListener("click", hideUpdateModal);
+    const later = $("#btnUpdateLater");
+    if (later) later.addEventListener("click", hideUpdateModal);
+    const skip = $("#btnUpdateSkip");
+    if (skip) skip.addEventListener("click", skipUpdateVersion);
+    const page = $("#btnUpdatePage");
+    if (page) page.addEventListener("click", () => openExternal((STATE.updateInfo || {}).html_url));
+    const download = $("#btnUpdateDownload");
+    if (download) download.addEventListener("click", startUpdateDownload);
+    const about = $("#btnAboutUpdate");
+    if (about) about.addEventListener("click", () => checkForUpdates(true));
+    const now = $("#btnCheckUpdateNow");
+    if (now) now.addEventListener("click", () => checkForUpdates(true));
+    const modal = $("#updateModal");
+    if (modal) modal.addEventListener("click", (event) => {
+      if (event.target === modal) hideUpdateModal();
+    });
   }
 
   function initGlobal() {
@@ -2330,12 +2989,14 @@
     booted = true;
     initNav();
     initChat();
+    initDisplayToggles();
     initDesignForm();
     initAnalysis();
     initStress();
     initContext();
     initPresets();
     initGlobal();
+    initUpdateFlow();
     smith = new SmithChart($("#smithCanvas"), {
       tooltip: $("#smithTooltip"),
       onStateChange: (playing) => {
@@ -2356,6 +3017,10 @@
     if (window.Docs) window.Docs.init();
     if (window.Assistant) window.Assistant.init();
     if (window.I18N) window.I18N.setLang(window.I18N.lang);
+    const updateCfg = (STATE.config && STATE.config.update) || {};
+    if (updateCfg.auto_check !== false) {
+      setTimeout(() => checkForUpdates(false), 2200);
+    }
   }
 
   document.addEventListener("DOMContentLoaded", init);
@@ -2371,12 +3036,24 @@
     typesetMath,
     showView,
     streamChat,
+    streamEvents,
+    uploadBlobWithProgress,
+    formatBytes,
     makeAssistant,
     addUserMessage,
     handleChatEvent,
     finishAssistant,
+    pushReasoning,
+    finalizeSources,
     addCitationCard,
     renderChatStats,
+    syncDisplayToggles,
+    toggleDisplay,
+    openExternal,
+    openLocalPath,
+    checkForUpdates,
+    showUpdateModal,
+    hideUpdateModal,
     buildContext,
     openSettings,
     loadProviders,

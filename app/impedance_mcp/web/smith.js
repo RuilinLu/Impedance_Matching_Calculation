@@ -41,13 +41,17 @@
       this.mini = !!options.mini;
       this.tooltip = options.tooltip || null;
       this.onStateChange = options.onStateChange || null;
-      this.data = { steps: [], load: null, z0: 50, scanPoints: [] };
+      this.data = { steps: [], load: null, z0: 50, scanPoints: [], coverage: null, gridSize: 0 };
       this.progress = 1;
       this.playing = false;
       this.speed = 45;
       this.hover = null;
       this._raf = null;
       this._last = 0;
+      this.scanLayer = null;
+      this.scanPointCache = [];
+      this.scanCount = 0;
+      this._drawPending = false;
       this._bind();
       this._observe();
     }
@@ -104,15 +108,101 @@
     }
 
     setData(data) {
-      this.data = Object.assign({ steps: [], load: null, z0: 50, scanPoints: [] }, data || {});
+      this.data = Object.assign({ steps: [], load: null, z0: 50, scanPoints: [],
+        coverage: null, gridSize: 0 }, data || {});
       this.progress = 1;
       this.playing = false;
+      this.scanPointCache = (this.data.scanPoints || []).slice();
+      this.scanCount = this.scanPointCache.length;
+      this.scanLayer = null;
       this.draw();
     }
 
     setScanPoints(points) {
       this.data.scanPoints = points || [];
+      this.scanPointCache = (points || []).slice();
+      this.scanCount = this.scanPointCache.length;
+      this.scanLayer = null;
       this.draw();
+    }
+
+    beginScan(z0, load) {
+      this.data.steps = [];
+      this.data.scanPoints = [];
+      this.data.coverage = null;
+      this.data.gridSize = 0;
+      this.data.z0 = Number(z0) || 50;
+      this.data.load = load || null;
+      this.scanPointCache = [];
+      this.scanCount = 0;
+      this.scanLayer = null;
+      this.draw();
+    }
+
+    addScanPoints(points) {
+      const list = points || [];
+      if (!list.length) return;
+      const geom = this._geom();
+      for (const point of list) {
+        this.scanPointCache.push(point);
+        this._paintScanPoint(point, geom);
+      }
+      this.scanCount = this.scanPointCache.length;
+      if (!this._drawPending) {
+        this._drawPending = true;
+        setTimeout(() => {
+          this._drawPending = false;
+          this.draw();
+        }, 16);
+      }
+    }
+
+    finishScan(summary) {
+      this.data.coverage = (summary && summary.coverage) || null;
+      this.data.gridSize = Number(summary && summary.grid_size) || 0;
+      this.data.scanPoints = [];
+      this.draw();
+    }
+
+    clearScan() {
+      this.data.scanPoints = [];
+      this.data.coverage = null;
+      this.data.gridSize = 0;
+      this.scanPointCache = [];
+      this.scanCount = 0;
+      this.scanLayer = null;
+      this.draw();
+    }
+
+    _ensureScanLayer(geom) {
+      if (this.scanLayer && this.scanLayer.width === Math.round(geom.w)
+          && this.scanLayer.height === Math.round(geom.h)) {
+        return this.scanLayer;
+      }
+      const layer = document.createElement("canvas");
+      layer.width = Math.max(10, Math.round(geom.w));
+      layer.height = Math.max(10, Math.round(geom.h));
+      this.scanLayer = layer;
+      for (const point of this.scanPointCache) this._paintScanPoint(point, geom);
+      return layer;
+    }
+
+    _paintScanPoint(point, geom) {
+      const geometry = geom || this._geom();
+      const layer = this._ensureScanLayer(geometry);
+      const ctx = layer.getContext("2d");
+      const g = point && (point.g || point);
+      if (!g || !isFinite(g.re) || !isFinite(g.im)) return;
+      const mag = Math.hypot(g.re, g.im);
+      if (mag > 1.02) return;
+      const x = geometry.cx + geometry.r * g.re;
+      const y = geometry.cy - geometry.r * g.im;
+      const near = mag < 0.34;
+      ctx.fillStyle = near
+        ? `rgba(34,211,238,${(0.28 + 0.5 * (1 - mag / 0.34)).toFixed(3)})`
+        : "rgba(148,163,184,0.34)";
+      const size = this.mini ? 1 : (near ? 1.9 : 1.4);
+      ctx.fillRect(x - size / 2, y - size / 2, size, size);
     }
 
     _geom() {
@@ -229,74 +319,68 @@
     }
 
     _drawScan(ctx, geom) {
-      const pts = this.data.scanPoints || [];
-      if (!pts.length) return;
-      const { cx, cy, r } = geom;
-      const grid = Math.max(48, Math.min(96, Math.round(r / 4)));
-      const counts = new Float64Array(grid * grid);
-      const samples = [];
-      let max = 0;
-      for (const item of pts) {
-        const g = item.g || item;
-        if (!isFinite(g.re) || !isFinite(g.im)) continue;
-        const mag = Math.hypot(g.re, g.im);
-        if (mag > 1.02) continue;
-        const ix = Math.min(grid - 1, Math.max(0, Math.floor((g.re + 1) * 0.5 * grid)));
-        const iy = Math.min(grid - 1, Math.max(0, Math.floor((1 - g.im) * 0.5 * grid)));
-        const index = iy * grid + ix;
-        counts[index] += 1;
-        if (counts[index] > max) max = counts[index];
-        samples.push({ g, mag });
+      const coverage = this.data.coverage;
+      if (coverage && Number(this.data.gridSize) > 0) {
+        this._drawCoverage(ctx, geom, coverage, Number(this.data.gridSize));
       }
-      if (!samples.length || max <= 0) return;
+      if (!this.scanCount) return;
+      const layer = this._ensureScanLayer(geom);
+      if (!layer) return;
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      ctx.drawImage(layer, 0, 0, geom.w, geom.h);
+      ctx.restore();
+    }
 
-      // Grey density cloud: darker cells mean more matchable loads.
+    _drawCoverage(ctx, geom, encoded, grid) {
+      let bytes;
+      try {
+        const binary = atob(String(encoded || ""));
+        bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      } catch (error) {
+        return;
+      }
+      if (!grid || bytes.length < grid * grid) return;
+      let max = 1;
+      for (let i = 0; i < grid * grid; i++) if (bytes[i] > max) max = bytes[i];
+      const { cx, cy, r } = geom;
       const cell = (2 * r) / grid;
+      const alphaFor = (value) => {
+        // Minimum alpha keeps a sparse but valid region visible; larger ranges
+        // can lower the density but never hide the covered cells.
+        const ratio = Math.pow(value / max, 0.6);
+        return 0.11 + 0.44 * ratio;
+      };
       for (let iy = 0; iy < grid; iy++) {
         for (let ix = 0; ix < grid; ix++) {
-          const value = counts[iy * grid + ix];
+          const value = bytes[iy * grid + ix];
           if (!value) continue;
-          const ratio = Math.pow(value / max, 0.62);
-          const alpha = 0.035 + 0.52 * ratio;
           const gx = -1 + (ix + 0.5) * (2 / grid);
           const gy = 1 - (iy + 0.5) * (2 / grid);
+          if (gx * gx + gy * gy > 1.0) continue;
           const px = cx + r * gx - cell / 2;
           const py = cy - r * gy - cell / 2;
-          ctx.fillStyle = `rgba(100, 116, 139, ${alpha.toFixed(3)})`;
-          ctx.fillRect(px, py, cell + 0.6, cell + 0.6);
+          ctx.fillStyle = `rgba(100, 116, 139, ${alphaFor(value).toFixed(3)})`;
+          ctx.fillRect(px, py, cell + 0.7, cell + 0.7);
         }
       }
-
-      // Boundary envelope of the scanned region.
-      const hull = convexHull(samples.map((sample) => ({ x: sample.g.re, y: sample.g.im })));
-      if (hull.length > 2) {
-        ctx.save();
-        ctx.beginPath();
-        hull.forEach((point, index) => {
-          const px = cx + r * point.x;
-          const py = cy - r * point.y;
-          if (index === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-        });
-        ctx.closePath();
-        ctx.strokeStyle = "rgba(148, 163, 184, .62)";
-        ctx.lineWidth = 1.1;
-        ctx.setLineDash([4, 4]);
-        ctx.stroke();
-        ctx.restore();
-      }
-
-      // Cyan highlights for points near the centre (low reflection).
-      let drawn = 0;
-      for (const sample of samples) {
-        if (sample.mag > 0.34 || drawn > 1800) continue;
-        const px = cx + r * sample.g.re;
-        const py = cy - r * sample.g.im;
-        const alpha = 0.18 + 0.55 * (1 - sample.mag / 0.34);
-        ctx.beginPath();
-        ctx.arc(px, py, 1.2 + 1.0 * (1 - sample.mag / 0.34), 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(34, 211, 238, ${alpha.toFixed(3)})`;
-        ctx.fill();
-        drawn += 1;
+      // Stronger outline on cells that touch empty space.
+      const occupied = (ix, iy) => ix >= 0 && iy >= 0 && ix < grid && iy < grid
+        && bytes[iy * grid + ix] > 0;
+      ctx.fillStyle = "rgba(148, 163, 184, 0.30)";
+      for (let iy = 0; iy < grid; iy++) {
+        for (let ix = 0; ix < grid; ix++) {
+          if (!occupied(ix, iy)) continue;
+          if (occupied(ix - 1, iy) && occupied(ix + 1, iy)
+              && occupied(ix, iy - 1) && occupied(ix, iy + 1)) continue;
+          const gx = -1 + (ix + 0.5) * (2 / grid);
+          const gy = 1 - (iy + 0.5) * (2 / grid);
+          if (gx * gx + gy * gy > 1.0) continue;
+          const px = cx + r * gx;
+          const py = cy - r * gy;
+          ctx.fillRect(px - cell * 0.12, py - cell * 0.12, cell * 0.24, cell * 0.24);
+        }
       }
     }
 
@@ -644,6 +728,74 @@
     });
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Generic numeric series chart                                        */
+  /* ------------------------------------------------------------------ */
+  function drawSeries(canvas, series, options = {}) {
+    const { ctx, w, h } = setupCanvas(canvas);
+    const list = (series || []).filter((item) => item && item.points && item.points.length);
+    if (!list.length) return;
+    const padL = options.padLeft || 52;
+    const padR = 18;
+    const padT = 26;
+    const padB = 34;
+    let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+    for (const item of list) {
+      for (const point of item.points) {
+        const x = Number(point.x), y = Number(point.y);
+        if (!isFinite(x) || !isFinite(y)) continue;
+        xmin = Math.min(xmin, x); xmax = Math.max(xmax, x);
+        ymin = Math.min(ymin, y); ymax = Math.max(ymax, y);
+      }
+    }
+    if (!isFinite(xmin) || !isFinite(ymin)) return;
+    if (xmax - xmin < 1e-12) { xmax = xmin + 1; xmin -= 1; }
+    if (ymax - ymin < 1e-12) { ymax = ymin + 1; ymin = Math.max(0, ymin - 1); }
+    const padY = (ymax - ymin) * 0.08;
+    ymin = Math.max(0, ymin - padY);
+    ymax += padY;
+    const x = (value) => padL + (value - xmin) / (xmax - xmin) * (w - padL - padR);
+    const y = (value) => h - padB - (value - ymin) / Math.max(1e-12, ymax - ymin) * (h - padT - padB);
+
+    ctx.strokeStyle = "rgba(148,163,184,.10)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const yy = padT + i * (h - padT - padB) / 4;
+      ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(w - padR, yy); ctx.stroke();
+      const value = ymax - i * (ymax - ymin) / 4;
+      ctx.fillStyle = "rgba(139,160,189,.8)";
+      ctx.font = FONT_SMALL;
+      ctx.textAlign = "right";
+      ctx.fillText(value.toFixed(value >= 100 ? 0 : 1), padL - 6, yy + 3);
+    }
+    ctx.fillStyle = "rgba(139,160,189,.85)";
+    ctx.font = FONT_SMALL;
+    ctx.textAlign = "left";
+    ctx.fillText(options.yLabel || "", 8, 14);
+    ctx.textAlign = "center";
+    ctx.fillText(`${xmin.toFixed(1)}`, padL, h - 10);
+    ctx.textAlign = "right";
+    ctx.fillText(`${xmax.toFixed(1)} ${options.xLabel || ""}`, w - padR, h - 10);
+
+    list.forEach((item, index) => {
+      const color = item.color || PALETTE[index % PALETTE.length];
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.1;
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      item.points.forEach((point, pointIndex) => {
+        const px = x(Number(point.x));
+        const py = y(Math.min(Number(point.y), ymax));
+        if (pointIndex === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.font = FONT_SMALL;
+      ctx.textAlign = "right";
+      ctx.fillText(item.label || "", w - padR, 14);
+    });
+  }
+
   window.SmithChart = SmithChart;
-  window.ChartKit = { drawLineChart, drawBars, PALETTE };
+  window.ChartKit = { drawLineChart, drawBars, drawSeries, PALETTE };
 })();

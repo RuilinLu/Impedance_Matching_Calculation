@@ -5,9 +5,9 @@ Usage (from the project root):
     python release/build_exe.py --source-only
 
 Outputs:
-    release/Impedance_Matching_AI_v4.3.0_Source.zip
-    release/Impedance_Matching_AI_v4.3.0_Portable.exe
-    release/Impedance_Matching_AI_v4.3.0_MCP.exe
+    release/Impedance_Matching_AI_v4.4.0_Source.zip
+    release/Impedance_Matching_AI_v4.4.0_Portable.exe
+    release/Impedance_Matching_AI_v4.4.0_MCP.exe
     release/SHA256SUMS.txt
 """
 
@@ -22,7 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 RELEASE = ROOT / "release"
 DIST = ROOT / "dist"
-VERSION = "4.3.0"
+VERSION = "4.4.0"
 APP_NAME = "ImpedanceMatchingAI"
 ICON = RELEASE / "icon.ico"
 VERSION_FILE = RELEASE / "version_info.txt"

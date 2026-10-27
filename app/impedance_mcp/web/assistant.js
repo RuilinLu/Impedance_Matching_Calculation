@@ -123,43 +123,49 @@
 
   async function uploadFiles(files) {
     const list = Array.from(files || []);
-    for (const file of list.slice(0, Math.max(0, 4 - STATE.attachments.length))) {
+    const room = Math.max(0, 4 - STATE.attachments.length);
+    for (const file of list.slice(0, room)) {
       if (file.size > 60 * 1024 * 1024) {
         IMP().toast("文件过大", `${file.name} 超过 60 MB。`, "err");
         continue;
       }
+      const name = file.name || (file.type && file.type.startsWith("image/")
+        ? `粘贴图片_${Date.now()}.png` : "粘贴附件");
+      const placeholder = {
+        id: null, name, kind: "上传中", chars: 0, uploading: true,
+        progress: 0, size: file.size,
+      };
+      STATE.attachments.push(placeholder);
+      renderAttachments();
       try {
-        const base64 = await readBase64(file);
-        const info = await IMP().api("/api/upload", {
-          method: "POST",
-          body: { name: file.name, content_base64: base64 },
+        const info = await IMP().uploadBlobWithProgress(file, (progress) => {
+          placeholder.progress = progress;
+          placeholder.kind = `上传中 ${Math.round(progress * 100)}%`;
+          renderAttachments();
         });
-        STATE.attachments.push(info);
+        const index = STATE.attachments.indexOf(placeholder);
+        if (index >= 0) STATE.attachments[index] = info;
         renderAttachments();
         IMP().toast("附件已解析", `${info.name} · ${info.kind} · ${info.chars || 0} 字符`, "ok", 3000);
       } catch (error) {
-        IMP().toast("附件失败", error.message, "err");
+        const index = STATE.attachments.indexOf(placeholder);
+        if (index >= 0) STATE.attachments.splice(index, 1);
+        renderAttachments();
+        IMP().toast("附件失败", `${name}：${error.message}`, "err");
       }
     }
-  }
-
-  function readBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const value = String(reader.result || "");
-        resolve(value.includes(",") ? value.split(",")[1] : value);
-      };
-      reader.onerror = () => reject(new Error("读取文件失败"));
-      reader.readAsDataURL(file);
-    });
   }
 
   function renderAttachments() {
     const bar = $("#qaAttachmentBar");
     if (!bar) return;
-    bar.innerHTML = STATE.attachments.map((item, index) =>
-      `<span class="attachment-chip">${IMP().escapeHtml(item.name)} <small>${IMP().escapeHtml(item.kind || "")} · ${Number(item.chars || 0)} 字${item.image_count ? ` · ${item.image_count} 图` : ""}</small><button data-qa-remove="${index}"><svg><use href="#i-close"/></svg></button></span>`).join("");
+    bar.innerHTML = STATE.attachments.map((item, index) => {
+      if (item.uploading) {
+        const percent = Math.round((item.progress || 0) * 100);
+        return `<span class="attachment-chip uploading"><span class="attach-spinner"></span>${IMP().escapeHtml(item.name)}<small>${percent}% · ${IMP().formatBytes(item.size)}</small><span class="attach-progress"><i style="width:${percent}%"></i></span><button data-qa-remove="${index}"><svg><use href="#i-close"/></svg></button></span>`;
+      }
+      return `<span class="attachment-chip">${IMP().escapeHtml(item.name)} <small>${IMP().escapeHtml(item.kind || "")} · ${Number(item.chars || 0)} 字${item.image_count ? ` · ${item.image_count} 图` : ""}</small><button data-qa-remove="${index}"><svg><use href="#i-close"/></svg></button></span>`;
+    }).join("");
     bar.querySelectorAll("[data-qa-remove]").forEach((button) => button.addEventListener("click", () => {
       STATE.attachments.splice(Number(button.dataset.qaRemove), 1);
       renderAttachments();
@@ -183,22 +189,27 @@
   function buildPayload() {
     const text = $("#qaInput").value.trim();
     if (!text && !STATE.attachments.length) return null;
+    if (STATE.attachments.some((item) => item.uploading)) {
+      IMP().toast("附件仍在上传", "请等待上传百分比到 100% 后再发送。", "amber");
+      return null;
+    }
+    const attachments = STATE.attachments.filter((item) => !item.uploading);
     const base = IMP().buildContext() || {};
     const context = Object.assign({}, base, STATE.pendingContext || {});
-    if (STATE.attachments.length) {
-      context.attachments = STATE.attachments.map((item) => ({
+    if (attachments.length) {
+      context.attachments = attachments.map((item) => ({
         name: item.name, kind: item.kind, chars: item.chars,
       }));
     }
     const userText = text || "请阅读附件并总结与当前界面相关的关键信息。";
-    addUser(userText, STATE.attachments);
+    addUser(userText, attachments);
     STATE.messages.push({
       role: "user",
-      content: userText + (STATE.attachments.length ? `\n[附件: ${STATE.attachments.map((item) => item.name).join(", ")}]` : ""),
+      content: userText + (attachments.length ? `\n[附件: ${attachments.map((item) => item.name).join(", ")}]` : ""),
     });
     const payload = {
       messages: STATE.messages.slice(-14),
-      attachments: STATE.attachments.map((item) => ({ id: item.id, name: item.name })),
+      attachments: attachments.map((item) => ({ id: item.id, name: item.name })),
       model: $("#modelSelect") ? $("#modelSelect").value : "",
       context,
     };
@@ -229,8 +240,8 @@
       });
       if (assistant.typing) { assistant.typing.remove(); assistant.typing = null; }
       if (!assistant.errored) {
-        assistant.md.innerHTML = IMP().renderMarkdown(result.content || assistant.buffer || "（未收到回答）");
-        IMP().typesetMath(assistant.md);
+        IMP().finishAssistant(assistant, result.content || assistant.buffer || "（未收到回答）",
+          result.reasoning || "");
         STATE.messages.push({ role: "assistant", content: result.content || assistant.buffer || "" });
         if (STATE.messages.length > 20) STATE.messages = STATE.messages.slice(-20);
       }

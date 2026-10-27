@@ -15,4 +15,4 @@ Then build the installer with Inno Setup 6:
 
   "C:\Users\<you>\AppData\Local\Programs\Inno Setup 6\ISCC.exe" installer\ImpedanceMatchingAI.iss
 
-Output: release\Impedance_Matching_AI_v4.3.0_Setup.exe
+Output: release\Impedance_Matching_AI_v4.4.0_Setup.exe

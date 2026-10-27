@@ -246,3 +246,43 @@ Copy the stdio configuration from Settings or About:
 | Context usage too high | Remove attachments or use a longer-context model; adjust the profile |
 | MCP client sees no tools | Check client config, Python path and `run_mcp.py`; inspect client logs |
 | Model broken after update | Use “Rollback catalog” in Settings |
+
+
+## 11. v4.4 operations
+
+### 11.1 Library paths and panel sizes
+
+1. Open **Textbook Library** and click **Paths**.
+2. The dialog shows the installation directory, user-data directory and current library. The installation `TextBook` folder is resolved dynamically, so moving the application does not leave a stale path.
+3. Folders are scanned top to bottom. Each row can be enabled, moved up/down or removed. Enter an absolute path at the bottom, or use **Browse…** in the desktop window.
+4. **Save and reindex** rescans every enabled folder in the background. Missing folders are marked and skipped.
+5. Drag the vertical handle between search results and the reader to change their widths, and the horizontal handle between the page and the original/translation panes to change their heights. Sizes persist across restarts.
+
+### 11.2 Smith scan and simulation points
+
+- **Simulation points** is the number of real component combinations (default 10,000, maximum 250,000). Two-element topologies distribute it over C1/C2; three-element topologies over C1/C2/C3.
+- While scanning, the progress bar reports evaluated/total and valid points, and real points appear on the chart. The grey region is drawn only after all points finish.
+- The region is rasterised from the parameter-grid curves and the strips between adjacent curves, not from a convex hull. Capacitance values use logarithmic spacing, so widening a range cannot shrink the covered area.
+- Increase the point count for a smoother boundary, or lower it for a quick preview. **Stop scan** aborts the stream.
+
+### 11.3 Stress sweep and evidence
+
+- With **Frequency × power sweep** enabled, every combination in ±frequency span and 10 %–100 % power performs a full nodal solve. The UI reports solve count, elapsed time and the worst frequency/power/element.
+- A `*` in the peak-voltage column means the worst value over the sweep; hover for the nominal value. Safety factors use the worst voltage.
+- With the sweep off only the nominal point is solved. A single linear solve is genuinely fast for a network with at most three nodes; the UI now shows the solve count and elapsed time.
+
+### 11.4 Uploads and chat display
+
+- Pasted screenshots/files appear immediately with a spinner, uploaded percentage and progress bar. Sending is blocked until every attachment reaches 100 %.
+- The **Thinking** and **References** chips under the composer control the default expanded state. Each answer has its own collapsible thinking and sources sections and nothing is lost when collapsed.
+- The same defaults can be changed under Settings → Interface and apply to both the main chat and the floating assistant.
+
+### 11.5 Updates and uninstall
+
+- About two seconds after startup the app checks the latest GitHub Release. When a newer version exists, a dialog shows current/latest versions, release notes and (if a model is configured) a compatibility review.
+- **Skip this version** stores the version and stops proactive prompts. **Open release page** opens the browser; **Download and install** downloads with a percentage and launches the installer.
+- The uninstaller asks whether to keep personal data. **Yes** keeps API keys, settings, index, uploads, reports, translation cache and search paths; **No** deletes them. In keep mode, files in the installation `TextBook` folder are first copied to the user-data directory.
+
+### 11.6 Compatibility
+
+4.4.0 reads 4.3.x `config.json`, textbook SQLite index, uploads and reports directly. New settings are merged with defaults without dropping old keys, and the index rebuilds automatically when paths change. 4.4.0 is the compatibility baseline for later releases.

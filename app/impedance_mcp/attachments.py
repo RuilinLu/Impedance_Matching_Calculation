@@ -400,14 +400,23 @@ def extract(path: Path, original_name: str = "") -> Dict[str, Any]:
 
 
 def save_upload(filename: str, content_b64: str) -> Dict[str, Any]:
-    config.ensure_dirs()
-    original = Path(str(filename or "attachment")).name
-    if not original:
-        original = "attachment"
     try:
         raw = base64.b64decode(content_b64, validate=True)
     except (binascii.Error, ValueError) as exc:
         raise ValueError("文件内容不是有效的 Base64 数据") from exc
+    return save_bytes(filename, raw)
+
+
+def save_bytes(filename: str, raw: bytes) -> Dict[str, Any]:
+    """Persist already-decoded upload bytes and return attachment metadata.
+
+    Used by the chunked upload endpoint so a large textbook or a pasted
+    screenshot never has to be base64-encoded a second time.
+    """
+    config.ensure_dirs()
+    original = Path(str(filename or "attachment")).name
+    if not original:
+        original = "attachment"
     if len(raw) > MAX_BYTES:
         raise ValueError(f"文件过大（{len(raw) / 1024 / 1024:.1f} MB），上限 60 MB")
     if not raw:

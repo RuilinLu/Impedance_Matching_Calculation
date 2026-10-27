@@ -16,8 +16,10 @@ Units used on the public API:
 
 from __future__ import annotations
 
+import base64
 import cmath
 import math
+import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
@@ -1004,6 +1006,254 @@ def build_steps(
 # Forward scan, bandwidth, sensitivity, stress
 # ---------------------------------------------------------------------------
 
+def _scan_rng(values, default):
+    if values is None:
+        return (default[0] * 1e-12, default[1] * 1e-12)
+    lo, hi = float(values[0]) * 1e-12, float(values[1]) * 1e-12
+    lo, hi = min(lo, hi), max(lo, hi)
+    return (max(lo, 0.01e-12), max(hi, 0.01e-12))
+
+
+def scan_plan(
+    topology: str,
+    frequency_mhz: float,
+    z0: float = 50.0,
+    L_uh: Optional[float] = None,
+    c1_range_pf: Optional[Sequence[float]] = None,
+    c2_range_pf: Optional[Sequence[float]] = None,
+    c3_range_pf: Optional[Sequence[float]] = None,
+    steps: int = 50,
+    points_budget: int = 0,
+) -> Dict[str, Any]:
+    """Validate a forward scan and decide its per-dimension resolution.
+
+    ``steps`` keeps the 4.3 API (points per adjustable element).  ``points_budget``
+    is the new UI control: the total number of simulated component combinations,
+    distributed evenly over the adjustable elements.  Increasing a capacitance
+    range therefore keeps the sampling density instead of spreading a fixed
+    2025-point grid over a larger area.
+    """
+    top = canonical_topology(topology)
+    f = float(frequency_mhz) * 1e6
+    z0 = float(z0)
+    if not math.isfinite(f) or f <= 0:
+        raise DesignError("invalid_frequency", "频率必须大于 0 MHz")
+    if not math.isfinite(z0) or z0 <= 0:
+        raise DesignError("invalid_z0", "系统阻抗必须大于 0 Ω")
+    if L_uh is None:
+        raise DesignError("missing_L", "正向扫描需要指定电感 L")
+    L = float(L_uh) * 1e-6
+    if not math.isfinite(L) or L <= 0:
+        raise DesignError("invalid_L", "电感 L 必须是大于 0 的有限数值")
+    dims = 2 if top in ("l_right", "l_left") else 3
+    if points_budget and float(points_budget) >= 64:
+        per = int(round(float(points_budget) ** (1.0 / dims)))
+    else:
+        per = int(steps or 50)
+    if dims == 2:
+        per = max(6, min(int(per), 400))
+    else:
+        per = max(6, min(int(per), 100))
+    ranges = {
+        "c1": _scan_rng(c1_range_pf, (0.5, 10)),
+        "c2": _scan_rng(c2_range_pf, (0.5, 10)),
+        "c3": _scan_rng(c3_range_pf, (0.2, 10) if top == "t" else (0.5, 10)),
+    }
+    return {
+        "topology": top,
+        "frequency_mhz": float(frequency_mhz),
+        "z0": z0,
+        "w": 2 * math.pi * f,
+        "L": L,
+        "L_uh": float(L_uh),
+        "dims": dims,
+        "per": per,
+        "total": int(per ** dims),
+        "grid_steps": [per] * dims,
+        "ranges": ranges,
+    }
+
+
+def iter_scan_groups(plan: Dict[str, Any]):
+    """Yield arrays of matched load impedances for one parameter slice.
+
+    Each yielded array corresponds to a real batch of component combinations;
+    the UI can draw those points while the remaining slices are still being
+    computed.  The mathematical mapping is identical to the 4.3 forward scan.
+    """
+    top = plan["topology"]
+    w = plan["w"]
+    z0 = plan["z0"]
+    L = plan["L"]
+    per = plan["per"]
+    c1v = np.geomspace(plan["ranges"]["c1"][0], plan["ranges"]["c1"][1], per)
+    c2v = np.geomspace(plan["ranges"]["c2"][0], plan["ranges"]["c2"][1], per)
+    c3v = np.geomspace(plan["ranges"]["c3"][0], plan["ranges"]["c3"][1], per)
+
+    if top in ("l_right", "l_left"):
+        for row, c1 in enumerate(c1v):
+            if top == "l_right":
+                zsrc = 1.0 / (1.0 / z0 + 1j * w * c1)
+                zser = 1j * (w * L - 1.0 / (w * c2v))
+                loads = np.conj(zsrc) - zser
+            else:
+                zser = z0 + 1j * (w * L - 1.0 / (w * c2v))
+                ytot = 1.0 / zser + 1j * w * c1
+                loads = np.conj(1.0 / ytot)
+            yield loads, row > 0
+        return
+
+    for row, c1 in enumerate(c1v):
+        for col, c2 in enumerate(c2v):
+            if top == "t":
+                zleft = z0 + 1.0 / (1j * w * c3v)
+                zsh = 1j * (w * L - 1.0 / (w * c2))
+                znode = (zleft * zsh) / (zleft + zsh)
+                zout = znode + 1.0 / (1j * w * c1)
+                loads = np.conj(zout)
+            elif top == "pi1":
+                zs = 1.0 / (1.0 / z0 + 1j * w * c3v)
+                zar = zs + 1j * (w * L - 1.0 / (w * c2))
+                yin = 1.0 / zar + 1j * w * c1
+                loads = np.conj(1.0 / yin)
+            else:  # pi2
+                zs = 1.0 / (1.0 / z0 + 1j * w * c1)
+                zar = zs + 1j * (w * L - 1.0 / (w * c2))
+                yin = 1.0 / zar + 1j * w * c3v
+                loads = np.conj(1.0 / yin)
+            # Connect a C3 curve to the previous C2 curve, but not across a
+            # new C1 row (that would bridge unrelated parts of the surface).
+            yield loads, col > 0
+
+
+class ScanAccumulator:
+    """Collect scan batches, occupancy statistics and percentiles."""
+
+    def __init__(self, z0: float, grid: int = 144, keep_limit: int = 400000):
+        self.z0 = float(z0)
+        self.grid = int(max(48, min(256, grid)))
+        self.counts = np.zeros((self.grid, self.grid), dtype=np.int64)
+        self.evaluated = 0
+        self.valid = 0
+        self._chunks: List[np.ndarray] = []
+        self._keep_limit = int(keep_limit)
+        self._kept = 0
+        self._prev_gamma: Optional[np.ndarray] = None
+
+    def _mark_segments(self, xs: List[float], ys: List[float]) -> None:
+        """Rasterise line segments so the region is the image of the parameter
+        rectangle, not just the sampled points.  This is why widening a
+        capacitance range can only grow the grey region, never shrink it."""
+        if len(xs) < 2:
+            return
+        gx = []
+        gy = []
+        for index in range(len(xs) - 1):
+            x0, y0, x1, y1 = xs[index], ys[index], xs[index + 1], ys[index + 1]
+            if not all(math.isfinite(value) for value in (x0, y0, x1, y1)):
+                continue
+            dx = (x1 - x0) * 0.5 * self.grid
+            dy = (y1 - y0) * 0.5 * self.grid
+            steps = max(1, int(math.ceil(max(abs(dx), abs(dy)) * 1.6)))
+            for step in range(steps + 1):
+                t = step / steps
+                gx.append((x0 + (x1 - x0) * t + 1.0) * 0.5 * self.grid)
+                gy.append((1.0 - (y0 + (y1 - y0) * t)) * 0.5 * self.grid)
+        if not gx:
+            return
+        ix = np.clip(np.asarray(gx, dtype=np.float64).astype(np.int64), 0, self.grid - 1)
+        iy = np.clip(np.asarray(gy, dtype=np.float64).astype(np.int64), 0, self.grid - 1)
+        np.add.at(self.counts, (iy, ix), 1)
+
+    def add(self, loads: Any, connect: bool = True) -> int:
+        arr = np.asarray(loads, dtype=np.complex128).ravel()
+        self.evaluated += int(arr.size)
+        finite = np.isfinite(arr)
+        arr = arr[finite & (arr.real > 0)]
+        if arr.size == 0:
+            self._prev_gamma = None
+            return 0
+        self.valid += int(arr.size)
+        if self._kept < self._keep_limit:
+            room = self._keep_limit - self._kept
+            chunk = arr[:room]
+            self._chunks.append(chunk)
+            self._kept += int(chunk.size)
+        g = (arr - self.z0) / (arr + self.z0)
+        gamma = np.stack((g.real, g.imag), axis=1)
+        # 1) rasterise the curve over the innermost adjustable element
+        self._mark_segments(gamma[:, 0].tolist(), gamma[:, 1].tolist())
+        # 2) rasterise the strip to the previous curve, filling the 2-D region
+        if connect and self._prev_gamma is not None \
+                and len(self._prev_gamma) == len(gamma):
+            for index in range(len(gamma)):
+                self._mark_segments(
+                    [self._prev_gamma[index, 0], gamma[index, 0]],
+                    [self._prev_gamma[index, 1], gamma[index, 1]],
+                )
+        self._prev_gamma = gamma
+        return int(arr.size)
+
+    def points_payload(self, limit: int = 12000) -> List[Dict[str, Any]]:
+        if limit <= 0 or not self._chunks:
+            return []
+        values = np.concatenate(self._chunks)
+        if values.size > limit:
+            idx = np.linspace(0, values.size - 1, limit).astype(np.int64)
+            values = values[idx]
+        gamma = (values - self.z0) / (values + self.z0)
+        return [{"re": float(p.real), "im": float(p.imag), "g": _c(complex(g))}
+                for p, g in zip(values, gamma)]
+
+    def finish(self, plan: Dict[str, Any], elapsed_ms: int = 0,
+               limit_points: int = 12000) -> Dict[str, Any]:
+        points = self.points_payload(limit_points)
+        if not self._chunks:
+            return {"ok": False, "error": "扫描没有得到有效负载点",
+                    "topology": plan["topology"], "evaluated_count": self.evaluated}
+        values = np.concatenate(self._chunks)
+        r = values.real
+        x = values.imag
+        grid = self.grid
+        centers_x = -1.0 + (np.arange(grid) + 0.5) * (2.0 / grid)
+        centers_y = 1.0 - (np.arange(grid) + 0.5) * (2.0 / grid)
+        gx, gy = np.meshgrid(centers_x, centers_y)
+        inside = (gx * gx + gy * gy) <= 1.0
+        occupied = self.counts > 0
+        inside_cells = int(inside.sum())
+        coverage_cells = int((occupied & inside).sum())
+        coverage_fraction = (coverage_cells / inside_cells) if inside_cells else 0.0
+        # Keep a compact occupancy grid for the chart.  Values above 255 are
+        # saturated for transport; the chart only needs relative density.
+        cells = np.clip(self.counts, 0, 255).astype(np.uint8).tobytes()
+        return {
+            "ok": True,
+            "topology": plan["topology"],
+            "frequency_mhz": plan["frequency_mhz"],
+            "z0": plan["z0"],
+            "steps": plan["per"],
+            "grid_steps": plan["grid_steps"],
+            "points_budget": plan["total"],
+            "evaluated_count": int(self.evaluated),
+            "points_count": int(self.valid),
+            "sampled_points": len(points),
+            "grid_size": grid,
+            "coverage": base64.b64encode(cells).decode("ascii"),
+            "coverage_cells": coverage_cells,
+            "coverage_fraction": float(coverage_fraction),
+            "r_min": float(np.min(r)),
+            "r_max": float(np.max(r)),
+            "x_min": float(np.min(x)),
+            "x_max": float(np.max(x)),
+            "r_p05": float(np.percentile(r, 5)),
+            "r_p95": float(np.percentile(r, 95)),
+            "x_p05": float(np.percentile(x, 5)),
+            "x_p95": float(np.percentile(x, 95)),
+            "elapsed_ms": int(elapsed_ms),
+            "points": points,
+        }
+
+
 def scan_matchable_range(
     topology: str,
     frequency_mhz: float,
@@ -1013,123 +1263,24 @@ def scan_matchable_range(
     c2_range_pf: Optional[Sequence[float]] = None,
     c3_range_pf: Optional[Sequence[float]] = None,
     steps: int = 50,
-    max_points: int = 4000,
+    max_points: int = 12000,
+    points_budget: int = 0,
 ) -> Dict[str, Any]:
-    """Grid-scan the adjustable elements and return the matchable load region."""
-    top = canonical_topology(topology)
-    f = float(frequency_mhz) * 1e6
-    w = 2 * math.pi * f
-    steps = max(5, min(int(steps), 90))
-    z0 = float(z0)
-    if L_uh is None:
-        raise DesignError("missing_L", "正向扫描需要指定电感 L")
-    L = float(L_uh) * 1e-6
-    if not math.isfinite(f) or f <= 0:
-        raise DesignError("invalid_frequency", "频率必须大于 0 MHz")
-    if not math.isfinite(z0) or z0 <= 0:
-        raise DesignError("invalid_z0", "系统阻抗必须大于 0 Ω")
-    if not math.isfinite(L) or L <= 0:
-        raise DesignError("invalid_L", "电感 L 必须是大于 0 的有限数值")
+    """Grid-scan the adjustable elements and return the matchable load region.
 
-    def rng(values, default):
-        if values is None:
-            return (default[0] * 1e-12, default[1] * 1e-12)
-        lo, hi = float(values[0]) * 1e-12, float(values[1]) * 1e-12
-        return (max(min(lo, hi), 0.01e-12), max(max(lo, hi), 0.01e-12))
-
-    if top == "l_right":
-        c1lo, c1hi = rng(c1_range_pf, (0.5, 10))
-        c2lo, c2hi = rng(c2_range_pf, (0.5, 10))
-        c1v = np.linspace(c1lo, c1hi, steps)
-        c2v = np.linspace(c2lo, c2hi, steps)
-        C1, C2 = np.meshgrid(c1v, c2v)
-        # Source side: 50 ohm in parallel with C1.  The matchable load is the
-        # conjugate of the impedance seen from the load, minus the series
-        # reactance.  (V3.0 forward scan used the non-conjugate value; fixed.)
-        zsrc = 1.0 / (1.0 / z0 + 1j * w * C1)
-        zser = 1j * (w * L - 1.0 / (w * C2))
-        zloads = (np.conj(zsrc) - zser).ravel()
-    elif top == "l_left":
-        c1lo, c1hi = rng(c1_range_pf, (0.5, 10))
-        c2lo, c2hi = rng(c2_range_pf, (0.5, 10))
-        c1v = np.linspace(c1lo, c1hi, steps)
-        c2v = np.linspace(c2lo, c2hi, steps)
-        C1, C2 = np.meshgrid(c1v, c2v)
-        zser = z0 + 1j * (w * L - 1.0 / (w * C2))
-        ytot = 1.0 / zser + 1j * w * C1
-        zloads = np.conj(1.0 / ytot).ravel()
-    elif top in ("t", "pi1", "pi2"):
-        if top == "t":
-            c1lo, c1hi = rng(c1_range_pf, (0.5, 10))
-            c2lo, c2hi = rng(c2_range_pf, (0.5, 10))
-            c3lo, c3hi = rng(c3_range_pf, (0.2, 10))
-        elif top == "pi1":
-            c1lo, c1hi = rng(c1_range_pf, (0.5, 10))
-            c2lo, c2hi = rng(c2_range_pf, (0.5, 10))
-            c3lo, c3hi = rng(c3_range_pf, (0.5, 10))
-        else:
-            c1lo, c1hi = rng(c1_range_pf, (0.5, 10))
-            c2lo, c2hi = rng(c2_range_pf, (0.5, 10))
-            c3lo, c3hi = rng(c3_range_pf, (0.5, 10))
-        # Keep the 3-D grid bounded so the UI stays responsive.
-        n = max(6, min(steps, 22))
-        c1v = np.linspace(c1lo, c1hi, n)
-        c2v = np.linspace(c2lo, c2hi, n)
-        c3v = np.linspace(c3lo, c3hi, n)
-        C1, C2, C3 = np.meshgrid(c1v, c2v, c3v, indexing="ij")
-        if top == "t":
-            zleft = z0 + 1.0 / (1j * w * C3)
-            zsh = 1j * (w * L - 1.0 / (w * C2))
-            znode = (zleft * zsh) / (zleft + zsh)
-            zout = znode + 1.0 / (1j * w * C1)
-            zloads = np.conj(zout).ravel()
-        elif top == "pi1":
-            ysrc = 1.0 / z0 + 1j * w * C3
-            zs = 1.0 / ysrc
-            zbranch = 1j * (w * L - 1.0 / (w * C2))
-            zar = zs + zbranch
-            yin = 1.0 / zar + 1j * w * C1
-            zloads = np.conj(1.0 / yin).ravel()
-        else:
-            ysrc = 1.0 / z0 + 1j * w * C1
-            zs = 1.0 / ysrc
-            zbranch = 1j * (w * L - 1.0 / (w * C2))
-            zar = zs + zbranch
-            yin = 1.0 / zar + 1j * w * C3
-            zloads = np.conj(1.0 / yin).ravel()
-    else:
-        raise ValueError(top)
-
-    zloads = zloads[np.isfinite(zloads)]
-    valid = zloads.real > 0
-    zloads = zloads[valid]
-    if zloads.size == 0:
-        return {"ok": False, "error": "扫描没有得到有效负载点", "topology": top}
-    r = zloads.real
-    x = zloads.imag
-    points = zloads
-    if points.size > max_points:
-        idx = np.linspace(0, points.size - 1, max_points).astype(int)
-        points = points[idx]
-    gamma = (points - z0) / (points + z0)
-    return {
-        "ok": True,
-        "topology": top,
-        "frequency_mhz": float(frequency_mhz),
-        "z0": z0,
-        "steps": steps,
-        "points_count": int(zloads.size),
-        "r_min": float(np.min(r)),
-        "r_max": float(np.max(r)),
-        "x_min": float(np.min(x)),
-        "x_max": float(np.max(x)),
-        "r_p05": float(np.percentile(r, 5)),
-        "r_p95": float(np.percentile(r, 95)),
-        "x_p05": float(np.percentile(x, 5)),
-        "x_p95": float(np.percentile(x, 95)),
-        "points": [{"re": float(p.real), "im": float(p.imag),
-                    "g": _c(complex(g))} for p, g in zip(points, gamma)],
-    }
+    Unlike the 4.3 implementation, the simulation is never down-sampled: every
+    component combination is evaluated and binned into an occupancy grid.
+    ``max_points`` only limits how many points are serialised for the chart.
+    """
+    import time as _time
+    started = _time.perf_counter()
+    plan = scan_plan(topology, frequency_mhz, z0, L_uh, c1_range_pf, c2_range_pf,
+                     c3_range_pf, steps=steps, points_budget=points_budget)
+    acc = ScanAccumulator(plan["z0"], grid=144)
+    for loads, connect in iter_scan_groups(plan):
+        acc.add(loads, connect=connect)
+    elapsed = int((_time.perf_counter() - started) * 1000)
+    return acc.finish(plan, elapsed_ms=elapsed, limit_points=max_points)
 
 
 def evaluate(
@@ -1272,31 +1423,161 @@ def voltage_stress(
     power_w: float = 10.0,
     z0: float = 50.0,
     rated_voltage: Optional[float] = None,
+    sweep: bool = True,
+    sweep_points: int = 21,
+    frequency_span: float = 0.2,
+    progress: Optional[Any] = None,
 ) -> Dict[str, Any]:
-    res = analyze_network(topology, frequency_mhz, complex(load_r, load_x),
-                          {"L_uH": L_uh, "C1_pF": c1_pf, "C2_pF": c2_pf, "C3_pF": c3_pf},
-                          z0, power_w)
+    """Full nodal voltage/current stress analysis with a real 2-D sweep.
+
+    A single operating point only needs one linear solve, which is why 4.3
+    returned instantly.  v4.4 also sweeps frequency (±``frequency_span``) and
+    power (10 %–100 %), reports how many solves were performed, and keeps the
+    worst-case element stress.  The numbers are still fast because the network
+    has at most three nodes; the UI shows the solve count and elapsed time so
+    this is visible instead of looking like a cached answer.
+    """
+    started = time.perf_counter()
+    top = canonical_topology(topology)
+    f0 = float(frequency_mhz)
+    comps = {"L_uH": L_uh, "C1_pF": c1_pf, "C2_pF": c2_pf, "C3_pF": c3_pf}
+    zl = complex(load_r, load_x)
+    nominal = analyze_network(top, f0, zl, comps, z0, power_w)
+    element_order = [item["name"] for item in nominal["elements"]]
+    stats = {
+        name: {
+            "voltage_peak_worst": 0.0, "current_peak_worst": 0.0,
+            "worst_frequency_mhz": f0, "worst_power_w": power_w,
+        }
+        for name in element_order
+    }
+    global_worst = {"voltage_peak": 0.0, "frequency_mhz": f0, "power_w": power_w,
+                    "element": ""}
+    sweeps: List[Dict[str, Any]] = []
+    curve_power: List[Dict[str, Any]] = []
+    curve_freq: List[Dict[str, Any]] = []
+    solves = 1
+    planned_total = 1
+    if sweep and int(sweep_points) >= 2:
+        planned_total = max(2, min(int(sweep_points), 41)) ** 2 + 1
+
+    def record(result: Dict[str, Any], freq: float, power: float) -> None:
+        nonlocal solves
+        solves += 1
+        max_v = 0.0
+        max_name = ""
+        for item in result["elements"]:
+            name = item["name"]
+            v = float(item["voltage_peak"])
+            i = float(item["current_peak"])
+            if name in stats:
+                if v > stats[name]["voltage_peak_worst"]:
+                    stats[name].update({
+                        "voltage_peak_worst": v,
+                        "worst_frequency_mhz": float(freq),
+                        "worst_power_w": float(power),
+                    })
+                stats[name]["current_peak_worst"] = max(
+                    stats[name]["current_peak_worst"], i)
+            if v > max_v:
+                max_v, max_name = v, name
+        if max_v > global_worst["voltage_peak"]:
+            global_worst.update({
+                "voltage_peak": max_v, "frequency_mhz": float(freq),
+                "power_w": float(power), "element": max_name,
+            })
+        sweeps.append({
+            "frequency_mhz": float(freq), "power_w": float(power),
+            "max_voltage_peak": max_v, "load_voltage_peak": result["load_voltage_peak"],
+            "vswr": result["vswr"], "delivered_power_w": result["delivered_power_w"],
+        })
+        if progress is not None:
+            try:
+                progress({
+                    "solves": solves,
+                    "total": planned_total,
+                    "max_voltage_peak": global_worst["voltage_peak"],
+                    "frequency_mhz": float(freq),
+                    "power_w": float(power),
+                })
+            except Exception:
+                pass
+
+    if sweep and int(sweep_points) >= 2:
+        n = max(2, min(int(sweep_points), 41))
+        span = max(0.0, min(float(frequency_span), 0.9))
+        freqs = f0 * (1.0 + np.linspace(-span, span, n)) if span > 0 else np.full(n, f0)
+        powers = max(0.0, float(power_w)) * np.linspace(0.1, 1.0, n)
+        for freq in freqs:
+            for power in powers:
+                if power <= 0:
+                    continue
+                try:
+                    result = analyze_network(top, float(freq), zl, comps, z0, float(power))
+                except Exception:
+                    continue
+                record(result, float(freq), float(power))
+                if abs(float(freq) - f0) < 1e-9:
+                    curve_power.append({
+                        "power_w": float(power),
+                        "max_voltage_peak": max(
+                            (item["voltage_peak"] for item in result["elements"]),
+                            default=0.0),
+                        "load_voltage_peak": result["load_voltage_peak"],
+                    })
+                if abs(float(power) - float(power_w)) < 1e-9:
+                    curve_freq.append({
+                        "frequency_mhz": float(freq),
+                        "max_voltage_peak": max(
+                            (item["voltage_peak"] for item in result["elements"]),
+                            default=0.0),
+                        "load_voltage_peak": result["load_voltage_peak"],
+                        "vswr": result["vswr"],
+                    })
+
     elements = []
-    for e in res["elements"]:
+    for e in nominal["elements"]:
         item = dict(e)
+        worst = stats.get(e["name"], {})
+        item["voltage_peak_worst"] = float(worst.get("voltage_peak_worst", e["voltage_peak"]))
+        item["current_peak_worst"] = float(worst.get("current_peak_worst", e["current_peak"]))
+        item["worst_frequency_mhz"] = float(worst.get("worst_frequency_mhz", f0))
+        item["worst_power_w"] = float(worst.get("worst_power_w", power_w))
         if rated_voltage:
-            item["safety_factor"] = (rated_voltage / e["voltage_peak"]) if e["voltage_peak"] > 0 else None
+            item["safety_factor"] = (rated_voltage / item["voltage_peak_worst"]) \
+                if item["voltage_peak_worst"] > 0 else None
         elements.append(item)
+
+    elapsed_ms = int((time.perf_counter() - started) * 1000)
     return {
         "ok": True,
-        "topology": canonical_topology(topology),
+        "topology": top,
         "frequency_mhz": frequency_mhz,
         "power_w": power_w,
-        "source_voltage_peak": res["source_voltage_peak"],
-        "input_voltage_peak": abs(complex(res["node_voltages"]["s"]["re"],
-                                          res["node_voltages"]["s"]["im"])),
-        "load_voltage_peak": res["load_voltage_peak"],
-        "load_current_peak": res["load_current_peak"],
+        "source_voltage_peak": nominal["source_voltage_peak"],
+        "input_voltage_peak": abs(complex(nominal["node_voltages"]["s"]["re"],
+                                          nominal["node_voltages"]["s"]["im"])),
+        "load_voltage_peak": nominal["load_voltage_peak"],
+        "load_current_peak": nominal["load_current_peak"],
+        "input_impedance": nominal["input_impedance"],
         "elements": elements,
-        "delivered_power_w": res["delivered_power_w"],
-        "efficiency": res["efficiency"],
-        "vswr": res["vswr"],
-        "note": "采用完整网络节点电压求解，包含源阻抗 50Ω 的负载效应；比原版分压估算更严格。",
+        "delivered_power_w": nominal["delivered_power_w"],
+        "efficiency": nominal["efficiency"],
+        "vswr": nominal["vswr"],
+        "solves": solves,
+        "elapsed_ms": elapsed_ms,
+        "sweep": {
+            "enabled": bool(sweep and int(sweep_points) >= 2),
+            "points_count": len(sweeps),
+            "frequency_span": float(frequency_span),
+            "points": sweeps,
+            "curve_power": curve_power,
+            "curve_freq": curve_freq,
+            "worst": global_worst,
+        },
+        "note": ("采用完整网络节点电压求解，包含源阻抗 50Ω 的负载效应；"
+                 f"本次共完成 {solves} 次节点求解，用时 {elapsed_ms} ms，"
+                 "元件电压取频率/功率扫描中的最坏值。"),
     }
 
 

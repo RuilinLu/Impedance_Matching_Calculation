@@ -13,6 +13,7 @@ import base64
 import hashlib
 import json
 import math
+import os
 import re
 import sqlite3
 import threading
@@ -152,7 +153,7 @@ def init_db() -> None:
 def _repair_ocr_boxes(conn: sqlite3.Connection) -> None:
     """Drop OCR pages whose boxes were normalized against PDF points.
 
-    v4.3.0-rc rendered at 220 dpi but divided by the point size, collapsing
+    An earlier release candidate rendered at 220 dpi but divided by the point size, collapsing
     most horizontal coordinates to 1.0.  Those cached boxes cannot be
     repaired without the page image, so remove them and let OCR run again.
     """
@@ -208,7 +209,31 @@ def _set_meta(conn: sqlite3.Connection, key: str, value: str) -> None:
 # ---------------------------------------------------------------------------
 
 def source_dirs() -> List[Path]:
-    dirs = list(getattr(config, "LIBRARY_SOURCE_DIRS", []))
+    """Ordered textbook folders, resolved from the live configuration.
+
+    Built-in entries (install-dir TextBook, data-root TextBook, app-managed
+    books) are resolved dynamically so moving the installation cannot leave a
+    stale absolute path behind.  User-added folders keep their priority order.
+    """
+    dirs = list(config.library_source_paths())
+    # Honour the legacy in-process override used by older integrations/tests,
+    # but never re-add a built-in folder that the user disabled in the UI.
+    builtin_keys = set()
+    for _kind, _label, resolver in config.BUILTIN_SOURCES:
+        try:
+            builtin_keys.add(os.path.normcase(str(resolver().resolve())))
+        except Exception:
+            continue
+    configured = {os.path.normcase(str(Path(item).resolve())) for item in dirs}
+    for legacy in getattr(config, "LIBRARY_SOURCE_DIRS", []):
+        try:
+            key = os.path.normcase(str(Path(legacy).resolve()))
+        except Exception:
+            continue
+        if key in builtin_keys or key in configured:
+            continue
+        dirs.append(Path(legacy))
+        configured.add(key)
     dirs.append(config.LIBRARY_DIR / "books")
     out: List[Path] = []
     seen = set()
@@ -217,7 +242,7 @@ def source_dirs() -> List[Path]:
             path = Path(item)
         except Exception:
             continue
-        key = str(path.resolve()) if path.exists() else str(path)
+        key = os.path.normcase(str(path.resolve())) if path.exists() else os.path.normcase(str(path))
         if key in seen:
             continue
         seen.add(key)
@@ -499,6 +524,10 @@ def status() -> Dict[str, Any]:
         "translations": int(translations),
         "fts": fts,
         "source_dirs": [str(p) for p in source_dirs()],
+        "library_sources": config.resolve_library_sources(),
+        "current_dir": next((str(p) for p in source_dirs()), ""),
+        "install_dir": str(config.INSTALL_DIR),
+        "data_dir": str(config.PROJECT_ROOT),
     })
     return state
 

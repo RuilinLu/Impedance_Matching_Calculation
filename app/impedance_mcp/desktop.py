@@ -101,6 +101,52 @@ def main(argv: Optional[List[str]] = None) -> int:
                 except Exception:
                     return False
 
+            def choose_folder(self, title: str = "") -> str:
+                """Native folder picker for the textbook-source manager."""
+                try:
+                    result = webview.windows[0].create_file_dialog(
+                        webview.FOLDER_DIALOG,
+                        directory=str(config.PROJECT_ROOT / "TextBook"),
+                        allow_multiple=False,
+                    )
+                except Exception:
+                    return ""
+                if not result:
+                    return ""
+                return str(result[0])
+
+            def open_external(self, url: str) -> bool:
+                """Open only the project's GitHub pages in the system browser."""
+                import webbrowser
+                text = str(url or "").strip()
+                if not (text.startswith("https://github.com/SkywalkerHolmes/")
+                        or text.startswith("https://api.github.com/")):
+                    return False
+                try:
+                    webbrowser.open(text, new=2)
+                    return True
+                except Exception:
+                    return False
+
+            def open_path(self, target: str) -> bool:
+                """Reveal the data/install/textbook directory in Explorer."""
+                import os
+                try:
+                    path = Path(str(target or "")).resolve()
+                except Exception:
+                    return False
+                roots = [Path(config.PROJECT_ROOT).resolve(),
+                         Path(config.INSTALL_DIR).resolve()]
+                if not any(root == path or root in path.parents for root in roots):
+                    return False
+                if not path.exists():
+                    return False
+                try:
+                    os.startfile(str(path))  # type: ignore[attr-defined]
+                    return True
+                except Exception:
+                    return False
+
         window = webview.create_window(
             TITLE,
             url=url,

@@ -29,7 +29,9 @@ def main() -> int:
         from impedance_mcp import config, library
         config.ensure_dirs()
         library.init_db()
-        for directory in (config.PROJECT_ROOT / "TextBook", config.LIBRARY_DIR / "books"):
+        for directory in (config.INSTALL_DIR / "TextBook",
+                          config.PROJECT_ROOT / "TextBook",
+                          config.LIBRARY_DIR / "books"):
             directory.mkdir(parents=True, exist_ok=True)
             readme = directory / "README.txt"
             if not readme.exists():

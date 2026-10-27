@@ -1,4 +1,4 @@
-Impedance Matching AI v4.3.0
+Impedance Matching AI v4.4.0
 
 安装内容：
   ImpedanceMatchingAI.exe       主程序（原生 WebView2 窗口）

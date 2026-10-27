@@ -222,6 +222,16 @@ def run_chat(
     used_tools: List[str] = []
     last_model = ""
     last_resp: Dict[str, Any] = {}
+    reasoning_total = ""
+
+    def emit_reasoning(text: str) -> None:
+        nonlocal reasoning_total
+        text = str(text or "")
+        if not text:
+            return
+        reasoning_total += text
+        for index in range(0, len(text), 240):
+            emit("reasoning", {"text": text[index:index + 240]})
 
     for step in range(max_steps + 1):
         emit("status", {"state": "thinking",
@@ -232,6 +242,7 @@ def run_chat(
                         timeout=180)
         last_resp = resp
         last_model = str(resp.get("model") or (cfg.get("llm") or {}).get("model") or "")
+        emit_reasoning(resp.get("reasoning") or "")
         usage_total = usage.add_usage(usage_total, usage.normalize_usage(resp.get("usage") or {}))
 
         calls = resp.get("tool_calls") or []
@@ -287,6 +298,7 @@ def run_chat(
                 "model": last_model,
                 "elapsed_s": elapsed,
                 "used_tools": used_tools,
+                "reasoning": reasoning_total,
             }
             emit("usage", stats)
             emit("done", result)
@@ -367,7 +379,8 @@ def run_chat(
                                auto_peak=bool(((cfg.get("usage") or {}).get("auto_peak", True))))
     usage.record(profile, usage_total, last_model, elapsed, "chat", stats)
     result = {"ok": True, "content": final, "usage": usage_total, "stats": stats,
-              "model": last_model, "elapsed_s": elapsed, "used_tools": used_tools}
+              "model": last_model, "elapsed_s": elapsed, "used_tools": used_tools,
+              "reasoning": reasoning_total}
     emit("usage", stats)
     emit("done", result)
     return result

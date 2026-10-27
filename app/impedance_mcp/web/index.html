@@ -86,7 +86,7 @@
       <button class="copy-config" id="btnCopyMcpSide">
         <svg><use href="#i-copy"/></svg> <span data-i18n="mcp.copy">复制 MCP 配置</span>
       </button>
-      <div class="version">v4.3.0 · 2026-10-27<br><span data-i18n="brand.origin">独立开源项目</span></div>
+      <div class="version">v4.4.0 · 2026-10-27<br><span data-i18n="brand.origin">独立开源项目</span></div>
     </div>
   </aside>
 
@@ -154,6 +154,8 @@
                     <button class="tool-btn" id="btnAttach" title="Upload"><svg><use href="#i-attach"/></svg></button>
                     <input type="file" id="fileInput" multiple hidden>
                     <select id="modelSelect" class="model-select" title="Model"></select>
+                    <button class="toggle-chip" id="btnToggleThinking" title="默认显示或隐藏思维链路">思考</button>
+                    <button class="toggle-chip" id="btnToggleCitations" title="默认显示或隐藏参考来源">引用</button>
                   </div>
                   <div class="right-tools">
                     <span class="kbd-hint" data-i18n="agent.enter">Enter 发送 · Ctrl+V 粘贴</span>
@@ -295,7 +297,7 @@
               <label class="field"><span data-i18n="analysis.freq">频率 <em>MHz</em></span><input id="anFreq" type="number" value="2400" step="1"></label>
               <label class="field"><span data-i18n="analysis.z0">Z0 <em>Ω</em></span><input id="anZ0" type="number" value="50" step="1"></label>
               <label class="field"><span data-i18n="analysis.l">电感 L <em>nH</em></span><input id="anL" type="number" value="1.94" step="0.1"></label>
-              <label class="field"><span data-i18n="analysis.steps">扫描步数</span><input id="anSteps" type="number" value="45" min="6" max="80" step="1"></label>
+              <label class="field"><span data-i18n="analysis.pointsBudget">仿真点数</span><input id="anPoints" type="number" value="10000" min="400" max="250000" step="100"></label>
               <label class="field"><span data-i18n="analysis.rl">R<sub>L</sub> <em>Ω</em></span><input id="anR" type="number" value="20" step="0.1"></label>
               <label class="field"><span data-i18n="analysis.xl">X<sub>L</sub> <em>Ω</em></span><input id="anX" type="number" value="5" step="0.1"></label>
             </div>
@@ -304,7 +306,12 @@
             <div class="range-row"><label>C2</label><input id="anC2min" type="number" value="0.5"><span>–</span><input id="anC2max" type="number" value="10"></div>
             <div class="range-row" id="anC3row"><label>C3</label><input id="anC3min" type="number" value="0.2"><span>–</span><input id="anC3max" type="number" value="10"></div>
             <button class="btn primary block" id="btnRunScan" data-i18n="analysis.run">运行扫描</button>
-            <div class="form-note" data-i18n="analysis.note">灰色密度云表示可匹配区域；颜色越深表示点越密集，青色表示靠近圆心。</div>
+            <button class="btn ghost block hidden" id="btnStopScan" data-i18n="analysis.stop">停止扫描</button>
+            <div class="scan-progress hidden" id="scanProgress">
+              <div class="progress-head"><span id="scanProgressText">0 / 0</span><b id="scanProgressPct">0%</b></div>
+              <div class="progress-track"><i id="scanProgressBar"></i></div>
+            </div>
+            <div class="form-note" data-i18n="analysis.note">扫描点会随着每次真实计算逐个出现在圆图上，全部计算完成后再绘制灰色可匹配区域。</div>
             <div class="scan-error" id="scanError"></div>
           </aside>
           <div class="analysis-main">
@@ -352,10 +359,17 @@
               <label class="field"><span data-i18n="stress.c2">C2 <em>pF</em></span><input id="stC2" type="number" value="6.8033" step="0.1"></label>
               <label class="field" id="stC3Field"><span data-i18n="stress.c3">C3 <em>pF</em></span><input id="stC3" type="number" value="0" step="0.1"></label>
               <label class="field"><span data-i18n="stress.rated">额定电压 <em>V</em></span><input id="stRated" type="number" value="0" step="1"></label>
+              <label class="field"><span data-i18n="stress.sweepPoints">扫描点数/维</span><input id="stSweepPoints" type="number" value="21" min="3" max="41" step="1"></label>
+              <label class="field"><span data-i18n="stress.span">频率范围 ±%</span><input id="stSpan" type="number" value="20" min="0" max="90" step="1"></label>
             </div>
+            <label class="toggle-row compact"><span><b data-i18n="stress.sweep">频率 × 功率扫描</b><small data-i18n="stress.sweepSub">每个组合做一次真实节点求解</small></span><input type="checkbox" id="stSweep" checked></label>
             <button class="btn primary block" id="btnStress" data-i18n="stress.run">开始耐压分析</button>
             <button class="btn ghost block" id="btnStressFromDesign" data-i18n="stress.fromDesign">从当前设计填入</button>
-            <div class="form-note" data-i18n="stress.note">峰值电压包含源阻抗 50Ω 的负载效应；额定电压用于计算安全系数。</div>
+            <div class="scan-progress hidden" id="stressProgress">
+              <div class="progress-head"><span id="stressProgressText">0 / 0</span><b id="stressProgressPct">0%</b></div>
+              <div class="progress-track"><i id="stressProgressBar"></i></div>
+            </div>
+            <div class="form-note" data-i18n="stress.note">单点只需一次线性求解，因此非常快；开启扫描后会执行 N×N 次节点求解，并显示实际次数与耗时。</div>
           </aside>
           <div class="stress-main">
             <div class="kpi-row" id="stressKpis">
@@ -368,6 +382,11 @@
               <div class="panel-head"><h2 data-i18n="stress.elements">元件应力</h2><span class="tag amber" id="stressTag">—</span></div>
               <canvas id="stressCanvas" class="chart-canvas tall"></canvas>
               <div class="table-wrap"><table class="data-table" id="stressTable"><thead><tr><th data-i18n="stress.thElement">元件</th><th data-i18n="stress.thVp">峰值电压</th><th data-i18n="stress.thVrms">RMS 电压</th><th data-i18n="stress.thIp">峰值电流</th><th data-i18n="stress.thIrms">RMS 电流</th><th data-i18n="stress.thSf">安全系数</th></tr></thead><tbody></tbody></table></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h2 data-i18n="stress.sweepChart">电压随功率 / 频率变化</h2><span class="tag" id="stressSweepTag">—</span></div>
+              <canvas id="stressSweepCanvas" class="chart-canvas"></canvas>
+              <div class="chart-note" id="stressSweepNote"></div>
             </div>
             <div class="panel"><div class="panel-head"><h2 data-i18n="stress.advice">工程建议</h2></div><ul class="warning-list" id="stressAdvice"><li data-i18n="stress.adviceEmpty">完成一次计算后显示建议。</li></ul></div>
           </div>
@@ -382,9 +401,11 @@
             <div class="library-actions">
               <button class="btn tiny" id="btnAddBook"><svg><use href="#i-plus"/></svg><span data-i18n="library.add">添加教材</span></button>
               <button class="btn tiny ghost" id="btnReindex" data-i18n="library.reindex">重建索引</button>
+              <button class="btn tiny ghost" id="btnLibraryPaths" data-i18n="library.paths">路径管理</button>
               <input type="file" id="bookInput" accept=".pdf,.txt,.md,.markdown,.tex,.rst,.docx,.pptx,.xlsx,.ipynb,.doc,.ppt,.xls" multiple hidden>
             </div>
             <div class="library-status" id="libraryIndexStatus">读取中…</div>
+            <div class="library-path-summary" id="libraryPathSummary"></div>
             <input id="libraryBookFilter" class="help-search" type="text" data-i18n-ph="library.filter" placeholder="按书名过滤…">
             <div id="libraryDocList" class="library-doc-list"></div>
             <div class="form-note" data-i18n="library.note">教材不随软件上传；可放入 TextBook/ 或 data/library/books/，也可直接添加。</div>
@@ -400,10 +421,11 @@
               </div>
               <div class="library-search-meta" id="librarySearchMeta"></div>
             </div>
-            <div class="library-body">
+            <div class="library-body" id="libraryBody">
               <div class="library-results" id="libraryResults">
                 <div class="empty-mini" data-i18n="library.resultsEmpty">输入关键词开始检索；结果会显示书名、页码与命中片段。</div>
               </div>
+              <div class="split-handle v" id="librarySplitV" role="separator" aria-orientation="vertical" title="拖动调整结果列表与教材页面的宽度"></div>
               <div class="library-viewer panel" id="libraryViewer">
                 <div class="library-viewer-head">
                   <div><h2 id="libraryDocTitle" data-i18n="library.viewer">教材阅读器</h2><p id="libraryDocMeta"></p></div>
@@ -429,7 +451,8 @@
                   </div>
                   <div id="libraryLoading" class="pdf-loading hidden" data-i18n="library.loading">正在渲染页面…</div>
                 </div>
-                <div class="library-text-grid">
+                <div class="split-handle h" id="librarySplitH" role="separator" aria-orientation="horizontal" title="拖动调整教材页面与原文/翻译的高度"></div>
+                <div class="library-text-grid" id="libraryTextGrid">
                   <div class="library-text-card"><h3 data-i18n="library.original">原文 / OCR</h3><pre id="libraryText"></pre></div>
                   <div class="library-text-card"><h3 data-i18n="library.translation">学术翻译</h3><pre id="libraryTranslation"></pre></div>
                 </div>
@@ -478,8 +501,9 @@
         <div class="about-wrap">
           <div class="about-hero">
             <div class="about-mark"><svg><use href="#i-logo"/></svg></div>
-            <div><h2>Impedance Matching AI</h2><p data-i18n="about.tagline">微波阻抗匹配智能计算、仿真与教材检索 · v4.3.0</p></div>
+            <div><h2>Impedance Matching AI</h2><p data-i18n="about.tagline">微波阻抗匹配智能计算、仿真与教材检索 · v4.4.0</p></div>
             <span class="tag cyan" data-i18n="about.independent">独立开源项目</span>
+            <button class="btn tiny ghost" id="btnAboutUpdate" data-i18n="about.checkUpdate">检查更新</button>
           </div>
           <div class="about-grid">
             <div class="panel">
@@ -524,7 +548,7 @@
             <button class="btn tiny" id="btnCopyMcpAbout"><svg><use href="#i-copy"/></svg> <span data-i18n="mcp.copy">复制 MCP 配置</span></button>
           </div>
           <div class="about-foot">
-            <span>v4.3.0 · 2026-10-27</span>
+            <span>v4.4.0 · 2026-10-27</span>
             <span data-i18n="about.devs">开发者：Nova（诺瓦）、Echo（回声）、Iris（鸢尾）、Lumen（流明）</span>
             <span><a href="https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation/issues" target="_blank" rel="noreferrer">Issues ↗</a></span>
             <a href="https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation" target="_blank" rel="noreferrer">GitHub ↗</a>
@@ -542,7 +566,11 @@
   <div class="qa-panel">
     <div class="qa-head">
       <div><b data-i18n="qa.title">AI 助手</b><small id="qaContext">当前界面</small></div>
-      <button class="icon-btn sm" id="qaCollapse"><svg><use href="#i-close"/></svg></button>
+      <div class="qa-head-tools">
+        <button class="toggle-chip" id="qaToggleThinking" title="默认显示或隐藏思维链路">思考</button>
+        <button class="toggle-chip" id="qaToggleCitations" title="默认显示或隐藏参考来源">引用</button>
+        <button class="icon-btn sm" id="qaCollapse"><svg><use href="#i-close"/></svg></button>
+      </div>
     </div>
     <div class="qa-messages" id="qaMessages"></div>
     <div class="qa-composer">
@@ -679,14 +707,91 @@
 
       <section class="settings-section settings-pane" data-pane="ui">
         <label class="field"><span data-i18n="settings.language">界面语言</span><select id="setLang" class="select"><option value="zh">中文</option><option value="en">English</option></select></label>
-        <label class="toggle-row"><span><b data-i18n="settings.autoIndex">启动时自动索引教材</b><small data-i18n="settings.autoIndexSub">扫描 TextBook/ 与 data/library/books/</small></span><input type="checkbox" id="setAutoIndex" checked></label>
+        <label class="toggle-row"><span><b data-i18n="settings.showThinking">默认展开思维链路</b><small data-i18n="settings.showThinkingSub">关闭时仍可点开每条回答的“思考过程”</small></span><input type="checkbox" id="setShowThinking"></label>
+        <label class="toggle-row"><span><b data-i18n="settings.showCitations">默认展开参考来源</b><small data-i18n="settings.showCitationsSub">关闭时参考文献收在回答末尾的可折叠区</small></span><input type="checkbox" id="setShowCitations"></label>
+        <label class="toggle-row"><span><b data-i18n="settings.autoUpdate">启动时检查更新</b><small data-i18n="settings.autoUpdateSub">读取 GitHub 最新发布；已配置模型时同时做兼容性摘要</small></span><input type="checkbox" id="setAutoUpdate" checked></label>
+        <label class="toggle-row"><span><b data-i18n="settings.updateUseModel">用当前 AI 模型审查版本说明</b><small data-i18n="settings.updateUseModelSub">模型只做摘要，不决定版本号</small></span><input type="checkbox" id="setUpdateUseModel" checked></label>
+        <div class="modal-actions"><button class="btn tiny ghost" id="btnCheckUpdateNow" data-i18n="settings.checkUpdate">立即检查更新</button><span class="inline-status" id="updateCheckStatus"></span></div>
+        <label class="toggle-row"><span><b data-i18n="settings.autoIndex">启动时自动索引教材</b><small data-i18n="settings.autoIndexSub">扫描已启用的教材搜索路径</small></span><input type="checkbox" id="setAutoIndex" checked></label>
         <label class="field"><span data-i18n="settings.ocrFirst">每本扫描书自动 OCR 前几页</span><input id="setOcrFirst" type="number" min="0" max="20" step="1" value="2"></label>
         <label class="toggle-row"><span><b data-i18n="settings.autoPeak">按峰谷时段自动计价</b><small data-i18n="settings.autoPeakSub">使用厂商的谷时窗口</small></span><input type="checkbox" id="setAutoPeak" checked></label>
+        <div class="section-label"><span data-i18n="settings.paths">当前路径</span><i></i></div>
+        <div class="path-readout" id="settingsPathReadout">—</div>
       </section>
     </div>
     <div class="modal-foot">
       <span class="muted" id="saveHint"></span>
       <div><button class="btn ghost" id="btnCancelSettings" data-i18n="settings.cancel">取消</button><button class="btn primary" id="btnSaveSettings" data-i18n="settings.save">保存设置</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= LIBRARY PATH MANAGER ================= -->
+<div class="modal-backdrop hidden" id="libraryPathsModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div><h2 data-i18n="libraryPaths.title">教材库路径管理</h2><p data-i18n="libraryPaths.sub">按优先级从上到下扫描；可新增、删除、上下移动目录</p></div>
+      <button class="icon-btn" id="btnCloseLibraryPaths"><svg><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="path-info-grid">
+        <div class="path-info"><span data-i18n="libraryPaths.install">程序安装目录</span><b id="libInstallDir">—</b></div>
+        <div class="path-info"><span data-i18n="libraryPaths.data">用户数据目录</span><b id="libDataDir">—</b></div>
+        <div class="path-info"><span data-i18n="libraryPaths.current">当前教材库</span><b id="libCurrentDir">—</b></div>
+      </div>
+      <div class="path-toolbar">
+        <button class="btn tiny ghost" id="btnOpenDataDir" data-i18n="libraryPaths.openData">打开数据目录</button>
+        <button class="btn tiny ghost" id="btnOpenLibraryDir" data-i18n="libraryPaths.openLibrary">打开当前教材库</button>
+        <span class="muted" id="libraryPathCount"></span>
+      </div>
+      <div class="path-list" id="librarySourceList"></div>
+      <div class="path-add-row">
+        <input id="libraryNewPath" type="text" placeholder="例如 D:\Books\Microwave">
+        <button class="btn tiny ghost" id="btnBrowseLibraryPath" data-i18n="libraryPaths.browse">浏览…</button>
+        <button class="btn tiny" id="btnAddLibraryPath" data-i18n="libraryPaths.add">添加路径</button>
+      </div>
+      <div class="form-note" data-i18n="libraryPaths.note">程序目录与用户数据目录中的 TextBook 会自动跟随安装位置/数据目录；自定义目录不会在卸载时被删除。</div>
+    </div>
+    <div class="modal-foot">
+      <span class="muted" id="libraryPathsHint"></span>
+      <div><button class="btn ghost" id="btnCancelLibraryPaths" data-i18n="libraryPaths.cancel">取消</button><button class="btn primary" id="btnSaveLibraryPaths" data-i18n="libraryPaths.save">保存并重建索引</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= UPDATE DIALOG ================= -->
+<div class="modal-backdrop hidden" id="updateModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h2 data-i18n="update.title">发现新版本</h2><p id="updateSub">—</p></div>
+      <button class="icon-btn" id="btnCloseUpdate"><svg><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="update-versions">
+        <div><span data-i18n="update.current">当前版本</span><b id="updateCurrent">—</b></div>
+        <div class="update-arrow">→</div>
+        <div><span data-i18n="update.latest">最新版本</span><b id="updateLatest">—</b></div>
+      </div>
+      <div class="update-review hidden" id="updateReview">
+        <div class="update-review-head"><b data-i18n="update.aiReview">AI 兼容性审查</b><span class="tag cyan" id="updateReviewModel"></span></div>
+        <p id="updateReviewSummary"></p>
+        <ul id="updateReviewHighlights"></ul>
+        <p class="muted" id="updateReviewCompat"></p>
+      </div>
+      <div class="update-notes" id="updateNotes"></div>
+      <div class="update-progress hidden" id="updateProgress">
+        <div class="progress-head"><span id="updateProgressText">准备下载…</span><b id="updateProgressPct">0%</b></div>
+        <div class="progress-track"><i id="updateProgressBar"></i></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <span class="muted" id="updateHint"></span>
+      <div class="update-actions">
+        <button class="btn ghost" id="btnUpdateLater" data-i18n="update.later">稍后</button>
+        <button class="btn ghost" id="btnUpdateSkip" data-i18n="update.skip">跳过此版本</button>
+        <button class="btn ghost" id="btnUpdatePage" data-i18n="update.page">打开发布页</button>
+        <button class="btn primary" id="btnUpdateDownload" data-i18n="update.download">下载并安装</button>
+      </div>
     </div>
   </div>
 </div>

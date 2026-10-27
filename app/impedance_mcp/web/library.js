@@ -20,6 +20,14 @@
     loadingPage: false,
     statusTimer: null,
     initialized: false,
+    sources: [],
+    pathsLoaded: false,
+    splitWidth: 300,
+    splitHeight: 220,
+    splitDragging: false,
+    dataDir: "",
+    installDir: "",
+    currentDir: "",
   };
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -61,6 +69,21 @@
       $("#libraryLoading").classList.add("hidden");
       $("#libraryPage").classList.add("hidden");
     });
+    $("#btnLibraryPaths").addEventListener("click", openPaths);
+    $("#btnCloseLibraryPaths").addEventListener("click", closePaths);
+    $("#btnCancelLibraryPaths").addEventListener("click", closePaths);
+    $("#btnSaveLibraryPaths").addEventListener("click", savePaths);
+    $("#btnAddLibraryPath").addEventListener("click", addPath);
+    $("#btnBrowseLibraryPath").addEventListener("click", browsePath);
+    $("#btnOpenDataDir").addEventListener("click", () => IMP().openLocalPath(STATE.dataDir));
+    $("#btnOpenLibraryDir").addEventListener("click", () => IMP().openLocalPath(STATE.currentDir));
+    $("#libraryNewPath").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") { event.preventDefault(); addPath(); }
+    });
+    $("#libraryPathsModal").addEventListener("click", (event) => {
+      if (event.target === $("#libraryPathsModal")) closePaths();
+    });
+    initSplitters();
     window.addEventListener("resize", drawHighlights);
     document.addEventListener("langchange", () => {
       renderDocList();
@@ -75,6 +98,7 @@
       const status = await IMP().api("/api/library/status");
       window.__libraryStatus = status;
       updateStatusText(status);
+      applyStatusPaths(status);
       if (!STATE.docs.length) await loadDocs();
       if (status.running) startPolling();
     } catch (error) {
@@ -127,6 +151,7 @@
       const status = await IMP().api("/api/library/status");
       window.__libraryStatus = status;
       updateStatusText(status);
+      applyStatusPaths(status);
       if (!status.running) {
         stopPolling();
         await loadDocs();
@@ -163,6 +188,223 @@
     if (STATE.statusTimer) {
       clearInterval(STATE.statusTimer);
       STATE.statusTimer = null;
+    }
+  }
+
+  function applyStatusPaths(status) {
+    if (!status) return;
+    STATE.installDir = status.install_dir || STATE.installDir;
+    STATE.dataDir = status.data_dir || STATE.dataDir;
+    STATE.currentDir = status.current_dir || STATE.currentDir;
+    const summary = $("#libraryPathSummary");
+    if (summary) {
+      const sources = status.library_sources || [];
+      const enabled = sources.filter((item) => item.enabled && item.exists).length;
+      summary.innerHTML = `<span title="${esc(status.current_dir || "")}">${esc(T("libraryPaths.current", "当前教材库"))}：<b>${esc(status.current_dir || T("libraryPaths.none", "未设置"))}</b></span>` +
+        `<small>${enabled} ${T("libraryPaths.active", "个启用目录")} · ${esc(status.data_dir || "")}</small>`;
+    }
+  }
+
+  function applyConfig(cfg) {
+    const ui = (cfg && cfg.ui) || {};
+    STATE.splitWidth = Math.max(220, Math.min(620, Number(ui.library_split) || 300));
+    STATE.splitHeight = Math.max(90, Math.min(520, Number(ui.library_text_height) || 220));
+    applySplit();
+  }
+
+  function applySplit() {
+    const body = $("#libraryBody");
+    const text = $("#libraryTextGrid");
+    if (body) body.style.setProperty("--library-results-w", `${STATE.splitWidth}px`);
+    if (text) {
+      text.style.flex = `0 0 ${STATE.splitHeight}px`;
+      text.style.height = `${STATE.splitHeight}px`;
+    }
+  }
+
+  function persistSplit() {
+    IMP().api("/api/config", {
+      method: "POST",
+      body: { ui: {
+        library_split: Math.round(STATE.splitWidth),
+        library_text_height: Math.round(STATE.splitHeight),
+      } },
+    }).catch(() => {});
+  }
+
+  function initSplitters() {
+    const vertical = $("#librarySplitV");
+    const horizontal = $("#librarySplitH");
+    let drag = null;
+    const start = (type) => (event) => {
+      event.preventDefault();
+      drag = {
+        type,
+        x: event.clientX,
+        y: event.clientY,
+        width: STATE.splitWidth,
+        height: STATE.splitHeight,
+      };
+      document.body.classList.add("resizing");
+      if (vertical) vertical.classList.add("active");
+      if (horizontal) horizontal.classList.add("active");
+    };
+    if (vertical) vertical.addEventListener("pointerdown", start("v"));
+    if (horizontal) horizontal.addEventListener("pointerdown", start("h"));
+    window.addEventListener("pointermove", (event) => {
+      if (!drag) return;
+      if (drag.type === "v") {
+        const body = $("#libraryBody");
+        const max = body ? Math.max(260, body.clientWidth - 320) : 620;
+        STATE.splitWidth = Math.max(200, Math.min(max, drag.width + event.clientX - drag.x));
+      } else {
+        const viewer = $("#libraryViewer");
+        const max = viewer ? Math.max(140, viewer.clientHeight - 190) : 520;
+        STATE.splitHeight = Math.max(80, Math.min(max, drag.height - (event.clientY - drag.y)));
+      }
+      applySplit();
+    });
+    window.addEventListener("pointerup", () => {
+      if (!drag) return;
+      drag = null;
+      document.body.classList.remove("resizing");
+      if (vertical) vertical.classList.remove("active");
+      if (horizontal) horizontal.classList.remove("active");
+      persistSplit();
+    });
+  }
+
+  async function openPaths() {
+    $("#libraryPathsModal").classList.remove("hidden");
+    $("#librarySourceList").innerHTML = `<div class="empty-mini">读取中…</div>`;
+    $("#libraryPathsHint").textContent = "";
+    try {
+      const data = await IMP().api("/api/library/sources");
+      STATE.sources = (data.sources || []).map((item) => ({ ...item }));
+      STATE.installDir = data.install_dir || "";
+      STATE.dataDir = data.data_dir || "";
+      STATE.currentDir = data.current || "";
+      $("#libInstallDir").textContent = STATE.installDir || "—";
+      $("#libDataDir").textContent = STATE.dataDir || "—";
+      $("#libCurrentDir").textContent = STATE.currentDir || T("libraryPaths.none", "未设置");
+      renderSources();
+    } catch (error) {
+      $("#librarySourceList").innerHTML = `<div class="empty-mini bad">${esc(error.message)}</div>`;
+    }
+  }
+
+  function closePaths() {
+    $("#libraryPathsModal").classList.add("hidden");
+  }
+
+  function renderSources() {
+    const list = $("#librarySourceList");
+    if (!list) return;
+    if (!STATE.sources.length) {
+      list.innerHTML = `<div class="empty-mini">${esc(T("libraryPaths.empty", "还没有搜索目录；点击下方添加。"))}</div>`;
+    } else {
+      list.innerHTML = STATE.sources.map((source, index) => {
+        const badge = source.builtin
+          ? `<span class="badge">${esc(T("libraryPaths.builtin", "内置"))}</span>`
+          : `<span class="badge cyan">${esc(T("libraryPaths.custom", "自定义"))}</span>`;
+        const missing = source.exists === false
+          ? `<span class="badge amber">${esc(T("libraryPaths.missing", "不存在"))}</span>` : "";
+        return `<div class="path-row ${source.enabled === false ? "disabled" : ""}" data-index="${index}">
+          <span class="path-priority">${index + 1}</span>
+          <label class="check-inline"><input type="checkbox" data-path-toggle="${index}" ${source.enabled !== false ? "checked" : ""}></label>
+          <div class="path-copy"><b>${esc(source.label || source.path)}</b><small>${esc(source.path)}</small></div>
+          ${badge}${missing}
+          <div class="path-actions">
+            <button class="icon-btn sm" data-path-up="${index}" title="上移" ${index === 0 ? "disabled" : ""}>↑</button>
+            <button class="icon-btn sm" data-path-down="${index}" title="下移" ${index === STATE.sources.length - 1 ? "disabled" : ""}>↓</button>
+            <button class="icon-btn sm danger" data-path-remove="${index}" title="删除">✕</button>
+          </div>
+        </div>`;
+      }).join("");
+      $$("[data-path-up]", list).forEach((button) => button.addEventListener("click", () => movePath(Number(button.dataset.pathUp), -1)));
+      $$("[data-path-down]", list).forEach((button) => button.addEventListener("click", () => movePath(Number(button.dataset.pathDown), 1)));
+      $$("[data-path-remove]", list).forEach((button) => button.addEventListener("click", () => removePath(Number(button.dataset.pathRemove))));
+      $$("[data-path-toggle]", list).forEach((input) => input.addEventListener("change", () => {
+        const index = Number(input.dataset.pathToggle);
+        if (STATE.sources[index]) STATE.sources[index].enabled = input.checked;
+        renderSources();
+      }));
+    }
+    $("#libraryPathCount").textContent = `${STATE.sources.filter((item) => item.enabled !== false).length} / ${STATE.sources.length}`;
+  }
+
+  function movePath(index, delta) {
+    const target = index + delta;
+    if (target < 0 || target >= STATE.sources.length) return;
+    const [item] = STATE.sources.splice(index, 1);
+    STATE.sources.splice(target, 0, item);
+    renderSources();
+  }
+
+  function removePath(index) {
+    const source = STATE.sources[index];
+    if (!source) return;
+    if (source.builtin && !confirm(T("libraryPaths.confirmBuiltin", "从搜索列表移除这个内置目录？（不会删除文件）"))) return;
+    STATE.sources.splice(index, 1);
+    renderSources();
+  }
+
+  function addPath() {
+    const input = $("#libraryNewPath");
+    const value = String(input.value || "").trim();
+    if (!value) {
+      IMP().toast("请输入目录", "例如 D:\\Books\\Microwave", "amber");
+      return;
+    }
+    const normalized = value.replace(/[\\/]+$/, "");
+    if (STATE.sources.some((item) => String(item.path || "").replace(/[\\/]+$/, "").toLowerCase() === normalized.toLowerCase())) {
+      IMP().toast("目录已存在", "该目录已经在搜索列表中。", "amber");
+      return;
+    }
+    STATE.sources.push({
+      kind: "custom", path: value, label: value.split(/[\\/]/).filter(Boolean).pop() || value,
+      enabled: true, builtin: false, exists: true,
+    });
+    input.value = "";
+    renderSources();
+  }
+
+  async function browsePath() {
+    const input = $("#libraryNewPath");
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.choose_folder) {
+      try {
+        const selected = await window.pywebview.api.choose_folder();
+        if (selected) input.value = selected;
+        return;
+      } catch (error) { /* fall through */ }
+    }
+    IMP().toast("浏览器模式", "浏览器无法读取本机目录，请直接输入绝对路径；桌面窗口支持目录选择器。", "amber", 5000);
+    input.focus();
+  }
+
+  async function savePaths() {
+    const button = $("#btnSaveLibraryPaths");
+    button.disabled = true;
+    try {
+      const payload = STATE.sources.map((source) => ({
+        kind: source.kind, path: source.path, enabled: source.enabled !== false,
+      }));
+      const data = await IMP().api("/api/library/sources", {
+        method: "POST", body: { sources: payload, reindex: true },
+      });
+      STATE.sources = (data.sources || []).map((item) => ({ ...item }));
+      STATE.currentDir = data.current || "";
+      applyStatusPaths(data.status || {});
+      $("#libraryPathsHint").textContent = T("libraryPaths.saved", "已保存；索引在后台更新。");
+      closePaths();
+      IMP().toast("教材路径已保存", `${STATE.sources.filter((item) => item.enabled).length} 个启用目录，正在重建索引。`, "ok", 5000);
+      startPolling();
+      await refreshStatus();
+      await loadDocs();
+    } catch (error) {
+      IMP().toast("保存路径失败", error.message, "err", 7000);
+    } finally {
+      button.disabled = false;
     }
   }
 
@@ -488,5 +730,7 @@
     openPage,
     current,
     refreshStatus,
+    applyConfig,
+    openPaths,
   };
 })();

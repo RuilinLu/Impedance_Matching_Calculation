@@ -1,8 +1,8 @@
-; Impedance Matching AI v4.3.0 — Inno Setup 6 installer
+; Impedance Matching AI v4.4.0 — Inno Setup 6 installer
 ; Build:  "C:\Users\Lenovo\AppData\Local\Programs\Inno Setup 6\ISCC.exe" installer\ImpedanceMatchingAI.iss
 
 #define MyAppName "Impedance Matching AI"
-#define MyAppVersion "4.3.0"
+#define MyAppVersion "4.4.0"
 #define MyAppPublisher "Impedance Matching AI contributors"
 #define MyAppURL "https://github.com/SkywalkerHolmes/Impedance_Matching_Calculation"
 #define MyAppExeName "ImpedanceMatchingAI.exe"
@@ -37,7 +37,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
 RestartApplications=no
 SetupLogging=yes
-VersionInfoVersion=4.3.0.0
+VersionInfoVersion=4.4.0.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} installer
 VersionInfoProductName={#MyAppName}
@@ -91,14 +91,77 @@ Filename: "{app}\{#MyAppExeName}"; Description: "启动 {#MyAppName}"; Flags: no
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /T /IM {#MyAppExeName}"; Flags: runhidden waituntilterminated; RunOnceId: "KillGui"
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM {#MyAppMcpExeName}"; Flags: runhidden waituntilterminated; RunOnceId: "KillMcp"
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--cleanup --app-dir ""{app}"""; Flags: runhidden waituntilterminated; RunOnceId: "DeepCleanup"
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\docs"
 Type: filesandordirs; Name: "{app}\TextBook"
-Type: filesandordirs; Name: "{localappdata}\ImpedanceMatchingAI"
 
 [Code]
+var
+  KeepUserData: Boolean;
+
+procedure KillProcesses;
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{sys}\taskkill.exe'),
+    '/F /T /IM {#MyAppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(ExpandConstant('{sys}\taskkill.exe'),
+    '/F /IM {#MyAppMcpExeName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+procedure RunCleanup(DeleteData: Boolean);
+var
+  Params: String;
+  ResultCode: Integer;
+begin
+  if DeleteData then
+    Params := '--cleanup --app-dir "' + ExpandConstant('{app}') +
+      '" --delete-user-data'
+  else
+    Params := '--cleanup --app-dir "' + ExpandConstant('{app}') +
+      '" --keep-user-data --preserve-textbook';
+  Log('Cleanup parameters: ' + Params);
+  if not Exec(ExpandConstant('{app}\{#MyAppExeName}'), Params, '',
+      SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+    Log('Cleanup could not be started')
+  else
+    Log('Cleanup exit code: ' + IntToStr(ResultCode));
+end;
+
+function InitializeUninstall(): Boolean;
+var
+  Answer: Integer;
+  Tail: String;
+  SilentMode: Boolean;
+begin
+  Result := True;
+  Tail := LowerCase(GetCmdTail);
+  SilentMode := UninstallSilent
+    or (Pos('/verysilent', Tail) > 0)
+    or (Pos('/silent', Tail) > 0);
+  if Pos('/deletedata', Tail) > 0 then
+    KeepUserData := False
+  else if Pos('/keepdata', Tail) > 0 then
+    KeepUserData := True
+  else if SilentMode then
+    KeepUserData := True
+  else
+  begin
+    Answer := SuppressibleMsgBox(
+      '是否保留个人数据与设置？' + #13#10 + #13#10 +
+      '是：保留 API Key、界面设置、教材索引、上传/报告、翻译缓存和教材搜索路径，' +
+      '下次安装可直接复用原来的使用习惯。' + #13#10 + #13#10 +
+      '否：彻底删除本机保存的全部个人数据（不可恢复），并删除程序目录 TextBook。' + #13#10 + #13#10 +
+      '自定义的教材搜索目录不会被卸载程序删除；选择“是”时程序目录 TextBook 会先复制到用户数据目录。',
+      mbConfirmation, MB_YESNO, IDYES);
+    KeepUserData := (Answer = IDYES);
+  end;
+  Log('Uninstall: keep user data = ' + IntToStr(Ord(KeepUserData)));
+  KillProcesses;
+  RunCleanup(not KeepUserData);
+end;
+
 function NeedsVCRedist: Boolean;
 var
   Installed: Cardinal;
